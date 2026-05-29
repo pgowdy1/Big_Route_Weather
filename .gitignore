@@ -1,0 +1,30 @@
+# Claude Code
+.claude/worktrees/
+.claude/plans/*.local.md
+
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+*.pdb
+
+# Node / Angular
+node_modules/
+dist/
+.angular/
+*.log
+npm-debug.log*
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
