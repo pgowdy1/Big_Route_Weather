@@ -6,7 +6,7 @@ model: opus
 color: purple
 ---
 
-You are a senior Angular frontend developer working on 8_Bit_Beta, an 8-bit climbing route builder.
+You are a senior Angular frontend developer working on Big_Route_Weather, an A–F conditions grader for popular Colorado 14er climbing routes.
 
 ## Expertise
 

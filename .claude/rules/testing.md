@@ -6,9 +6,12 @@ Frontend tests use **Vitest + jsdom** (Angular 21 default), not Karma/Jasmine.
 - Just `npm test` — vitest runs once and exits by default.
 - Do NOT pass `--watch=false`, `--browsers=ChromeHeadless`, or other Karma flags. They throw "Unknown argument" or require @vitest/browser-* peer deps the project doesn't install.
 
-## Canvas mocking
-- jsdom does not implement `HTMLCanvasElement.getContext()`. Tests that exercise the renderer use a hand-rolled `MockCtx` class with `fillStyle`, `fillRect`, `save`, `restore`, `scale` — see `src/app/rendering/wall-renderer.spec.ts` for the pattern.
-- Do NOT install the `canvas` npm package to fix this — the mock is intentional and faster.
+## HTTP mocking
+- Use `provideHttpClient()` + `provideHttpClientTesting()` together in `TestBed.configureTestingModule({ providers: [...] })`. Inject `HttpTestingController` to assert URL/method and `flush()` a response or `error()` it.
+- After each test, call `httpMock.verify()` in `afterEach` to catch unmatched or extra HTTP requests.
 
-## Route fixtures in specs
-- Any `Route` object literal in a spec must include `rockType` (e.g., `'granite'`). The TS compiler will catch missing fields, but lint-style helpers in spec files often build routes inline — keep them current.
+## Signal inputs in tests
+- For components using `input.required<T>()` / `input<T>()`, call `fixture.componentRef.setInput('name', value)` before the first `detectChanges()`. Assigning to the signal property directly will throw.
+
+## RouteSummary fixtures
+- Specs that build a `RouteSummary` object literal must include every field on the interface (`slug`, `mountain`, `routeName`, `summitElevationFt`, `classDifficulty`, `grade`, `overallScore`, `drivers`, `updatedAt`, `isStale`). TypeScript will catch omissions, but inline builders are common — keep them current as the contract evolves.

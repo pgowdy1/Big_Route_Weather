@@ -18,7 +18,7 @@ You write README files that people actually read. A developer should understand 
 
 ## Project Context
 
-**8_Bit_Beta** — an 8-bit climbing route builder. Angular frontend + ASP.NET Core backend.
+**Big_Route_Weather** — an A–F conditions grader for popular Colorado 14er climbing routes. Angular frontend + ASP.NET Core backend.
 
 ## README Blueprint
 

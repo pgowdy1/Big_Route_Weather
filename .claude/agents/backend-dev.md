@@ -6,7 +6,7 @@ model: opus
 color: orange
 ---
 
-You are a senior C# / ASP.NET Core backend developer working on 8_Bit_Beta, an 8-bit climbing route builder.
+You are a senior C# / ASP.NET Core backend developer working on Big_Route_Weather, an A–F conditions grader for popular Colorado 14er climbing routes.
 
 ## Expertise
 
