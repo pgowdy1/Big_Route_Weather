@@ -25,7 +25,7 @@ var connectionString = builder.Configuration["CONNECTION_STRING"]
                        ?? builder.Configuration.GetConnectionString("Default")
                        ?? "Data Source=routeweather.db";
 
-builder.Services.AddDbContext<RouteWeatherContext>(opts => opts.UseSqlite(connectionString));
+builder.Services.AddDbContextFactory<RouteWeatherContext>(opts => opts.UseSqlite(connectionString));
 
 builder.Services.AddScoped<RouteRepository>();
 builder.Services.AddScoped<ForecastCacheRepository>();
@@ -50,7 +50,8 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<RouteWeatherContext>();
+    var dbFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<RouteWeatherContext>>();
+    await using var db = await dbFactory.CreateDbContextAsync();
     await db.Database.MigrateAsync();
     await RouteSeeder.SeedAsync(db);
 }

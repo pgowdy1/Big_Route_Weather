@@ -9,6 +9,8 @@ namespace RouteWeather.API.Controllers;
 [Route("api/routes")]
 public class RoutesController : ControllerBase
 {
+    private const int MaxConcurrentFetches = 8;
+
     private readonly RouteRepository _routes;
     private readonly ConditionsAggregator _aggregator;
 
@@ -22,7 +24,15 @@ public class RoutesController : ControllerBase
     public async Task<IActionResult> GetAll(CancellationToken ct)
     {
         var routes = await _routes.GetAllAsync(ct);
-        var tasks = routes.Select(r => _aggregator.GetConditionsAsync(r, ct));
+        using var gate = new SemaphoreSlim(MaxConcurrentFetches, MaxConcurrentFetches);
+
+        var tasks = routes.Select(async r =>
+        {
+            await gate.WaitAsync(ct);
+            try { return await _aggregator.GetConditionsAsync(r, ct); }
+            finally { gate.Release(); }
+        });
+
         var conditions = await Task.WhenAll(tasks);
         var dto = conditions.Select(ToSummary).ToList();
         return Ok(dto);

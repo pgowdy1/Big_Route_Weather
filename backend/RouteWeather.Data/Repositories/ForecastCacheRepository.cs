@@ -5,23 +5,27 @@ namespace RouteWeather.Data.Repositories;
 
 public class ForecastCacheRepository
 {
-    private readonly RouteWeatherContext _db;
+    private readonly IDbContextFactory<RouteWeatherContext> _dbFactory;
 
-    public ForecastCacheRepository(RouteWeatherContext db) => _db = db;
+    public ForecastCacheRepository(IDbContextFactory<RouteWeatherContext> dbFactory) => _dbFactory = dbFactory;
 
-    public Task<CachedForecastEntity?> GetAsync(int routeId, string source, CancellationToken ct = default) =>
-        _db.CachedForecasts.AsNoTracking()
+    public async Task<CachedForecastEntity?> GetAsync(int routeId, string source, CancellationToken ct = default)
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync(ct);
+        return await db.CachedForecasts.AsNoTracking()
             .FirstOrDefaultAsync(c => c.RouteId == routeId && c.Source == source, ct);
+    }
 
     public async Task UpsertAsync(int routeId, string source, string payloadJson, DateTime expiresAtUtc, CancellationToken ct = default)
     {
-        var existing = await _db.CachedForecasts
+        await using var db = await _dbFactory.CreateDbContextAsync(ct);
+        var existing = await db.CachedForecasts
             .FirstOrDefaultAsync(c => c.RouteId == routeId && c.Source == source, ct);
 
         var nowUtc = DateTime.UtcNow;
         if (existing is null)
         {
-            _db.CachedForecasts.Add(new CachedForecastEntity
+            db.CachedForecasts.Add(new CachedForecastEntity
             {
                 RouteId = routeId,
                 Source = source,
@@ -36,6 +40,6 @@ public class ForecastCacheRepository
             existing.FetchedAtUtc = nowUtc;
             existing.ExpiresAtUtc = expiresAtUtc;
         }
-        await _db.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(ct);
     }
 }
