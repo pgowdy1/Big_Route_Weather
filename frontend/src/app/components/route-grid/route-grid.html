@@ -1,0 +1,14 @@
+@if (loading()) {
+  <p class="status">Loading conditions…</p>
+} @else if (error()) {
+  <div class="status error">
+    <p>{{ error() }}</p>
+    <button (click)="load()">Retry</button>
+  </div>
+} @else {
+  <div class="grid">
+    @for (r of routes(); track r.slug) {
+      <app-route-card [route]="r" />
+    }
+  </div>
+}

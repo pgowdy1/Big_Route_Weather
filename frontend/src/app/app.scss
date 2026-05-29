@@ -1,0 +1,23 @@
+.shell {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.hero {
+  margin-bottom: 2rem;
+
+  h1 {
+    margin: 0;
+    font-size: 2.25rem;
+    background: linear-gradient(120deg, #80cbc4, #c5e1a5);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  p {
+    margin: 0.35rem 0 0;
+    color: #92a4b5;
+  }
+}

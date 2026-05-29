@@ -10,6 +10,11 @@ obj/
 .vs/
 *.pdb
 
+# SQLite runtime artifacts
+*.db
+*.db-shm
+*.db-wal
+
 # Node / Angular
 node_modules/
 dist/

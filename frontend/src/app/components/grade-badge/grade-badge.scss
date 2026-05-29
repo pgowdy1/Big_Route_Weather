@@ -1,0 +1,19 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.75rem;
+  font-weight: 700;
+  font-size: 1.5rem;
+  color: #fff;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.badge-a { background: #2e7d32; }
+.badge-b { background: #689f38; }
+.badge-c { background: #f9a825; color: #222; }
+.badge-d { background: #ef6c00; }
+.badge-f { background: #c62828; }
+.badge-unknown { background: #455a64; }

@@ -1,0 +1,25 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.25rem;
+}
+
+.status {
+  color: #92a4b5;
+  text-align: center;
+  padding: 2rem;
+  font-family: 'Inter', system-ui, sans-serif;
+
+  &.error { color: #ef9a9a; }
+
+  button {
+    margin-top: 0.75rem;
+    background: #2e7d32;
+    color: #fff;
+    border: 0;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-weight: 600;
+  }
+}
