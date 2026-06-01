@@ -1,3 +1,5 @@
+using RouteWeather.Core.Models;
+
 namespace RouteWeather.Core.Grading;
 
 public static class TemperatureFactor
@@ -14,4 +16,12 @@ public static class TemperatureFactor
 
     public static string Detail(double summitTempF) =>
         $"Summit {summitTempF:0}°F";
+
+    public static (Grade? Cap, string Reason) Cap(double summitTempF)
+    {
+        if (summitTempF < -15 || summitTempF > 95) return (Grade.D, $"summit {summitTempF:0}°F");
+        if (summitTempF < 0 || summitTempF > 85) return (Grade.C, $"summit {summitTempF:0}°F");
+        if (summitTempF < 10 || summitTempF > 75) return (Grade.B, $"summit {summitTempF:0}°F");
+        return (null, string.Empty);
+    }
 }

@@ -73,4 +73,75 @@ public class GradeCalculatorTests
         var result = GradeCalculator.Compute(bad, PerfectSnowpack());
         Assert.Equal("negative", result.Drivers[0].Severity);
     }
+
+    [Fact]
+    public void Wind_above_20_caps_grade_at_B_even_when_otherwise_perfect()
+    {
+        var windy = new WeatherSnapshot(WindMph: 21, TempF: 45, PrecipitationProbabilityPct: 0, Next48Hours: Array.Empty<HourlyForecast>());
+        var result = GradeCalculator.Compute(windy, PerfectSnowpack());
+        Assert.Equal(Grade.B, result.Grade);
+        Assert.Contains("Capped at B", result.Rationale);
+        Assert.Contains("21 mph", result.Rationale);
+    }
+
+    [Fact]
+    public void Precip_above_30_caps_grade_at_B_even_when_otherwise_perfect()
+    {
+        var wet = new WeatherSnapshot(WindMph: 5, TempF: 45, PrecipitationProbabilityPct: 35, Next48Hours: Array.Empty<HourlyForecast>());
+        var result = GradeCalculator.Compute(wet, PerfectSnowpack());
+        Assert.Equal(Grade.B, result.Grade);
+        Assert.Contains("Capped at B", result.Rationale);
+    }
+
+    [Fact]
+    public void Worst_cap_wins_when_multiple_factors_trigger()
+    {
+        var bad = new WeatherSnapshot(WindMph: 22, TempF: 45, PrecipitationProbabilityPct: 80, Next48Hours: Array.Empty<HourlyForecast>());
+        var result = GradeCalculator.Compute(bad, PerfectSnowpack());
+        Assert.Equal(Grade.D, result.Grade);
+        Assert.Contains("Capped at D", result.Rationale);
+    }
+
+    [Fact]
+    public void Cap_does_not_raise_grade_above_natural()
+    {
+        var bad = new WeatherSnapshot(WindMph: 22, TempF: 100, PrecipitationProbabilityPct: 100, Next48Hours: Array.Empty<HourlyForecast>());
+        var result = GradeCalculator.Compute(bad, TerribleSnowpack());
+        Assert.Equal(Grade.F, result.Grade);
+    }
+
+    [Fact]
+    public void Cold_temp_extreme_triggers_temperature_cap()
+    {
+        var freezing = new WeatherSnapshot(WindMph: 5, TempF: -5, PrecipitationProbabilityPct: 0, Next48Hours: Array.Empty<HourlyForecast>());
+        var result = GradeCalculator.Compute(freezing, PerfectSnowpack());
+        Assert.True((int)result.Grade >= (int)Grade.C, $"Expected at least C cap from -5°F, got {result.Grade}");
+        Assert.Contains("Capped at", result.Rationale);
+    }
+
+    [Fact]
+    public void Fresh_snow_on_rock_caps_grade()
+    {
+        var perfectWeather = Perfect();
+        var snowyRock = new SnowpackSnapshot(
+            SnowWaterEquivalentIn: 5,
+            SnowDepthIn: 20,
+            NewSnowLast7DaysIn: 2.1,
+            PercentOfNormalSwe: 100,
+            StationTriplet: "TEST:CO:SNTL",
+            DailyDepthIn: Array.Empty<DailyDepthPoint>());
+        var result = GradeCalculator.Compute(perfectWeather, snowyRock);
+        Assert.Equal(Grade.B, result.Grade);
+        Assert.Contains("Capped at B", result.Rationale);
+    }
+
+    [Fact]
+    public void Capped_factor_surfaces_as_first_driver()
+    {
+        var windy = new WeatherSnapshot(WindMph: 25, TempF: 45, PrecipitationProbabilityPct: 0, Next48Hours: Array.Empty<HourlyForecast>());
+        var result = GradeCalculator.Compute(windy, PerfectSnowpack());
+        Assert.NotEmpty(result.Drivers);
+        Assert.Equal("High winds", result.Drivers[0].Label);
+        Assert.Equal("negative", result.Drivers[0].Severity);
+    }
 }
