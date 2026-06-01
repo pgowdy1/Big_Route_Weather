@@ -22,13 +22,17 @@ public class GradeCalculatorTests
         SnowWaterEquivalentIn: 5,
         SnowDepthIn: 20,
         NewSnowLast7DaysIn: 0,
-        PercentOfNormalSwe: 100);
+        PercentOfNormalSwe: 100,
+        StationTriplet: "TEST:CO:SNTL",
+        DailyDepthIn: Array.Empty<DailyDepthPoint>());
 
     private static SnowpackSnapshot TerribleSnowpack() => new(
         SnowWaterEquivalentIn: 12,
         SnowDepthIn: 60,
         NewSnowLast7DaysIn: 12,
-        PercentOfNormalSwe: 250);
+        PercentOfNormalSwe: 250,
+        StationTriplet: "TEST:CO:SNTL",
+        DailyDepthIn: Array.Empty<DailyDepthPoint>());
 
     [Fact]
     public void Returns_A_when_all_factors_perfect()

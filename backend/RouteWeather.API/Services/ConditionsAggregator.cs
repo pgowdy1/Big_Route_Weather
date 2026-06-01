@@ -42,6 +42,9 @@ public class ConditionsAggregator
             var result = GradeCalculator.Compute(weather, snowpack);
             var updatedAt = MaxOf(weatherFetched, snowpackFetched) ?? DateTimeOffset.UtcNow;
             var isStale = weatherStale || snowpackStale;
+            var windowGrades = weather is null && snowpack is null
+                ? null
+                : WindowGradeCalculator.Compute(weather, snowpack);
 
             var route = new Core.Models.Route(
                 routeEntity.Slug,
@@ -63,7 +66,9 @@ public class ConditionsAggregator
                 updatedAt,
                 isStale,
                 weather,
-                snowpack);
+                snowpack,
+                windowGrades,
+                new SourceFreshness(weatherFetched, snowpackFetched));
         }
         finally
         {

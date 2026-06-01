@@ -1,5 +1,5 @@
-<article class="card" [class.expanded]="expanded()">
-  <header class="card-head" (click)="toggle()">
+<a class="card" [routerLink]="['/peak', route().slug]">
+  <header class="card-head">
     <div class="title">
       <h2>{{ route().mountain }}</h2>
       <p class="route-name">{{ route().routeName }} · Class {{ route().classDifficulty }} · {{ route().summitElevationFt | number }}'</p>
@@ -19,47 +19,4 @@
       <li [class]="'pill pill-' + d.severity">{{ d.label }}</li>
     }
   </ul>
-
-  @if (expanded()) {
-    <section class="detail">
-      @if (detailError()) {
-        <p class="error">{{ detailError() }}</p>
-      } @else if (!detail()) {
-        <p class="loading">Loading detail…</p>
-      } @else {
-        <p class="rationale">{{ detail()!.rationale }}</p>
-        <h3>Factors</h3>
-        <table class="factors">
-          <thead><tr><th>Factor</th><th>Score</th><th>Weight</th><th>Detail</th></tr></thead>
-          <tbody>
-            @for (f of detail()!.factors; track f.name) {
-              <tr>
-                <td>{{ f.name }}</td>
-                <td>{{ f.score }}</td>
-                <td>{{ (f.weight * 100) | number:'1.0-0' }}%</td>
-                <td>{{ f.detail }}</td>
-              </tr>
-            }
-          </tbody>
-        </table>
-        @if (detail()!.forecastNext48h && detail()!.forecastNext48h!.length > 0) {
-          <h3>Forecast (next 12h sample)</h3>
-          <table class="forecast">
-            <thead><tr><th>Time</th><th>°F</th><th>Wind</th><th>Precip</th><th>Conditions</th></tr></thead>
-            <tbody>
-              @for (h of detail()!.forecastNext48h!.slice(0, 12); track h.time) {
-                <tr>
-                  <td>{{ h.time | date:'shortTime' }}</td>
-                  <td>{{ h.tempF }}</td>
-                  <td>{{ h.windMph }} mph</td>
-                  <td>{{ h.precipitationProbabilityPct }}%</td>
-                  <td>{{ h.shortForecast }}</td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        }
-      }
-    </section>
-  }
-</article>
+</a>
