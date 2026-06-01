@@ -15,6 +15,7 @@ public static class GradeCalculator
     public static GradeResult Compute(WeatherSnapshot? weather, SnowpackSnapshot? snowpack)
     {
         var factors = new List<FactorScore>();
+        var capCandidates = new List<(Grade Cap, string Reason, string FactorName)>();
 
         if (weather is not null)
         {
@@ -23,18 +24,21 @@ public static class GradeCalculator
                 WindFactor.Score(weather.WindMph),
                 WindFactor.Weight,
                 WindFactor.Detail(weather.WindMph)));
+            AddCap(capCandidates, "Wind", WindFactor.Cap(weather.WindMph));
 
             factors.Add(new FactorScore(
                 "Temperature",
                 TemperatureFactor.Score(weather.TempF),
                 TemperatureFactor.Weight,
                 TemperatureFactor.Detail(weather.TempF)));
+            AddCap(capCandidates, "Temperature", TemperatureFactor.Cap(weather.TempF));
 
             factors.Add(new FactorScore(
                 "Precipitation",
                 PrecipitationFactor.Score(weather.PrecipitationProbabilityPct),
                 PrecipitationFactor.Weight,
                 PrecipitationFactor.Detail(weather.PrecipitationProbabilityPct)));
+            AddCap(capCandidates, "Precipitation", PrecipitationFactor.Cap(weather.PrecipitationProbabilityPct));
         }
 
         if (snowpack is not null)
@@ -44,6 +48,7 @@ public static class GradeCalculator
                 RecentSnowFactor.Score(snowpack.NewSnowLast7DaysIn),
                 RecentSnowFactor.Weight,
                 RecentSnowFactor.Detail(snowpack.NewSnowLast7DaysIn)));
+            AddCap(capCandidates, "Recent snow", RecentSnowFactor.Cap(snowpack.NewSnowLast7DaysIn));
 
             factors.Add(new FactorScore(
                 "Snowpack",
@@ -65,15 +70,35 @@ public static class GradeCalculator
         var totalWeight = factors.Sum(f => f.Weight);
         var weighted = factors.Sum(f => f.Score * f.Weight);
         var overallScore = (int)Math.Round(weighted / totalWeight);
-        var grade = GradeMapping.FromScore(overallScore);
+        var naturalGrade = GradeMapping.FromScore(overallScore);
 
-        var drivers = BuildDrivers(factors);
-        var rationale = BuildRationale(grade, factors);
+        var worstCap = capCandidates.Count == 0
+            ? default((Grade Cap, string Reason, string FactorName)?)
+            : capCandidates.OrderByDescending(c => (int)c.Cap).First();
+
+        var capApplied = worstCap.HasValue && (int)worstCap.Value.Cap > (int)naturalGrade;
+        var grade = capApplied ? worstCap!.Value.Cap : naturalGrade;
+
+        var drivers = BuildDrivers(factors, capApplied ? worstCap : null);
+        var rationale = capApplied
+            ? $"Capped at {worstCap!.Value.Cap} — {worstCap.Value.Reason}. {BuildRationale(grade, factors)}"
+            : BuildRationale(grade, factors);
 
         return new GradeResult(grade, overallScore, factors, drivers, rationale);
     }
 
-    private static IReadOnlyList<Driver> BuildDrivers(IReadOnlyList<FactorScore> factors)
+    private static void AddCap(
+        List<(Grade Cap, string Reason, string FactorName)> list,
+        string factorName,
+        (Grade? Cap, string Reason) result)
+    {
+        if (result.Cap.HasValue)
+            list.Add((result.Cap.Value, result.Reason, factorName));
+    }
+
+    private static IReadOnlyList<Driver> BuildDrivers(
+        IReadOnlyList<FactorScore> factors,
+        (Grade Cap, string Reason, string FactorName)? appliedCap)
     {
         static string SeverityFor(int score) =>
             score <= 50 ? "negative" : score >= 85 ? "positive" : "neutral";
@@ -82,10 +107,22 @@ public static class GradeCalculator
         var positives = factors.Where(f => f.Score >= 85).OrderByDescending(f => f.Score).ToList();
         var neutrals  = factors.Where(f => f.Score > 50 && f.Score < 85).OrderBy(f => f.Score).ToList();
 
-        return negatives.Concat(neutrals).Concat(positives)
+        var ordered = negatives.Concat(neutrals).Concat(positives)
             .Take(3)
             .Select(f => new Driver(LabelFor(f, SeverityFor(f.Score)), SeverityFor(f.Score)))
             .ToList();
+
+        if (appliedCap is null) return ordered;
+
+        var capFactor = factors.FirstOrDefault(f => f.Name == appliedCap.Value.FactorName);
+        if (capFactor is null) return ordered;
+
+        var negLabel = LabelFor(capFactor, "negative");
+        var posLabel = LabelFor(capFactor, "positive");
+        ordered.RemoveAll(d => d.Label == negLabel || d.Label == posLabel);
+        ordered.Insert(0, new Driver(negLabel, "negative"));
+        if (ordered.Count > 3) ordered.RemoveAt(ordered.Count - 1);
+        return ordered;
     }
 
     private static string LabelFor(FactorScore f, string severity) => f.Name switch
