@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { provideRouter } from '@angular/router';
 import { RouteGrid } from './route-grid';
 import { RouteSummary } from '../../models/route-conditions';
 
@@ -10,7 +11,7 @@ describe('RouteGrid', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [RouteGrid],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
     });
     httpMock = TestBed.inject(HttpTestingController);
   });

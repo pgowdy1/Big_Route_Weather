@@ -45,11 +45,18 @@ public class SnotelClient
             var oldestDepth = snwdValues.FirstOrDefault(v => v.Value.HasValue)?.Value ?? latestDepth;
             var newSnow = Math.Max(0, latestDepth - oldestDepth);
 
+            var dailyDepth = snwdValues
+                .Where(v => v.Value.HasValue && !string.IsNullOrWhiteSpace(v.Date))
+                .Select(v => new DailyDepthPoint(v.Date!, v.Value!.Value))
+                .ToList();
+
             return new SnowpackSnapshot(
                 SnowWaterEquivalentIn: latestSwe,
                 SnowDepthIn: latestDepth,
                 NewSnowLast7DaysIn: newSnow,
-                PercentOfNormalSwe: 100);
+                PercentOfNormalSwe: 100,
+                StationTriplet: stationTriplet,
+                DailyDepthIn: dailyDepth);
         }
         catch (Exception ex)
         {

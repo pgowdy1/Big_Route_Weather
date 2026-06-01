@@ -2,6 +2,23 @@ namespace RouteWeather.Core.Models;
 
 public record Driver(string Label, string Severity);
 
+public record WindowGrade(
+    Grade? Grade,
+    int? OverallScore,
+    int HoursCovered,
+    IReadOnlyList<FactorScore> Factors,
+    IReadOnlyList<Driver> Drivers,
+    string Rationale
+);
+
+public record WindowGrades(
+    WindowGrade Next12h,
+    WindowGrade Next24h,
+    WindowGrade Next48h
+);
+
+public record SourceFreshness(DateTimeOffset? NwsFetchedAt, DateTimeOffset? SnotelFetchedAt);
+
 public record RouteConditions(
     Route Route,
     Grade? Grade,
@@ -12,5 +29,7 @@ public record RouteConditions(
     DateTimeOffset UpdatedAt,
     bool IsStale,
     WeatherSnapshot? Weather,
-    SnowpackSnapshot? Snowpack
+    SnowpackSnapshot? Snowpack,
+    WindowGrades? WindowGrades,
+    SourceFreshness Sources
 );

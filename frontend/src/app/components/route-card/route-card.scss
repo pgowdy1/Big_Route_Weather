@@ -1,14 +1,15 @@
 .card {
+  display: block;
   background: #1a2632;
   border: 1px solid #2c3e50;
   border-radius: 1rem;
   padding: 1.25rem;
   color: #e8eef3;
+  text-decoration: none;
   transition: border-color 0.15s, transform 0.15s;
   font-family: 'Inter', system-ui, sans-serif;
 
-  &:hover { border-color: #4a6075; }
-  &.expanded { background: #11202c; }
+  &:hover { border-color: #4a6075; transform: translateY(-1px); }
 }
 
 .card-head {
@@ -16,7 +17,6 @@
   justify-content: space-between;
   align-items: flex-start;
   gap: 1rem;
-  cursor: pointer;
 }
 
 .title {
@@ -67,26 +67,3 @@
 .pill-neutral  { background: #2a3340; color: #b0bec5; border-color: #455a64; }
 .pill-negative { background: #4a1f1f; color: #ef9a9a; border-color: #c62828; }
 
-.detail {
-  margin-top: 1rem;
-  border-top: 1px solid #2c3e50;
-  padding-top: 1rem;
-
-  h3 { margin: 1rem 0 0.5rem; font-size: 0.95rem; color: #b0bec5; }
-  .rationale { margin: 0 0 0.5rem; color: #cfd8dc; }
-  .loading, .error { color: #92a4b5; font-style: italic; }
-  .error { color: #ef9a9a; font-style: normal; }
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.8rem;
-
-  th, td {
-    padding: 0.35rem 0.5rem;
-    text-align: left;
-    border-bottom: 1px solid #243240;
-  }
-  th { color: #8aa0b4; font-weight: 500; }
-}

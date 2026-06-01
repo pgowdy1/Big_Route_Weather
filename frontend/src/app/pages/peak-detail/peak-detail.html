@@ -1,0 +1,106 @@
+<section class="peak-detail">
+  <p class="back"><a routerLink="/">← All peaks</a></p>
+
+  @if (loading()) {
+    <p class="status">Loading…</p>
+  } @else if (notFound()) {
+    <p class="status error">Peak not found.</p>
+  } @else if (error()) {
+    <p class="status error">{{ error() }}</p>
+  } @else if (detail(); as d) {
+    <header class="head">
+      <div class="title">
+        <h2>{{ d.mountain }}</h2>
+        <p class="route-name">
+          {{ d.routeName }} · Class {{ d.classDifficulty }} · {{ d.summitElevationFt | number }}'
+        </p>
+        <p class="coords">
+          Summit: {{ d.summitLat | number:'1.4-4' }}, {{ d.summitLon | number:'1.4-4' }}
+        </p>
+      </div>
+      @if (d.isStale) {
+        <span class="stale-chip">Stale data</span>
+      }
+    </header>
+
+    @if (windows().length > 0) {
+      <section class="windows">
+        @for (w of windows(); track w.key) {
+          <article class="window">
+            <header>
+              <span class="window-label">{{ w.label }}</span>
+              @if (w.data.hoursCovered < w.target) {
+                <span class="partial">partial — {{ w.data.hoursCovered }}h</span>
+              }
+            </header>
+            <app-grade-badge [grade]="w.data.grade" />
+            <p class="rationale">{{ w.data.rationale }}</p>
+            @if (w.data.drivers.length > 0) {
+              <ul class="drivers">
+                @for (driver of w.data.drivers; track driver.label) {
+                  <li [class]="'pill pill-' + driver.severity">{{ driver.label }}</li>
+                }
+              </ul>
+            }
+          </article>
+        }
+      </section>
+    }
+
+    @if (d.snowpack; as snow) {
+      <section class="snowpack">
+        <h3>Snowpack</h3>
+        <div class="snowpack-grid">
+          <div class="snowpack-tile">
+            <span class="label">SWE</span>
+            <span class="value">{{ snow.snowWaterEquivalentIn | number:'1.1-1' }}"</span>
+          </div>
+          <div class="snowpack-tile">
+            <span class="label">Depth</span>
+            <span class="value">{{ snow.snowDepthIn | number:'1.1-1' }}"</span>
+          </div>
+          <div class="snowpack-tile">
+            <span class="label">New (7d)</span>
+            <span class="value">{{ snow.newSnowLast7DaysIn | number:'1.1-1' }}"</span>
+          </div>
+          <div class="snowpack-tile">
+            <span class="label">% of normal</span>
+            <span class="value">{{ snow.percentOfNormalSwe | number:'1.0-0' }}%</span>
+          </div>
+        </div>
+        @if (sparklinePoints().length > 1) {
+          <h4>7-day depth trend</h4>
+          <app-sparkline [points]="sparklinePoints()" ariaLabel="Snow depth, last 7 days" />
+        }
+        <p class="station">Source: SNOTEL {{ snow.stationTriplet }}</p>
+      </section>
+    }
+
+    @if (d.forecastNext48h && d.forecastNext48h.length > 0) {
+      <section class="forecast">
+        <h3>Hourly forecast — next {{ d.forecastNext48h.length }}h</h3>
+        <table>
+          <thead>
+            <tr><th>Time</th><th>°F</th><th>Wind</th><th>Precip</th><th>Conditions</th></tr>
+          </thead>
+          <tbody>
+            @for (h of d.forecastNext48h; track h.time) {
+              <tr>
+                <td>{{ h.time | date:'EEE h a' }}</td>
+                <td>{{ h.tempF }}</td>
+                <td>{{ h.windMph }} mph</td>
+                <td>{{ h.precipitationProbabilityPct }}%</td>
+                <td>{{ h.shortForecast }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </section>
+    }
+
+    <footer class="sources">
+      <span>NWS: {{ (d.sources.nws.fetchedAt | date:'short') ?? 'unavailable' }}</span>
+      <span>SNOTEL: {{ (d.sources.snotel.fetchedAt | date:'short') ?? 'unavailable' }}</span>
+    </footer>
+  }
+</section>

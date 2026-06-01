@@ -67,6 +67,8 @@ public class RoutesController : ControllerBase
         mountain = c.Route.Mountain,
         routeName = c.Route.RouteName,
         summitElevationFt = c.Route.SummitElevationFt,
+        summitLat = c.Route.SummitLat,
+        summitLon = c.Route.SummitLon,
         classDifficulty = c.Route.ClassDifficulty,
         grade = c.Grade?.ToString(),
         overallScore = c.OverallScore,
@@ -77,5 +79,26 @@ public class RoutesController : ControllerBase
         isStale = c.IsStale,
         forecastNext48h = c.Weather?.Next48Hours,
         snowpack = c.Snowpack,
+        windowGrades = c.WindowGrades is null ? null : new
+        {
+            next12h = SerializeWindow(c.WindowGrades.Next12h),
+            next24h = SerializeWindow(c.WindowGrades.Next24h),
+            next48h = SerializeWindow(c.WindowGrades.Next48h),
+        },
+        sources = new
+        {
+            nws = new { fetchedAt = c.Sources.NwsFetchedAt },
+            snotel = new { fetchedAt = c.Sources.SnotelFetchedAt },
+        },
+    };
+
+    private static object SerializeWindow(WindowGrade w) => new
+    {
+        grade = w.Grade?.ToString(),
+        overallScore = w.OverallScore,
+        hoursCovered = w.HoursCovered,
+        factors = w.Factors,
+        drivers = w.Drivers,
+        rationale = w.Rationale,
     };
 }
