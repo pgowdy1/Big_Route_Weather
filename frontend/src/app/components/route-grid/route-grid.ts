@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
 import { RoutesService } from '../../services/routes-service';
 import { RouteSummary } from '../../models/route-conditions';
 import { RouteCard } from '../route-card/route-card';
@@ -16,6 +16,13 @@ export class RouteGrid implements OnInit {
   routes = signal<RouteSummary[]>([]);
   loading = signal(false);
   error = signal<string | null>(null);
+  query = signal('');
+
+  filtered = computed(() => {
+    const q = this.query().trim().toLowerCase();
+    if (!q) return this.routes();
+    return this.routes().filter(r => r.mountain.toLowerCase().includes(q));
+  });
 
   ngOnInit() {
     this.load();
@@ -34,5 +41,9 @@ export class RouteGrid implements OnInit {
         this.loading.set(false);
       },
     });
+  }
+
+  onSearch(value: string) {
+    this.query.set(value);
   }
 }

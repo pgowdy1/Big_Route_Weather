@@ -1,3 +1,25 @@
+.search {
+  margin-bottom: 1.25rem;
+
+  input {
+    width: 100%;
+    box-sizing: border-box;
+    background: #1a2532;
+    color: #e6edf3;
+    border: 1px solid #2c3a4a;
+    border-radius: 0.5rem;
+    padding: 0.65rem 0.9rem;
+    font: inherit;
+    font-family: 'Inter', system-ui, sans-serif;
+
+    &::placeholder { color: #6b7c8e; }
+    &:focus {
+      outline: none;
+      border-color: #4a90e2;
+    }
+  }
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));

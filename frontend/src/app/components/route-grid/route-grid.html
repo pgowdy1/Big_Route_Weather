@@ -6,9 +6,22 @@
     <button (click)="load()">Retry</button>
   </div>
 } @else {
-  <div class="grid">
-    @for (r of routes(); track r.slug) {
-      <app-route-card [route]="r" />
-    }
+  <div class="search">
+    <input
+      type="search"
+      placeholder="Search peaks by mountain name…"
+      aria-label="Search peaks by mountain name"
+      [value]="query()"
+      (input)="onSearch($any($event.target).value)"
+    />
   </div>
+  @if (filtered().length === 0 && query().trim()) {
+    <p class="status">No peaks match "{{ query().trim() }}".</p>
+  } @else {
+    <div class="grid">
+      @for (r of filtered(); track r.slug) {
+        <app-route-card [route]="r" />
+      }
+    </div>
+  }
 }
