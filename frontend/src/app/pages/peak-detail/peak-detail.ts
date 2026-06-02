@@ -5,7 +5,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { GradeBadge } from '../../components/grade-badge/grade-badge';
 import { Sparkline, SparklinePoint } from '../../components/sparkline/sparkline';
 import { RoutesService } from '../../services/routes-service';
-import { RouteDetail, WindowGrade } from '../../models/route-conditions';
+import { FactorScore, RouteDetail, WindowGrade } from '../../models/route-conditions';
 
 interface WindowView {
   key: 'next12h' | 'next24h' | 'next48h';
@@ -45,6 +45,18 @@ export class PeakDetail {
     const series = this.detail()?.snowpack?.dailyDepthIn ?? [];
     return series.map(p => ({ label: p.date, value: p.depthIn }));
   });
+
+  activeFactors = computed<FactorScore[]>(() =>
+    (this.detail()?.factors ?? []).filter(f => f.isActive),
+  );
+
+  inactiveFactors = computed<FactorScore[]>(() =>
+    (this.detail()?.factors ?? []).filter(f => !f.isActive),
+  );
+
+  activeWeightPct = computed<number>(() =>
+    Math.round(this.activeFactors().reduce((s, f) => s + f.weight, 0) * 100),
+  );
 
   constructor() {
     effect(() => {

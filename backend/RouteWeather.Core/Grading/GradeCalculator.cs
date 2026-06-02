@@ -16,6 +16,7 @@ public static class GradeCalculator
     {
         var factors = new List<FactorScore>();
         var capCandidates = new List<(Grade Cap, string Reason, string FactorName)>();
+        var snow = SnowRelevance.Evaluate(weather, snowpack);
 
         if (weather is not null)
         {
@@ -47,28 +48,30 @@ public static class GradeCalculator
                 "Recent snow",
                 RecentSnowFactor.Score(snowpack.NewSnowLast7DaysIn),
                 RecentSnowFactor.Weight,
-                RecentSnowFactor.Detail(snowpack.NewSnowLast7DaysIn)));
-            AddCap(capCandidates, "Recent snow", RecentSnowFactor.Cap(snowpack.NewSnowLast7DaysIn));
+                RecentSnowFactor.Detail(snowpack.NewSnowLast7DaysIn),
+                IsActive: snow.RecentSnowActive));
+            if (snow.RecentSnowActive)
+                AddCap(capCandidates, "Recent snow", RecentSnowFactor.Cap(snowpack.NewSnowLast7DaysIn));
 
             factors.Add(new FactorScore(
                 "Snowpack",
                 SnowpackFactor.Score(snowpack.PercentOfNormalSwe),
                 SnowpackFactor.Weight,
-                SnowpackFactor.Detail(snowpack.SnowWaterEquivalentIn, snowpack.PercentOfNormalSwe)));
+                SnowpackFactor.Detail(snowpack.SnowWaterEquivalentIn, snowpack.PercentOfNormalSwe),
+                IsActive: snow.SnowpackActive));
         }
 
-        if (factors.Count == 0)
+        var activeFactors = factors.Where(f => f.IsActive).ToList();
+        if (activeFactors.Count == 0)
         {
-            return new GradeResult(
-                Models.Grade.F,
-                0,
-                Array.Empty<FactorScore>(),
-                Array.Empty<Driver>(),
-                "No weather or snowpack data available.");
+            var emptyRationale = factors.Count == 0
+                ? "No weather or snowpack data available."
+                : "No active factors to grade.";
+            return new GradeResult(Models.Grade.F, 0, factors, Array.Empty<Driver>(), emptyRationale);
         }
 
-        var totalWeight = factors.Sum(f => f.Weight);
-        var weighted = factors.Sum(f => f.Score * f.Weight);
+        var totalWeight = activeFactors.Sum(f => f.Weight);
+        var weighted = activeFactors.Sum(f => f.Score * f.Weight);
         var overallScore = (int)Math.Round(weighted / totalWeight);
         var naturalGrade = GradeMapping.FromScore(overallScore);
 
@@ -79,10 +82,10 @@ public static class GradeCalculator
         var capApplied = worstCap.HasValue && (int)worstCap.Value.Cap > (int)naturalGrade;
         var grade = capApplied ? worstCap!.Value.Cap : naturalGrade;
 
-        var drivers = BuildDrivers(factors, capApplied ? worstCap : null);
+        var drivers = BuildDrivers(activeFactors, capApplied ? worstCap : null);
         var rationale = capApplied
-            ? $"Capped at {worstCap!.Value.Cap} — {worstCap.Value.Reason}. {BuildRationale(grade, factors)}"
-            : BuildRationale(grade, factors);
+            ? $"Capped at {worstCap!.Value.Cap} — {worstCap.Value.Reason}. {BuildRationale(grade, activeFactors)}"
+            : BuildRationale(grade, activeFactors);
 
         return new GradeResult(grade, overallScore, factors, drivers, rationale);
     }

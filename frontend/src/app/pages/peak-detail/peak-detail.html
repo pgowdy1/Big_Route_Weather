@@ -47,6 +47,38 @@
       </section>
     }
 
+    @if (activeFactors().length > 0 || inactiveFactors().length > 0) {
+      <section class="factors">
+        <h3>Factor breakdown</h3>
+        @if (inactiveFactors().length > 0) {
+          <p class="factors-note">
+            Active weights total {{ activeWeightPct() }}% — snow factors excluded today.
+          </p>
+        }
+        <ul class="factor-list">
+          @for (f of activeFactors(); track f.name) {
+            <li class="factor-card">
+              <div class="factor-head">
+                <span class="factor-name">{{ f.name }}</span>
+                <span class="factor-score">{{ f.score }}</span>
+              </div>
+              <p class="factor-detail">{{ f.detail }}</p>
+              <span class="factor-weight">Weight {{ f.weight * 100 | number:'1.0-0' }}%</span>
+            </li>
+          }
+          @for (f of inactiveFactors(); track f.name) {
+            <li class="factor-card inactive">
+              <div class="factor-head">
+                <span class="factor-name">{{ f.name }}</span>
+                <span class="factor-badge">Not a factor today</span>
+              </div>
+              <p class="factor-detail">{{ f.detail }}</p>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+
     @if (d.snowpack; as snow) {
       <section class="snowpack">
         <h3>Snowpack</h3>

@@ -91,6 +91,43 @@
   .pill-negative { background: #4a1f1f; color: #ef9a9a; border-color: #c62828; }
 }
 
+.factors {
+  background: #11202c;
+  border: 1px solid #2c3e50;
+  border-radius: 0.75rem;
+  padding: 1rem;
+
+  h3 { margin: 0 0 0.5rem; font-size: 1rem; color: #b0bec5; }
+  .factors-note { margin: 0 0 0.75rem; font-size: 0.75rem; color: #8aa0b4; font-style: italic; }
+
+  .factor-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.6rem;
+  }
+
+  .factor-card {
+    background: #1a2632;
+    border-radius: 0.5rem;
+    padding: 0.65rem 0.8rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+
+    .factor-head { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+    .factor-name { color: #e8eef3; font-size: 0.9rem; font-weight: 600; }
+    .factor-score { color: #cfd8dc; font-weight: 700; }
+    .factor-detail { margin: 0; color: #92a4b5; font-size: 0.75rem; }
+    .factor-weight, .factor-badge { font-size: 0.7rem; color: #8aa0b4; text-transform: uppercase; }
+    .factor-badge { background: #243240; padding: 0.125rem 0.5rem; border-radius: 999px; }
+
+    &.inactive { opacity: 0.55; }
+  }
+}
+
 .snowpack {
   background: #11202c;
   border: 1px solid #2c3e50;

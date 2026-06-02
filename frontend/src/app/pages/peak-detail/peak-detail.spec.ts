@@ -81,6 +81,70 @@ describe('PeakDetail', () => {
     expect(text).toContain('partial');
     expect(text).toContain('30h');
   });
+
+  it('renders inactive factors with dimmed card and "Not a factor today" label', async () => {
+    const fixture = TestBed.createComponent(PeakDetail);
+    fixture.componentRef.setInput('slug', 'longs-peak');
+    fixture.detectChanges();
+
+    const data = detail();
+    data.factors = [
+      { name: 'Wind', score: 95, weight: 0.25, detail: '5 mph', isActive: true },
+      { name: 'Recent snow', score: 100, weight: 0.20, detail: '0.0" new snow in last 7 days', isActive: false },
+      { name: 'Snowpack', score: 100, weight: 0.20, detail: 'SWE 0.0" (100% of normal)', isActive: false },
+    ];
+    httpMock.expectOne('/api/routes/longs-peak').flush(data);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    const active = el.querySelectorAll('.factors .factor-card:not(.inactive)');
+    const inactive = el.querySelectorAll('.factors .factor-card.inactive');
+
+    expect(active.length).toBe(1);
+    expect(inactive.length).toBe(2);
+    expect(el.textContent ?? '').toContain('Not a factor today');
+  });
+
+  it('shows weights note summing active weights when factors are inactive', async () => {
+    const fixture = TestBed.createComponent(PeakDetail);
+    fixture.componentRef.setInput('slug', 'longs-peak');
+    fixture.detectChanges();
+
+    const data = detail();
+    data.factors = [
+      { name: 'Wind', score: 67, weight: 0.25, detail: '20 mph', isActive: true },
+      { name: 'Temperature', score: 100, weight: 0.15, detail: '32°F', isActive: true },
+      { name: 'Precipitation', score: 59, weight: 0.20, detail: '33% chance', isActive: true },
+      { name: 'Recent snow', score: 100, weight: 0.20, detail: '0.0"', isActive: true },
+      { name: 'Snowpack', score: 100, weight: 0.20, detail: 'SWE 0.1"', isActive: false },
+    ];
+    httpMock.expectOne('/api/routes/longs-peak').flush(data);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const noteText = (fixture.nativeElement as HTMLElement).querySelector('.factors-note')?.textContent ?? '';
+    expect(noteText).toContain('80%');
+    expect(noteText).toContain('snow factors excluded today');
+  });
+
+  it('hides the weights note when all factors are active', async () => {
+    const fixture = TestBed.createComponent(PeakDetail);
+    fixture.componentRef.setInput('slug', 'longs-peak');
+    fixture.detectChanges();
+
+    const data = detail();
+    data.factors = [
+      { name: 'Wind', score: 95, weight: 0.25, detail: '5 mph', isActive: true },
+      { name: 'Recent snow', score: 100, weight: 0.20, detail: '0.0"', isActive: true },
+    ];
+    httpMock.expectOne('/api/routes/longs-peak').flush(data);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const note = (fixture.nativeElement as HTMLElement).querySelector('.factors-note');
+    expect(note).toBeNull();
+  });
 });
 
 function detail(): RouteDetail {
