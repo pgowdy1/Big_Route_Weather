@@ -74,11 +74,14 @@ public class GradeCalculatorTests
         Assert.Equal("negative", result.Drivers[0].Severity);
     }
 
+    private static SnowpackSnapshot WinterSnowpackWithTraceRecent() =>
+        PerfectSnowpack() with { NewSnowLast7DaysIn = 0.1 };
+
     [Fact]
     public void Wind_above_20_caps_grade_at_B_even_when_otherwise_perfect()
     {
         var windy = new WeatherSnapshot(WindMph: 21, TempF: 45, PrecipitationProbabilityPct: 0, Next48Hours: Array.Empty<HourlyForecast>());
-        var result = GradeCalculator.Compute(windy, PerfectSnowpack());
+        var result = GradeCalculator.Compute(windy, WinterSnowpackWithTraceRecent());
         Assert.Equal(Grade.B, result.Grade);
         Assert.Contains("Capped at B", result.Rationale);
         Assert.Contains("21 mph", result.Rationale);
@@ -88,7 +91,7 @@ public class GradeCalculatorTests
     public void Precip_above_30_caps_grade_at_B_even_when_otherwise_perfect()
     {
         var wet = new WeatherSnapshot(WindMph: 5, TempF: 45, PrecipitationProbabilityPct: 35, Next48Hours: Array.Empty<HourlyForecast>());
-        var result = GradeCalculator.Compute(wet, PerfectSnowpack());
+        var result = GradeCalculator.Compute(wet, WinterSnowpackWithTraceRecent());
         Assert.Equal(Grade.B, result.Grade);
         Assert.Contains("Capped at B", result.Rationale);
     }
@@ -97,7 +100,7 @@ public class GradeCalculatorTests
     public void Worst_cap_wins_when_multiple_factors_trigger()
     {
         var bad = new WeatherSnapshot(WindMph: 22, TempF: 45, PrecipitationProbabilityPct: 80, Next48Hours: Array.Empty<HourlyForecast>());
-        var result = GradeCalculator.Compute(bad, PerfectSnowpack());
+        var result = GradeCalculator.Compute(bad, WinterSnowpackWithTraceRecent());
         Assert.Equal(Grade.D, result.Grade);
         Assert.Contains("Capped at D", result.Rationale);
     }
@@ -143,5 +146,91 @@ public class GradeCalculatorTests
         Assert.NotEmpty(result.Drivers);
         Assert.Equal("High winds", result.Drivers[0].Label);
         Assert.Equal("negative", result.Drivers[0].Severity);
+    }
+
+    private static SnowpackSnapshot DryRouteSnowpack(double newSnow = 0) => new(
+        SnowWaterEquivalentIn: 0,
+        SnowDepthIn: 0,
+        NewSnowLast7DaysIn: newSnow,
+        PercentOfNormalSwe: 100,
+        StationTriplet: "TEST:CO:SNTL",
+        DailyDepthIn: Array.Empty<DailyDepthPoint>());
+
+    [Fact]
+    public void Summer_dry_route_marks_snow_factors_inactive()
+    {
+        var summer = new WeatherSnapshot(WindMph: 5, TempF: 60, PrecipitationProbabilityPct: 0,
+            Next48Hours: new[] { new HourlyForecast(DateTimeOffset.UtcNow, 60, 5, 0, "Sunny") });
+        var result = GradeCalculator.Compute(summer, DryRouteSnowpack());
+
+        var recent = result.Factors.Single(f => f.Name == "Recent snow");
+        var pack = result.Factors.Single(f => f.Name == "Snowpack");
+        Assert.False(recent.IsActive);
+        Assert.False(pack.IsActive);
+    }
+
+    [Fact]
+    public void Summer_dry_route_excludes_snow_factors_from_weight_sum()
+    {
+        var summer = new WeatherSnapshot(WindMph: 5, TempF: 60, PrecipitationProbabilityPct: 0,
+            Next48Hours: new[] { new HourlyForecast(DateTimeOffset.UtcNow, 60, 5, 0, "Sunny") });
+
+        var weatherOnly = GradeCalculator.Compute(summer, snowpack: null);
+        var withDryPack = GradeCalculator.Compute(summer, DryRouteSnowpack());
+
+        Assert.Equal(weatherOnly.OverallScore, withDryPack.OverallScore);
+        Assert.Equal(weatherOnly.Grade, withDryPack.Grade);
+    }
+
+    [Fact]
+    public void Lingering_depth_without_new_snow_keeps_snowpack_active_recent_inactive()
+    {
+        var summer = new WeatherSnapshot(WindMph: 5, TempF: 60, PrecipitationProbabilityPct: 0,
+            Next48Hours: new[] { new HourlyForecast(DateTimeOffset.UtcNow, 60, 5, 0, "Sunny") });
+        var lingering = new SnowpackSnapshot(
+            SnowWaterEquivalentIn: 2,
+            SnowDepthIn: 8,
+            NewSnowLast7DaysIn: 0,
+            PercentOfNormalSwe: 100,
+            StationTriplet: "TEST:CO:SNTL",
+            DailyDepthIn: Array.Empty<DailyDepthPoint>());
+
+        var result = GradeCalculator.Compute(summer, lingering);
+
+        var recent = result.Factors.Single(f => f.Name == "Recent snow");
+        var pack = result.Factors.Single(f => f.Name == "Snowpack");
+        Assert.False(recent.IsActive);
+        Assert.True(pack.IsActive);
+        Assert.DoesNotContain("Capped", result.Rationale);
+    }
+
+    [Fact]
+    public void Forecast_snow_keeps_recent_active_but_snowpack_inactive()
+    {
+        var snowy = new WeatherSnapshot(WindMph: 5, TempF: 30, PrecipitationProbabilityPct: 60,
+            Next48Hours: new[] { new HourlyForecast(DateTimeOffset.UtcNow, 30, 5, 60, "Snow showers") });
+        var result = GradeCalculator.Compute(snowy, DryRouteSnowpack());
+
+        var recent = result.Factors.Single(f => f.Name == "Recent snow");
+        var pack = result.Factors.Single(f => f.Name == "Snowpack");
+        Assert.True(recent.IsActive);
+        Assert.False(pack.IsActive);
+    }
+
+    [Fact]
+    public void Existing_snowpack_keeps_both_active()
+    {
+        var weather = new WeatherSnapshot(WindMph: 5, TempF: 40, PrecipitationProbabilityPct: 0, Next48Hours: Array.Empty<HourlyForecast>());
+        var winter = new SnowpackSnapshot(
+            SnowWaterEquivalentIn: 8,
+            SnowDepthIn: 30,
+            NewSnowLast7DaysIn: 1,
+            PercentOfNormalSwe: 100,
+            StationTriplet: "TEST:CO:SNTL",
+            DailyDepthIn: Array.Empty<DailyDepthPoint>());
+        var result = GradeCalculator.Compute(weather, winter);
+
+        Assert.True(result.Factors.Single(f => f.Name == "Recent snow").IsActive);
+        Assert.True(result.Factors.Single(f => f.Name == "Snowpack").IsActive);
     }
 }

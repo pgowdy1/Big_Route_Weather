@@ -4,5 +4,6 @@ public record FactorScore(
     string Name,
     int Score,
     double Weight,
-    string Detail
+    string Detail,
+    bool IsActive = true
 );

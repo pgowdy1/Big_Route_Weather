@@ -24,6 +24,7 @@ export interface FactorScore {
   score: number;
   weight: number;
   detail: string;
+  isActive: boolean;
 }
 
 export interface HourlyForecast {

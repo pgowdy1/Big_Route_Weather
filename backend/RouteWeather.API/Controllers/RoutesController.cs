@@ -47,19 +47,23 @@ public class RoutesController : ControllerBase
         return Ok(ToDetail(conditions));
     }
 
-    private static object ToSummary(RouteConditions c) => new
+    private static object ToSummary(RouteConditions c)
     {
-        slug = c.Route.Slug,
-        mountain = c.Route.Mountain,
-        routeName = c.Route.RouteName,
-        summitElevationFt = c.Route.SummitElevationFt,
-        classDifficulty = c.Route.ClassDifficulty,
-        grade = c.Grade?.ToString(),
-        overallScore = c.OverallScore,
-        drivers = c.Drivers,
-        updatedAt = c.UpdatedAt,
-        isStale = c.IsStale,
-    };
+        var window = c.WindowGrades?.Next24h;
+        return new
+        {
+            slug = c.Route.Slug,
+            mountain = c.Route.Mountain,
+            routeName = c.Route.RouteName,
+            summitElevationFt = c.Route.SummitElevationFt,
+            classDifficulty = c.Route.ClassDifficulty,
+            grade = (window?.Grade ?? c.Grade)?.ToString(),
+            overallScore = window?.OverallScore ?? c.OverallScore,
+            drivers = window?.Drivers ?? c.Drivers,
+            updatedAt = c.UpdatedAt,
+            isStale = c.IsStale,
+        };
+    }
 
     private static object ToDetail(RouteConditions c) => new
     {
