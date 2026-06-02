@@ -1,0 +1,7 @@
+**/bin/
+**/obj/
+**/.vs/
+RouteWeather.Core.Tests/
+*.db
+*.db-shm
+*.db-wal
