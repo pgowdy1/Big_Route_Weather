@@ -10,6 +10,8 @@ namespace RouteWeather.API.Controllers;
 public class RoutesController : ControllerBase
 {
     private const int MaxConcurrentFetches = 8;
+    private const string CachedPolicy = "public, max-age=900, stale-while-revalidate=3600";
+    private const string RefreshPolicy = "no-store";
 
     private readonly RouteRepository _routes;
     private readonly ConditionsAggregator _aggregator;
@@ -21,7 +23,20 @@ public class RoutesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll(CancellationToken ct)
+    public Task<IActionResult> GetAll(CancellationToken ct) => GetAllInternal(CachedPolicy, ct);
+
+    [HttpGet("refresh")]
+    public Task<IActionResult> GetAllRefresh(CancellationToken ct) => GetAllInternal(RefreshPolicy, ct);
+
+    [HttpGet("{slug}")]
+    public Task<IActionResult> GetBySlug(string slug, CancellationToken ct) =>
+        GetBySlugInternal(slug, CachedPolicy, ct);
+
+    [HttpGet("{slug}/refresh")]
+    public Task<IActionResult> GetBySlugRefresh(string slug, CancellationToken ct) =>
+        GetBySlugInternal(slug, RefreshPolicy, ct);
+
+    private async Task<IActionResult> GetAllInternal(string cachePolicy, CancellationToken ct)
     {
         var routes = await _routes.GetAllAsync(ct);
         using var gate = new SemaphoreSlim(MaxConcurrentFetches, MaxConcurrentFetches);
@@ -35,15 +50,16 @@ public class RoutesController : ControllerBase
 
         var conditions = await Task.WhenAll(tasks);
         var dto = conditions.Select(ToSummary).ToList();
+        Response.Headers.CacheControl = cachePolicy;
         return Ok(dto);
     }
 
-    [HttpGet("{slug}")]
-    public async Task<IActionResult> GetBySlug(string slug, CancellationToken ct)
+    private async Task<IActionResult> GetBySlugInternal(string slug, string cachePolicy, CancellationToken ct)
     {
         var route = await _routes.GetBySlugAsync(slug, ct);
         if (route is null) return NotFound();
         var conditions = await _aggregator.GetConditionsAsync(route, ct);
+        Response.Headers.CacheControl = cachePolicy;
         return Ok(ToDetail(conditions));
     }
 

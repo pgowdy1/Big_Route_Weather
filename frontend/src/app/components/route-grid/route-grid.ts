@@ -15,13 +15,20 @@ export class RouteGrid implements OnInit {
 
   routes = signal<RouteSummary[]>([]);
   loading = signal(false);
+  refreshing = signal(false);
   error = signal<string | null>(null);
   query = signal('');
+  lastFetchedAt = signal<number | null>(null);
 
   filtered = computed(() => {
     const q = this.query().trim().toLowerCase();
     if (!q) return this.routes();
     return this.routes().filter(r => r.mountain.toLowerCase().includes(q));
+  });
+
+  lastUpdatedLabel = computed(() => {
+    const t = this.lastFetchedAt();
+    return t === null ? null : relativeFromNow(t);
   });
 
   ngOnInit() {
@@ -34,6 +41,7 @@ export class RouteGrid implements OnInit {
     this.service.list().subscribe({
       next: r => {
         this.routes.set(r);
+        this.lastFetchedAt.set(Date.now());
         this.loading.set(false);
       },
       error: e => {
@@ -43,7 +51,32 @@ export class RouteGrid implements OnInit {
     });
   }
 
+  refresh() {
+    if (this.refreshing()) return;
+    this.refreshing.set(true);
+    this.error.set(null);
+    this.service.listRefresh().subscribe({
+      next: r => {
+        this.routes.set(r);
+        this.lastFetchedAt.set(Date.now());
+        this.refreshing.set(false);
+      },
+      error: e => {
+        this.error.set(e?.message ?? 'Refresh failed — showing cached data');
+        this.refreshing.set(false);
+      },
+    });
+  }
+
   onSearch(value: string) {
     this.query.set(value);
   }
+}
+
+function relativeFromNow(ts: number): string {
+  const diffMin = Math.max(0, Math.round((Date.now() - ts) / 60000));
+  if (diffMin < 1) return 'just now';
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const hrs = Math.round(diffMin / 60);
+  return `${hrs}h ago`;
 }

@@ -18,10 +18,27 @@
           Summit: {{ d.summitLat | number:'1.4-4' }}, {{ d.summitLon | number:'1.4-4' }}
         </p>
       </div>
-      @if (d.isStale) {
-        <span class="stale-chip">Stale data</span>
-      }
+      <div class="head-meta">
+        @if (d.isStale) {
+          <span class="stale-chip">Stale data</span>
+        }
+        @if (lastUpdatedLabel(); as label) {
+          <span class="updated">Updated {{ label }}</span>
+        }
+        <button
+          type="button"
+          class="refresh-btn"
+          (click)="refresh()"
+          [disabled]="refreshing()"
+          aria-label="Refresh conditions"
+        >
+          {{ refreshing() ? 'Refreshing…' : 'Refresh' }}
+        </button>
+      </div>
     </header>
+    @if (error()) {
+      <p class="status error inline">{{ error() }}</p>
+    }
 
     @if (windows().length > 0) {
       <section class="windows">

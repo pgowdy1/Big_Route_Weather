@@ -28,8 +28,10 @@ export class PeakDetail {
 
   detail = signal<RouteDetail | null>(null);
   loading = signal(true);
+  refreshing = signal(false);
   notFound = signal(false);
   error = signal<string | null>(null);
+  lastFetchedAt = signal<number | null>(null);
 
   windows = computed<WindowView[]>(() => {
     const w = this.detail()?.windowGrades;
@@ -58,10 +60,33 @@ export class PeakDetail {
     Math.round(this.activeFactors().reduce((s, f) => s + f.weight, 0) * 100),
   );
 
+  lastUpdatedLabel = computed<string | null>(() => {
+    const t = this.lastFetchedAt();
+    return t === null ? null : relativeFromNow(t);
+  });
+
   constructor() {
     effect(() => {
       const slug = this.slug();
       untracked(() => this.load(slug));
+    });
+  }
+
+  refresh() {
+    if (this.refreshing()) return;
+    const slug = this.slug();
+    this.refreshing.set(true);
+    this.error.set(null);
+    this.service.detailRefresh(slug).subscribe({
+      next: d => {
+        this.detail.set(d);
+        this.lastFetchedAt.set(Date.now());
+        this.refreshing.set(false);
+      },
+      error: (e: HttpErrorResponse) => {
+        this.error.set(e.message ?? 'Refresh failed — showing cached data');
+        this.refreshing.set(false);
+      },
     });
   }
 
@@ -72,6 +97,7 @@ export class PeakDetail {
     this.service.detail(slug).subscribe({
       next: d => {
         this.detail.set(d);
+        this.lastFetchedAt.set(Date.now());
         this.loading.set(false);
       },
       error: (e: HttpErrorResponse) => {
@@ -81,4 +107,12 @@ export class PeakDetail {
       },
     });
   }
+}
+
+function relativeFromNow(ts: number): string {
+  const diffMin = Math.max(0, Math.round((Date.now() - ts) / 60000));
+  if (diffMin < 1) return 'just now';
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const hrs = Math.round(diffMin / 60);
+  return `${hrs}h ago`;
 }
