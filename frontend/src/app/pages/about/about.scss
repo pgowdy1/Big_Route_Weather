@@ -1,0 +1,85 @@
+.about {
+  font-family: 'Inter', system-ui, sans-serif;
+  color: #e8eef3;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-width: 720px;
+
+  .back a {
+    color: #8aa0b4;
+    text-decoration: none;
+    font-size: 0.85rem;
+
+    &:hover { color: #cfd8dc; }
+  }
+
+  h2 {
+    margin: 0;
+    font-size: 1.6rem;
+  }
+
+  h3 {
+    margin: 0 0 0.5rem;
+    font-size: 1rem;
+    color: #b0bec5;
+  }
+
+  p {
+    margin: 0;
+    line-height: 1.55;
+    color: #cfd8dc;
+  }
+
+  .lede {
+    font-size: 1.05rem;
+    color: #e8eef3;
+  }
+
+  .block {
+    background: #11202c;
+    border: 1px solid #2c3e50;
+    border-radius: 0.75rem;
+    padding: 1rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .pill-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 0.25rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+
+    li {
+      background: #1a2632;
+      color: #cfd8dc;
+      font-size: 0.8rem;
+      padding: 0.25rem 0.7rem;
+      border-radius: 999px;
+      border: 1px solid #2c3a4a;
+    }
+  }
+
+  .source-list {
+    margin: 0;
+    padding-left: 1.1rem;
+    color: #cfd8dc;
+    font-size: 0.9rem;
+    line-height: 1.5;
+
+    li { margin-bottom: 0.3rem; }
+    strong { color: #e8eef3; }
+  }
+
+  .contact .email {
+    color: #80cbc4;
+    text-decoration: none;
+    font-weight: 600;
+
+    &:hover { text-decoration: underline; }
+  }
+}

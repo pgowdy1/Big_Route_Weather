@@ -7,6 +7,11 @@
 
 .hero {
   margin-bottom: 2rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
 
   h1 {
     margin: 0;
@@ -19,5 +24,18 @@
   p {
     margin: 0.35rem 0 0;
     color: #92a4b5;
+  }
+
+  .hero-nav {
+    padding-top: 0.5rem;
+
+    .about-link {
+      color: #8aa0b4;
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-family: 'Inter', system-ui, sans-serif;
+
+      &:hover { color: #cfd8dc; }
+    }
   }
 }

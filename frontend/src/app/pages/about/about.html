@@ -1,0 +1,52 @@
+<section class="about">
+  <p class="back"><a routerLink="/">&larr; Back to routes</a></p>
+
+  <h2>Why I made this</h2>
+
+  <p class="lede">
+    I wanted a place I could check any day and have an idea of whether a
+    route I wanted to do in the mountains was doable. As awesome as apps like
+    Windy and MountainForecast are, you've still gotta sort through quite a few details
+    to really have a good idea if the weather is solid. They're also pretty complex
+    with tons of features.
+  </p>
+
+  <p>
+    So I built this. Each card grades a route (from A - F) on the conditions that 
+    matter that day. This typically includes precipitation, wind, temperature, snowpack, and
+    visibility. I roll them into a single overall score across 12h,
+    24h, and 48h windows. Click into any route for the breakdown.
+  </p>
+
+  <section class="block">
+    <h3>What's coming</h3>
+    <p>
+      Today's coverage is Colorado-heavy. The plan is to keep adding peaks,
+      ranges, and trails across the US. Immediate plans are for the Cascades, Tetons, Wasatch, and Sierras,
+      but I'll be adding plenty more after that. I there's something you want graded, shoot me an email.
+    </p>
+  </section>
+
+  <section class="block">
+    <h3>Where the data comes from</h3>
+    <ul class="source-list">
+      <li><strong>NWS forecast grids</strong> &mdash; daily and short-term outlooks tied to each route's coordinates.</li>
+      <li><strong>NWS hourly</strong> &mdash; finer-grained data driving the short and near windows.</li>
+      <li><strong>SNOTEL</strong> &mdash; the nearest station for snowpack depth, SWE, and recent trends.</li>
+    </ul>
+    <p>
+      The grade is the model's read on these signals. It's not a substitute
+      for your own judgement, partner conversations, or turning around when
+      something feels off. Please take these as a suggestion. Just because the 
+      precip chance is 5% doesn't mean you won't find yourself in a downpour!
+    </p>
+  </section>
+
+  <section class="block contact">
+    <h3>Feedback</h3>
+    <p>
+      Want a route added? Find an issue? Want to talk routes/climbing?
+      <a class="email" href="mailto:pgowdy1@gmail.com">pgowdy1@gmail.com</a>
+    </p>
+  </section>
+</section>
