@@ -1,20 +1,39 @@
 @if (loading()) {
   <p class="status">Loading conditions…</p>
-} @else if (error()) {
+} @else if (error() && routes().length === 0) {
   <div class="status error">
     <p>{{ error() }}</p>
     <button (click)="load()">Retry</button>
   </div>
 } @else {
-  <div class="search">
-    <input
-      type="search"
-      placeholder="Search peaks by mountain name…"
-      aria-label="Search peaks by mountain name"
-      [value]="query()"
-      (input)="onSearch($any($event.target).value)"
-    />
+  <div class="toolbar">
+    <div class="search">
+      <input
+        type="search"
+        placeholder="Search peaks by mountain name…"
+        aria-label="Search peaks by mountain name"
+        [value]="query()"
+        (input)="onSearch($any($event.target).value)"
+      />
+    </div>
+    <div class="refresh">
+      @if (lastUpdatedLabel(); as label) {
+        <span class="updated">Updated {{ label }}</span>
+      }
+      <button
+        type="button"
+        class="refresh-btn"
+        (click)="refresh()"
+        [disabled]="refreshing()"
+        aria-label="Refresh conditions"
+      >
+        {{ refreshing() ? 'Refreshing…' : 'Refresh' }}
+      </button>
+    </div>
   </div>
+  @if (error()) {
+    <p class="status error inline">{{ error() }}</p>
+  }
   @if (filtered().length === 0 && query().trim()) {
     <p class="status">No peaks match "{{ query().trim() }}".</p>
   } @else {

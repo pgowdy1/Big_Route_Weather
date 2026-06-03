@@ -11,7 +11,15 @@ export class RoutesService {
     return this.http.get<RouteSummary[]>('/api/routes');
   }
 
+  listRefresh(): Observable<RouteSummary[]> {
+    return this.http.get<RouteSummary[]>('/api/routes/refresh');
+  }
+
   detail(slug: string): Observable<RouteDetail> {
     return this.http.get<RouteDetail>(`/api/routes/${slug}`);
+  }
+
+  detailRefresh(slug: string): Observable<RouteDetail> {
+    return this.http.get<RouteDetail>(`/api/routes/${slug}/refresh`);
   }
 }

@@ -128,6 +128,30 @@ describe('PeakDetail', () => {
     expect(noteText).toContain('snow factors excluded today');
   });
 
+  it('refresh button issues GET /api/routes/{slug}/refresh and replaces the detail', async () => {
+    const fixture = TestBed.createComponent(PeakDetail);
+    fixture.componentRef.setInput('slug', 'longs-peak');
+    fixture.detectChanges();
+
+    httpMock.expectOne('/api/routes/longs-peak').flush(detail());
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    fixture.componentInstance.refresh();
+    const refreshReq = httpMock.expectOne('/api/routes/longs-peak/refresh');
+    expect(refreshReq.request.method).toBe('GET');
+    const refreshed = detail();
+    refreshed.rationale = 'Refreshed payload.';
+    refreshReq.flush(refreshed);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.detail()?.rationale).toBe('Refreshed payload.');
+    expect(fixture.componentInstance.refreshing()).toBe(false);
+    expect(fixture.componentInstance.lastFetchedAt()).not.toBeNull();
+    expect(fixture.componentInstance.lastUpdatedLabel()).toBe('just now');
+  });
+
   it('hides the weights note when all factors are active', async () => {
     const fixture = TestBed.createComponent(PeakDetail);
     fixture.componentRef.setInput('slug', 'longs-peak');
