@@ -14,15 +14,15 @@ Simplify code and ensure it adheres to project conventions. Focus on clarity, no
 If `$ARGUMENTS` is provided:
 - If it's a file path -> optimize that file
 - If it's a component/service name -> find and optimize all related files
-- If it's "recent" -> optimize all files changed since branching from main
+- If it's "recent" -> optimize all files changed since branching from dev
 
 If no arguments:
-- Default to all files changed since branching from main:
+- Default to all files changed since branching from dev:
 ```bash
-git diff --name-only main...HEAD
+git diff --name-only dev...HEAD
 ```
 
-If on main with uncommitted changes:
+If on dev or main with uncommitted changes:
 ```bash
 git diff --name-only HEAD
 ```

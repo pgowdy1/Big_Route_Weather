@@ -45,7 +45,13 @@ Generate a PR body that includes:
 - **Testing**: What was tested and how
 - **Screenshots**: Note if UI changes need screenshots
 ```bash
-gh pr create --title "$ARGUMENTS" --body "$(cat /tmp/pr-body.md)" --base main
+gh pr create --title "$ARGUMENTS" --body "$(cat /tmp/pr-body.md)" --base dev
 ```
 
-6. Output the PR URL for the user.
+6. Output the PR URL for the user, followed by a reminder:
+
+```
+PR opened against `dev`. After it merges, the Cloudflare Pages preview at
+https://dev.<project>.pages.dev will rebuild — verify there before promoting to
+production by opening a `dev` -> `main` PR.
+```

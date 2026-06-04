@@ -25,11 +25,13 @@ If there are **any** uncommitted changes (staged, unstaged, or untracked):
 
 Do NOT auto-stash, auto-commit, or auto-discard. Wait for the user's decision and execute it before continuing.
 
-## Step 2: Sync with Main
+## Step 2: Sync with Dev
+
+Feature branches base off `dev`, not `main`. `dev` is the staging environment that auto-deploys to Cloudflare Pages preview — every PR ships there first and is verified before being promoted to `main` (production).
 
 ```bash
-git checkout main
-git pull origin main
+git checkout dev
+git pull origin dev
 ```
 
 If there are merge conflicts or pull failures, warn the user and stop.
@@ -53,7 +55,7 @@ Output a clear status:
 ```
 Ready to go:
   Branch:  feature/<slug>
-  Base:    main (up to date)
+  Base:    dev (up to date)
   Status:  clean
 
 Next step: /plan-feature <feature-description>
