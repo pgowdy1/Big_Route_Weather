@@ -12,6 +12,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Backend:** ASP.NET Core (.NET 10), C#
 - **Database:** TBD
 
+## Branching
+
+Work flows **feature → dev → main**:
+- Feature branches base off `dev`, never `main`.
+- PRs target `dev`. Merges to `dev` auto-deploy to a Cloudflare Pages preview at `https://dev.<project>.pages.dev` for verification.
+- Once verified on the dev preview, open a `dev` → `main` PR to ship to production.
+- The slash commands `/fresh-start`, `/full-feature`, `/commit-pr`, `/optimize`, and `/review-pr` follow this policy automatically.
+
 ## Commands
 
 ### Backend

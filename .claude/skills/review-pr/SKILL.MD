@@ -17,7 +17,7 @@ gh pr diff $ARGUMENTS
 
 If no PR number, review uncommitted changes:
 ```bash
-git diff main...HEAD
+git diff dev...HEAD
 ```
 
 ## Review Checklist

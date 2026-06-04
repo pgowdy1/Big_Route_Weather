@@ -1,5 +1,13 @@
 # Skills
 
+## Branching Policy
+
+Feature work flows **feature -> dev -> main**:
+- Feature branches base off `dev`, never `main`.
+- `/commit-pr` opens PRs against `dev`.
+- `dev` auto-deploys to a Cloudflare Pages preview for verification.
+- Once verified, manually open a `dev` -> `main` PR to ship to production.
+
 ## Pipeline
 
 ```
@@ -12,7 +20,7 @@
 
 **`/full-feature <description>`** — End-to-end automated pipeline. Creates a branch, gathers requirements via Q&A, builds the feature, tests, optimizes, commits a PR, reviews it, and wraps up. The only user interaction is answering planning questions.
 
-**`/fresh-start <description>`** — Checks for a clean working tree (asks before stashing/committing), pulls latest main, and creates a `feature/<slug>` branch.
+**`/fresh-start <description>`** — Checks for a clean working tree (asks before stashing/committing), pulls latest `dev`, and creates a `feature/<slug>` branch off it.
 
 **`/plan-feature <description>`** — Scans the codebase, asks 3 rounds of adaptive questions about layers/scope/UX/edge cases, then writes a structured plan to `.claude/plans/<slug>.md`. Recommends solo or team build based on complexity.
 
@@ -22,7 +30,7 @@
 
 **`/test`** — Runs backend (`dotnet test`) and frontend (`npm test`) test suites and reports pass/fail counts.
 
-**`/optimize [file-or-scope]`** — Simplifies changed files since branching from main. Flattens conditionals, removes dead code, enforces Angular/C# conventions. Reverts anything that breaks tests.
+**`/optimize [file-or-scope]`** — Simplifies changed files since branching from `dev`. Flattens conditionals, removes dead code, enforces Angular/C# conventions. Reverts anything that breaks tests.
 
 **`/commit-pr <title>`** — Stages all changes, generates a conventional commit message, pushes to origin, and creates a PR with summary and grouped changes.
 
