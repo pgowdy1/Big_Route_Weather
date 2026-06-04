@@ -2,11 +2,16 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using RouteWeather.Core.Models;
+using RouteWeather.Core.Sources;
 
 namespace RouteWeather.API.Services;
 
-public class NwsClient
+public class NwsClient : IForecastSource
 {
+    public string Name => "NWS";
+
+    public IReadOnlySet<string> ActiveFactors => ForecastFactors.All;
+
     private readonly HttpClient _http;
     private readonly ILogger<NwsClient> _logger;
 
@@ -16,7 +21,7 @@ public class NwsClient
         _logger = logger;
     }
 
-    public async Task<WeatherSnapshot?> GetForecastAsync(double lat, double lon, CancellationToken ct = default)
+    public async Task<WeatherSnapshot?> FetchAsync(double lat, double lon, CancellationToken ct = default)
     {
         try
         {

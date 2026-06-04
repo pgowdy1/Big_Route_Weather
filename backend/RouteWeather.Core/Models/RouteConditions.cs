@@ -19,6 +19,14 @@ public record WindowGrades(
 
 public record SourceFreshness(DateTimeOffset? NwsFetchedAt, DateTimeOffset? SnotelFetchedAt);
 
+public record PerSourceForecast(
+    string SourceName,
+    double WindMph,
+    double TempF,
+    int? PrecipitationProbabilityPct,
+    DateTimeOffset FetchedAt
+);
+
 public record RouteConditions(
     Route Route,
     Grade? Grade,
@@ -31,5 +39,7 @@ public record RouteConditions(
     WeatherSnapshot? Weather,
     SnowpackSnapshot? Snowpack,
     WindowGrades? WindowGrades,
-    SourceFreshness Sources
+    SourceFreshness Sources,
+    ConsensusReport? Consensus,
+    IReadOnlyList<PerSourceForecast>? PerSourceForecast
 );

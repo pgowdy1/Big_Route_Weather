@@ -22,6 +22,9 @@
         @if (d.isStale) {
           <span class="stale-chip">Stale data</span>
         }
+        @if (d.consensus) {
+          <app-consensus-badge [consensus]="d.consensus" />
+        }
         @if (lastUpdatedLabel(); as label) {
           <span class="updated">Updated {{ label }}</span>
         }
@@ -140,6 +143,33 @@
                 <td>{{ h.windMph }} mph</td>
                 <td>{{ h.precipitationProbabilityPct }}%</td>
                 <td>{{ h.shortForecast }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </section>
+    }
+
+    @if (d.perSourceForecast && d.perSourceForecast.length > 0) {
+      <section class="per-source" [attr.data-testid]="'per-source-forecast'">
+        <h3>Per-source forecast (next 48h headlines)</h3>
+        <table>
+          <thead>
+            <tr><th>Source</th><th>Max wind</th><th>Min °F</th><th>Max precip</th></tr>
+          </thead>
+          <tbody>
+            @for (s of d.perSourceForecast; track s.sourceName) {
+              <tr>
+                <td>{{ s.sourceName }}</td>
+                <td>{{ s.windMph | number:'1.0-1' }} mph</td>
+                <td>{{ s.tempF | number:'1.0-1' }}</td>
+                <td>
+                  @if (s.precipitationProbabilityPct === null) {
+                    <span class="precip-na" [attr.title]="'This model does not report precipitation probability'">—</span>
+                  } @else {
+                    {{ s.precipitationProbabilityPct }}%
+                  }
+                </td>
               </tr>
             }
           </tbody>

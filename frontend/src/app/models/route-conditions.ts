@@ -1,9 +1,26 @@
 export type Grade = 'A' | 'B' | 'C' | 'D' | 'F';
 export type DriverSeverity = 'positive' | 'neutral' | 'negative';
+export type ConsensusLevel = 'high' | 'medium' | 'low';
 
 export interface Driver {
   label: string;
   severity: DriverSeverity;
+}
+
+export interface Consensus {
+  level: ConsensusLevel;
+  worstFactor: string | null;
+  coefficientOfVariationByFactor: Record<string, number>;
+  sourcesReporting: number;
+  sourcesAttempted: number;
+}
+
+export interface PerSourceForecast {
+  sourceName: string;
+  windMph: number;
+  tempF: number;
+  precipitationProbabilityPct: number | null;
+  fetchedAt: string;
 }
 
 export interface RouteSummary {
@@ -17,6 +34,7 @@ export interface RouteSummary {
   drivers: Driver[];
   updatedAt: string;
   isStale: boolean;
+  consensus: Consensus | null;
 }
 
 export interface FactorScore {
@@ -82,4 +100,5 @@ export interface RouteDetail extends RouteSummary {
   snowpack: SnowpackSnapshot | null;
   windowGrades: WindowGrades | null;
   sources: DetailSources;
+  perSourceForecast: PerSourceForecast[] | null;
 }

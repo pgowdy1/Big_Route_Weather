@@ -212,5 +212,7 @@ function detail(): RouteDetail {
       nws: { fetchedAt: new Date().toISOString() },
       snotel: { fetchedAt: new Date().toISOString() },
     },
+    consensus: null,
+    perSourceForecast: null,
   };
 }

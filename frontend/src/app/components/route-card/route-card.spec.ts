@@ -43,5 +43,6 @@ function summary(slug: string): RouteSummary {
     drivers: [],
     updatedAt: new Date().toISOString(),
     isStale: false,
+    consensus: null,
   };
 }

@@ -78,6 +78,7 @@ public class RoutesController : ControllerBase
             drivers = window?.Drivers ?? c.Drivers,
             updatedAt = c.UpdatedAt,
             isStale = c.IsStale,
+            consensus = SerializeConsensus(c.Consensus),
         };
     }
 
@@ -110,6 +111,24 @@ public class RoutesController : ControllerBase
             nws = new { fetchedAt = c.Sources.NwsFetchedAt },
             snotel = new { fetchedAt = c.Sources.SnotelFetchedAt },
         },
+        consensus = SerializeConsensus(c.Consensus),
+        perSourceForecast = c.PerSourceForecast?.Select(p => new
+        {
+            sourceName = p.SourceName,
+            windMph = p.WindMph,
+            tempF = p.TempF,
+            precipitationProbabilityPct = p.PrecipitationProbabilityPct,
+            fetchedAt = p.FetchedAt,
+        }),
+    };
+
+    private static object? SerializeConsensus(ConsensusReport? r) => r is null ? null : new
+    {
+        level = r.Level.ToString().ToLowerInvariant(),
+        worstFactor = r.WorstFactor,
+        coefficientOfVariationByFactor = r.CoefficientOfVariationByFactor,
+        sourcesReporting = r.SourcesReporting,
+        sourcesAttempted = r.SourcesAttempted,
     };
 
     private static object SerializeWindow(WindowGrade w) => new
