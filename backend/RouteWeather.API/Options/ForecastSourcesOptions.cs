@@ -29,6 +29,6 @@ public class SourceOptions
 
 public class ConsensusThresholdsOptions
 {
-    public double HighMaxCv { get; set; } = 0.15;
-    public double MediumMaxCv { get; set; } = 0.35;
+    public double HighMaxCv { get; set; } = 0.25;
+    public double MediumMaxCv { get; set; } = 0.50;
 }

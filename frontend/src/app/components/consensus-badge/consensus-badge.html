@@ -1,12 +1,12 @@
-@if (consensus(); as c) {
-  <div [class]="className()" [attr.data-level]="level()" [attr.data-testid]="'consensus-badge'">
+@if (visible()) {
+  <span
+    [class]="className()"
+    [attr.data-level]="level()"
+    [attr.data-testid]="'consensus-badge'"
+    [attr.title]="tooltip()"
+    [attr.aria-label]="tooltip()"
+  >
     <span class="dot" [attr.aria-hidden]="true"></span>
-    <span class="label">{{ label() }}</span>
-    <span class="meta" [attr.data-testid]="'sources-count'">
-      {{ sourcesReporting() }} of {{ sourcesAttempted() }} sources
-    </span>
-    @if (worstFactor(); as worst) {
-      <span class="worst" [attr.data-testid]="'worst-factor'">disagree on {{ worst }}</span>
-    }
-  </div>
+    <span class="label">Sources disagree</span>
+  </span>
 }

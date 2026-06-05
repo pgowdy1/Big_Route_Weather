@@ -15,16 +15,20 @@ export class ConsensusBadge {
   sourcesAttempted = computed(() => this.consensus()?.sourcesAttempted ?? 0);
   worstFactor = computed(() => this.consensus()?.worstFactor ?? null);
 
+  // Only render on low consensus — high/medium are silent so the badge functions as a heads-up,
+  // not a permanent UI fixture.
+  visible = computed(() => this.level() === 'low');
+
   className = computed(() => {
     const lvl = this.level();
     return lvl ? `consensus consensus-${lvl}` : 'consensus consensus-unknown';
   });
 
-  label = computed(() => {
-    const lvl = this.level();
-    if (lvl === 'high') return 'High consensus';
-    if (lvl === 'medium') return 'Medium consensus';
-    if (lvl === 'low') return 'Low consensus';
-    return 'No source data';
+  tooltip = computed(() => {
+    const c = this.consensus();
+    if (!c) return '';
+    const parts = [`${c.sourcesReporting} of ${c.sourcesAttempted} sources reporting`];
+    if (c.worstFactor) parts.push(`sources disagree on ${c.worstFactor.toLowerCase()}`);
+    return parts.join(' · ');
   });
 }

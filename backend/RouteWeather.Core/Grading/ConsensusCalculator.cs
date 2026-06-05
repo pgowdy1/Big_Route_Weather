@@ -9,10 +9,14 @@ public record EnsembleResult(WeatherSnapshot? Blended, ConsensusReport? Consensu
 
 public class ConsensusCalculator
 {
+    private const double WindSpreadFloorMph = 5.0;
+    private const double TempSpreadFloorF = 5.0;
+    private const double PrecipSpreadFloorPct = 20.0;
+
     private readonly double _highMaxCv;
     private readonly double _mediumMaxCv;
 
-    public ConsensusCalculator(double highMaxCv = 0.15, double mediumMaxCv = 0.35)
+    public ConsensusCalculator(double highMaxCv = 0.25, double mediumMaxCv = 0.50)
     {
         _highMaxCv = highMaxCv;
         _mediumMaxCv = mediumMaxCv;
@@ -127,16 +131,19 @@ public class ConsensusCalculator
     {
         return new Dictionary<string, double>
         {
-            [ForecastFactors.Wind] = Cv(Active(inputs, ForecastFactors.Wind).Select(i => i.Source.Snapshot.WindMph)),
-            [ForecastFactors.Temperature] = Cv(Active(inputs, ForecastFactors.Temperature).Select(i => (double)i.Source.Snapshot.TempF)),
-            [ForecastFactors.Precipitation] = Cv(Active(inputs, ForecastFactors.Precipitation).Select(i => (double)i.Source.Snapshot.PrecipitationProbabilityPct)),
+            [ForecastFactors.Wind] = Cv(Active(inputs, ForecastFactors.Wind).Select(i => i.Source.Snapshot.WindMph), WindSpreadFloorMph),
+            [ForecastFactors.Temperature] = Cv(Active(inputs, ForecastFactors.Temperature).Select(i => (double)i.Source.Snapshot.TempF), TempSpreadFloorF),
+            [ForecastFactors.Precipitation] = Cv(Active(inputs, ForecastFactors.Precipitation).Select(i => (double)i.Source.Snapshot.PrecipitationProbabilityPct), PrecipSpreadFloorPct),
         };
     }
 
-    private static double Cv(IEnumerable<double> values)
+    private static double Cv(IEnumerable<double> values, double spreadFloor)
     {
         var list = values.ToList();
         if (list.Count < 2) return 0;
+        // Absolute-spread floor: small disagreements (e.g. 8 vs 10 mph wind) shouldn't
+        // count as a "disagreement" even when CV is technically large because the mean is small.
+        if (list.Max() - list.Min() < spreadFloor) return 0;
         var mean = list.Average();
         var sumSq = list.Sum(v => (v - mean) * (v - mean));
         var stddev = Math.Sqrt(sumSq / list.Count);
@@ -158,14 +165,16 @@ public class ConsensusCalculator
 
         if (factorsWithEnoughSources.Count == 0) return (ConsensusLevel.High, null);
 
-        var worst = factorsWithEnoughSources
-            .Select(f => (Factor: f, Cv: cv[f]))
-            .OrderByDescending(t => t.Cv)
+        // Mean CV across factors so a single noisy factor doesn't tank the rating; worst
+        // factor is still reported for context when the average is high enough to demote.
+        var meanCv = factorsWithEnoughSources.Average(f => cv[f]);
+        var worstFactor = factorsWithEnoughSources
+            .OrderByDescending(f => cv[f])
             .First();
 
-        var level = worst.Cv <= _highMaxCv ? ConsensusLevel.High
-                  : worst.Cv <= _mediumMaxCv ? ConsensusLevel.Medium
+        var level = meanCv <= _highMaxCv ? ConsensusLevel.High
+                  : meanCv <= _mediumMaxCv ? ConsensusLevel.Medium
                   : ConsensusLevel.Low;
-        return (level, level == ConsensusLevel.High ? null : worst.Factor);
+        return (level, level == ConsensusLevel.High ? null : worstFactor);
     }
 }
