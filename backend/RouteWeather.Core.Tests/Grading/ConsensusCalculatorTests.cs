@@ -56,9 +56,11 @@ public class ConsensusCalculatorTests
     }
 
     [Fact]
-    public void Wide_wind_spread_yields_low_consensus_with_wind_as_worst_factor()
+    public void One_factor_wide_spread_does_not_tank_overall_consensus()
     {
-        var calc = new ConsensusCalculator(highMaxCv: 0.15, mediumMaxCv: 0.35);
+        // Mean-CV resolution: temp + precip agree perfectly, so a wide wind spread alone
+        // averages out to "still mostly aligned" and the overall level stays High.
+        var calc = new ConsensusCalculator();
         var inputs = new[]
         {
             Input("A", 5,  30, 20),
@@ -66,8 +68,40 @@ public class ConsensusCalculatorTests
             Input("C", 45, 30, 20),
         };
         var result = calc.Compute(inputs, sourcesAttempted: 3);
+        Assert.Equal(ConsensusLevel.High, result.Consensus!.Level);
+    }
+
+    [Fact]
+    public void All_factors_diverging_yields_low_consensus()
+    {
+        // Wide spread across every factor pushes the mean CV above the medium cap.
+        var calc = new ConsensusCalculator();
+        var inputs = new[]
+        {
+            Input("A", 5,  10, 5),
+            Input("B", 25, 35, 50),
+            Input("C", 50, 60, 95),
+        };
+        var result = calc.Compute(inputs, sourcesAttempted: 3);
         Assert.Equal(ConsensusLevel.Low, result.Consensus!.Level);
-        Assert.Equal("Wind", result.Consensus.WorstFactor);
+        Assert.NotNull(result.Consensus.WorstFactor);
+    }
+
+    [Fact]
+    public void Small_absolute_spread_below_floor_counts_as_agreement()
+    {
+        // Wind 8 vs 10 vs 12: CV alone would say ~17%, but the 4 mph absolute spread
+        // is below the 5 mph floor — call it agreement.
+        var calc = new ConsensusCalculator();
+        var inputs = new[]
+        {
+            Input("A", 8,  30, 20),
+            Input("B", 10, 30, 20),
+            Input("C", 12, 30, 20),
+        };
+        var result = calc.Compute(inputs, sourcesAttempted: 3);
+        Assert.Equal(0, result.Consensus!.CoefficientOfVariationByFactor["Wind"]);
+        Assert.Equal(ConsensusLevel.High, result.Consensus.Level);
     }
 
     [Fact]

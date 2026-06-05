@@ -1,29 +1,21 @@
 .consensus {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.2rem 0.6rem;
-  border-radius: 0.5rem;
-  font-size: 0.75rem;
+  gap: 0.3rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 0.4rem;
+  font-size: 0.7rem;
   font-family: 'Inter', system-ui, sans-serif;
-  color: #fff;
+  background: rgba(0, 0, 0, 0.06);
+  color: #4a5560;
+  border: 1px solid rgba(0, 0, 0, 0.08);
 
   .dot {
-    width: 0.55rem;
-    height: 0.55rem;
+    width: 0.45rem;
+    height: 0.45rem;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.85);
+    background: #c0392b;
   }
 
-  .label { font-weight: 600; }
-  .meta { opacity: 0.85; }
-  .worst {
-    opacity: 0.85;
-    font-style: italic;
-  }
+  .label { font-weight: 500; }
 }
-
-.consensus-high    { background: #2e7d32; }
-.consensus-medium  { background: #f9a825; color: #222; }
-.consensus-low     { background: #c62828; }
-.consensus-unknown { background: #455a64; }
