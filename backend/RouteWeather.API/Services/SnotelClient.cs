@@ -1,11 +1,14 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using RouteWeather.Core.Models;
+using RouteWeather.Core.Sources;
 
 namespace RouteWeather.API.Services;
 
-public class SnotelClient
+public class SnotelClient : ISnowpackSource
 {
+    public string Name => "SNOTEL";
+
     private readonly HttpClient _http;
     private readonly ILogger<SnotelClient> _logger;
 
@@ -15,7 +18,7 @@ public class SnotelClient
         _logger = logger;
     }
 
-    public async Task<SnowpackSnapshot?> GetSnowpackAsync(string stationTriplet, CancellationToken ct = default)
+    public async Task<SnowpackSnapshot?> FetchAsync(string stationTriplet, CancellationToken ct = default)
     {
         try
         {

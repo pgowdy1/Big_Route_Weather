@@ -1,7 +1,11 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using RouteWeather.API.Options;
 using RouteWeather.API.Services;
+using RouteWeather.Core.Grading;
+using RouteWeather.Core.Sources;
 using RouteWeather.Data;
 using RouteWeather.Data.Repositories;
 
@@ -31,6 +35,17 @@ builder.Services.AddScoped<RouteRepository>();
 builder.Services.AddScoped<ForecastCacheRepository>();
 builder.Services.AddScoped<ConditionsAggregator>();
 
+builder.Services.Configure<ForecastSourcesOptions>(builder.Configuration.GetSection("ForecastSources"));
+builder.Services.AddSingleton<DailyCallCounter>();
+builder.Services.AddSingleton(sp =>
+{
+    var opts = sp.GetRequiredService<IOptions<ForecastSourcesOptions>>().Value.ConsensusThresholds;
+    return new ConsensusCalculator(opts.HighMaxCv, opts.MediumMaxCv);
+});
+
+var forecastConfig = new ForecastSourcesOptions();
+builder.Configuration.GetSection("ForecastSources").Bind(forecastConfig);
+
 builder.Services.AddHttpClient<NwsClient>(c =>
 {
     c.BaseAddress = new Uri("https://api.weather.gov/");
@@ -38,6 +53,10 @@ builder.Services.AddHttpClient<NwsClient>(c =>
     c.DefaultRequestHeaders.Accept.ParseAdd("application/geo+json");
     c.Timeout = TimeSpan.FromSeconds(15);
 });
+if (forecastConfig.IsEnabled("NWS"))
+{
+    builder.Services.AddScoped<IForecastSource>(sp => sp.GetRequiredService<NwsClient>());
+}
 
 builder.Services.AddHttpClient<SnotelClient>(c =>
 {
@@ -45,6 +64,29 @@ builder.Services.AddHttpClient<SnotelClient>(c =>
     c.DefaultRequestHeaders.Accept.ParseAdd("application/json");
     c.Timeout = TimeSpan.FromSeconds(15);
 });
+if (forecastConfig.IsEnabled("SNOTEL"))
+{
+    builder.Services.AddScoped<ISnowpackSource>(sp => sp.GetRequiredService<SnotelClient>());
+}
+
+builder.Services.AddHttpClient<OpenMeteoClient>(c =>
+{
+    c.BaseAddress = new Uri("https://api.open-meteo.com/");
+    c.DefaultRequestHeaders.Accept.ParseAdd("application/json");
+    c.Timeout = TimeSpan.FromSeconds(15);
+});
+RegisterOpenMeteoSource<OpenMeteoGfsSource>(builder.Services,   "OpenMeteo-GFS",   forecastConfig);
+RegisterOpenMeteoSource<OpenMeteoEcmwfSource>(builder.Services, "OpenMeteo-ECMWF", forecastConfig);
+RegisterOpenMeteoSource<OpenMeteoIconSource>(builder.Services,  "OpenMeteo-ICON",  forecastConfig);
+RegisterOpenMeteoSource<OpenMeteoHrrrSource>(builder.Services,  "OpenMeteo-HRRR",  forecastConfig);
+
+static void RegisterOpenMeteoSource<T>(IServiceCollection services, string name, ForecastSourcesOptions cfg)
+    where T : OpenMeteoModelSource
+{
+    if (!cfg.IsEnabled(name)) return;
+    services.AddScoped<T>();
+    services.AddScoped<IForecastSource>(sp => sp.GetRequiredService<T>());
+}
 
 var app = builder.Build();
 

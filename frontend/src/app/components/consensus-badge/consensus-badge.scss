@@ -1,0 +1,29 @@
+.consensus {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-family: 'Inter', system-ui, sans-serif;
+  color: #fff;
+
+  .dot {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.85);
+  }
+
+  .label { font-weight: 600; }
+  .meta { opacity: 0.85; }
+  .worst {
+    opacity: 0.85;
+    font-style: italic;
+  }
+}
+
+.consensus-high    { background: #2e7d32; }
+.consensus-medium  { background: #f9a825; color: #222; }
+.consensus-low     { background: #c62828; }
+.consensus-unknown { background: #455a64; }
