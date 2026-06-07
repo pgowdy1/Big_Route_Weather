@@ -23,20 +23,20 @@ public class RoutesController : ControllerBase
     }
 
     [HttpGet]
-    public Task<IActionResult> GetAll(CancellationToken ct) => GetAllInternal(CachedPolicy, ct);
+    public Task<IActionResult> GetAll(CancellationToken ct) => GetAllInternal(CachedPolicy, useCache: true, ct);
 
     [HttpGet("refresh")]
-    public Task<IActionResult> GetAllRefresh(CancellationToken ct) => GetAllInternal(RefreshPolicy, ct);
+    public Task<IActionResult> GetAllRefresh(CancellationToken ct) => GetAllInternal(RefreshPolicy, useCache: false, ct);
 
     [HttpGet("{slug}")]
     public Task<IActionResult> GetBySlug(string slug, CancellationToken ct) =>
-        GetBySlugInternal(slug, CachedPolicy, ct);
+        GetBySlugInternal(slug, CachedPolicy, useCache: true, ct);
 
     [HttpGet("{slug}/refresh")]
     public Task<IActionResult> GetBySlugRefresh(string slug, CancellationToken ct) =>
-        GetBySlugInternal(slug, RefreshPolicy, ct);
+        GetBySlugInternal(slug, RefreshPolicy, useCache: false, ct);
 
-    private async Task<IActionResult> GetAllInternal(string cachePolicy, CancellationToken ct)
+    private async Task<IActionResult> GetAllInternal(string cachePolicy, bool useCache, CancellationToken ct)
     {
         var routes = await _routes.GetAllAsync(ct);
         using var gate = new SemaphoreSlim(MaxConcurrentFetches, MaxConcurrentFetches);
@@ -44,7 +44,7 @@ public class RoutesController : ControllerBase
         var tasks = routes.Select(async r =>
         {
             await gate.WaitAsync(ct);
-            try { return await _aggregator.GetConditionsAsync(r, ct); }
+            try { return await _aggregator.GetConditionsAsync(r, useCache, ct); }
             finally { gate.Release(); }
         });
 
@@ -54,11 +54,11 @@ public class RoutesController : ControllerBase
         return Ok(dto);
     }
 
-    private async Task<IActionResult> GetBySlugInternal(string slug, string cachePolicy, CancellationToken ct)
+    private async Task<IActionResult> GetBySlugInternal(string slug, string cachePolicy, bool useCache, CancellationToken ct)
     {
         var route = await _routes.GetBySlugAsync(slug, ct);
         if (route is null) return NotFound();
-        var conditions = await _aggregator.GetConditionsAsync(route, ct);
+        var conditions = await _aggregator.GetConditionsAsync(route, useCache, ct);
         Response.Headers.CacheControl = cachePolicy;
         return Ok(ToDetail(conditions));
     }

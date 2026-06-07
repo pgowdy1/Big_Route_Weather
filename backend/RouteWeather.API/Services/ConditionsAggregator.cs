@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using RouteWeather.API.Options;
 using RouteWeather.Core.Grading;
@@ -14,12 +15,14 @@ public class ConditionsAggregator
 {
     private static readonly JsonSerializerOptions JsonOpts = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     private static readonly ConcurrentDictionary<string, SemaphoreSlim> Gates = new();
+    private static readonly TimeSpan ConditionsCacheTtl = TimeSpan.FromMinutes(5);
 
     private readonly IReadOnlyList<IForecastSource> _forecastSources;
     private readonly IReadOnlyList<ISnowpackSource> _snowpackSources;
     private readonly ForecastCacheRepository _cache;
     private readonly ForecastSourcesOptions _options;
     private readonly ConsensusCalculator _consensus;
+    private readonly IMemoryCache _conditionsCache;
     private readonly ILogger<ConditionsAggregator> _logger;
 
     public ConditionsAggregator(
@@ -28,6 +31,7 @@ public class ConditionsAggregator
         ForecastCacheRepository cache,
         IOptions<ForecastSourcesOptions> options,
         ConsensusCalculator consensus,
+        IMemoryCache conditionsCache,
         ILogger<ConditionsAggregator> logger)
     {
         _forecastSources = forecastSources.ToArray();
@@ -35,15 +39,30 @@ public class ConditionsAggregator
         _cache = cache;
         _options = options.Value;
         _consensus = consensus;
+        _conditionsCache = conditionsCache;
         _logger = logger;
     }
 
-    public async Task<RouteConditions> GetConditionsAsync(RouteEntity routeEntity, CancellationToken ct = default)
+    public async Task<RouteConditions> GetConditionsAsync(
+        RouteEntity routeEntity,
+        bool useCache = true,
+        CancellationToken ct = default)
     {
+        var cacheKey = ConditionsCacheKey(routeEntity.Slug);
+        if (!useCache)
+        {
+            _conditionsCache.Remove(cacheKey);
+        }
+
         var gate = Gates.GetOrAdd(routeEntity.Slug, _ => new SemaphoreSlim(1, 1));
         await gate.WaitAsync(ct);
         try
         {
+            if (useCache && _conditionsCache.TryGetValue(cacheKey, out RouteConditions? cached) && cached is not null)
+            {
+                return cached;
+            }
+
             var forecastFetches = _forecastSources
                 .Select(s => FetchForecastAsync(routeEntity, s, ct))
                 .ToArray();
@@ -104,7 +123,7 @@ public class ConditionsAggregator
                     r.FetchedAt ?? DateTimeOffset.UtcNow))
                 .ToList();
 
-            return new RouteConditions(
+            var conditions = new RouteConditions(
                 route,
                 blendedWeather is null && snowpack is null ? null : result.Grade,
                 blendedWeather is null && snowpack is null ? null : result.OverallScore,
@@ -119,12 +138,21 @@ public class ConditionsAggregator
                 sourceFreshness,
                 ensemble.Consensus,
                 perSourceForecast.Count == 0 ? null : perSourceForecast);
+
+            if (conditions.Grade is not null)
+            {
+                _conditionsCache.Set(cacheKey, conditions, ConditionsCacheTtl);
+            }
+
+            return conditions;
         }
         finally
         {
             gate.Release();
         }
     }
+
+    private static string ConditionsCacheKey(string slug) => $"conditions:{slug}";
 
     private async Task<SourceFetchResult> FetchForecastAsync(RouteEntity route, IForecastSource source, CancellationToken ct)
     {
