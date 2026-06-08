@@ -51,42 +51,42 @@ public static class RouteSeeder
             Slug = "cascades", Name = "Cascade Range", Color = "#5fa8d8",
             Description = "Volcanic peaks of the Pacific Northwest.",
             DisplayOrder = 1,
-            PerimeterGeoJson = "{\"type\":\"Polygon\",\"coordinates\":[[[-121.5,48.9],[-121.0,48.5],[-120.9,47.3],[-121.5,46.4],[-121.8,45.4],[-122.0,44.8],[-122.2,43.5],[-121.9,42.5],[-122.3,41.3],[-122.6,40.5],[-123.0,41.0],[-122.5,42.5],[-122.4,43.7],[-122.3,45.0],[-122.0,46.2],[-121.9,47.5],[-121.7,48.8],[-121.5,48.9]]]}",
+            PerimeterGeoJson = "{\"type\":\"Polygon\",\"coordinates\":[[[-122.5,49.1],[-120.8,49.1],[-120.8,41.1],[-122.5,41.1],[-122.5,49.1]]]}",
         },
         new RangeEntity
         {
             Slug = "sierra-nevada", Name = "Sierra Nevada", Color = "#d8a85f",
             Description = "The high granite range of eastern California.",
             DisplayOrder = 2,
-            PerimeterGeoJson = "{\"type\":\"Polygon\",\"coordinates\":[[[-120.5,39.5],[-120.0,38.8],[-119.2,38.4],[-118.7,37.4],[-118.5,36.7],[-118.2,36.4],[-117.9,35.9],[-118.5,35.7],[-119.0,36.5],[-119.4,37.0],[-119.8,37.5],[-120.2,38.2],[-120.7,38.8],[-120.9,39.4],[-120.5,39.5]]]}",
+            PerimeterGeoJson = "{\"type\":\"Polygon\",\"coordinates\":[[[-118.8,37.4],[-117.9,37.4],[-117.9,36.2],[-118.8,36.2],[-118.8,37.4]]]}",
         },
         new RangeEntity
         {
             Slug = "wind-river", Name = "Wind River Range", Color = "#7fc878",
             Description = "Remote granite spires and big glaciers in west-central Wyoming.",
             DisplayOrder = 3,
-            PerimeterGeoJson = "{\"type\":\"Polygon\",\"coordinates\":[[[-110.0,43.5],[-109.5,43.2],[-109.0,42.8],[-108.7,42.5],[-108.9,42.3],[-109.4,42.7],[-109.9,43.1],[-110.2,43.4],[-110.0,43.5]]]}",
+            PerimeterGeoJson = "{\"type\":\"Polygon\",\"coordinates\":[[[-110.0,43.5],[-108.8,43.5],[-108.8,42.4],[-110.0,42.4],[-110.0,43.5]]]}",
         },
         new RangeEntity
         {
             Slug = "sawtooth", Name = "Sawtooth Range", Color = "#c898d8",
             Description = "Compact granite range in central Idaho.",
             DisplayOrder = 4,
-            PerimeterGeoJson = "{\"type\":\"Polygon\",\"coordinates\":[[[-115.2,44.4],[-114.7,44.4],[-114.6,43.9],[-114.9,43.7],[-115.2,43.9],[-115.2,44.4]]]}",
+            PerimeterGeoJson = "{\"type\":\"Polygon\",\"coordinates\":[[[-115.2,44.3],[-114.7,44.3],[-114.7,43.8],[-115.2,43.8],[-115.2,44.3]]]}",
         },
         new RangeEntity
         {
             Slug = "wasatch", Name = "Wasatch Range", Color = "#f0a878",
             Description = "Northern Utah's front range.",
             DisplayOrder = 5,
-            PerimeterGeoJson = "{\"type\":\"Polygon\",\"coordinates\":[[[-111.9,41.5],[-111.4,41.5],[-111.4,40.0],[-111.6,39.4],[-111.9,39.4],[-112.0,40.0],[-111.9,41.5]]]}",
+            PerimeterGeoJson = "{\"type\":\"Polygon\",\"coordinates\":[[[-112.0,40.9],[-111.4,40.9],[-111.4,39.6],[-112.0,39.6],[-112.0,40.9]]]}",
         },
         new RangeEntity
         {
             Slug = "colorado-14ers", Name = "Colorado 14ers", Color = "#e8b04f",
             Description = "The 58 peaks above 14,000 ft in Colorado.",
             DisplayOrder = 6,
-            PerimeterGeoJson = "{\"type\":\"Polygon\",\"coordinates\":[[[-108.0,40.5],[-105.4,40.5],[-105.0,39.8],[-105.0,38.4],[-105.5,37.0],[-107.0,37.0],[-108.2,37.5],[-108.5,38.5],[-108.3,39.5],[-108.0,40.5]]]}",
+            PerimeterGeoJson = "{\"type\":\"Polygon\",\"coordinates\":[[[-108.3,40.5],[-104.8,40.5],[-104.8,36.9],[-108.3,36.9],[-108.3,40.5]]]}",
         },
     };
 

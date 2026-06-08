@@ -54,6 +54,48 @@ public class RangeSeedingTests
         Assert.Equal(87, await db.Routes.CountAsync());
     }
 
+    [Fact]
+    public async Task Every_peak_falls_within_its_range_polygon()
+    {
+        await using var db = NewContext();
+        await RouteSeeder.SeedAsync(db);
+
+        var rangesById = (await db.Ranges.ToListAsync()).ToDictionary(r => r.Id);
+        var routes = await db.Routes.ToListAsync();
+
+        foreach (var route in routes)
+        {
+            var range = rangesById[route.RangeId];
+            using var doc = JsonDocument.Parse(range.PerimeterGeoJson);
+            var ring = doc.RootElement.GetProperty("coordinates")[0];
+            var poly = new List<(double Lng, double Lat)>();
+            foreach (var p in ring.EnumerateArray())
+            {
+                poly.Add((p[0].GetDouble(), p[1].GetDouble()));
+            }
+
+            Assert.True(
+                PointInPolygon(route.SummitLon, route.SummitLat, poly),
+                $"{route.Mountain} ({route.SummitLat}, {route.SummitLon}) is outside the {range.Name} polygon.");
+        }
+    }
+
+    private static bool PointInPolygon(double x, double y, IReadOnlyList<(double X, double Y)> poly)
+    {
+        // Ray-casting algorithm. Works for any simple polygon (convex or not).
+        bool inside = false;
+        int n = poly.Count;
+        for (int i = 0, j = n - 1; i < n; j = i++)
+        {
+            var (xi, yi) = poly[i];
+            var (xj, yj) = poly[j];
+            bool intersects = ((yi > y) != (yj > y)) &&
+                              (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+            if (intersects) inside = !inside;
+        }
+        return inside;
+    }
+
     private static RouteWeatherContext NewContext()
     {
         var opts = new DbContextOptionsBuilder<RouteWeatherContext>()
