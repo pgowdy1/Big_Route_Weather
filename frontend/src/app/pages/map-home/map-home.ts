@@ -44,6 +44,7 @@ export class MapHome implements OnDestroy {
         this.ranges.set(ranges);
         this.lastFetchedAt.set(Date.now());
         this.loading.set(false);
+        this.renderLayers();
       },
       error: e => {
         this.error.set(e?.message ?? 'Could not load conditions');
@@ -78,5 +79,54 @@ export class MapHome implements OnDestroy {
       subdomains: 'abcd',
       maxZoom: 12,
     }).addTo(this.map);
+
+    this.renderLayers();
   }
+
+  private async renderLayers() {
+    if (!this.map || this.ranges().length === 0) return;
+    const L = await import('leaflet');
+
+    for (const layer of this.layers) this.map.removeLayer(layer);
+    this.layers = [];
+
+    for (const range of this.ranges()) {
+      const poly = L.geoJSON(range.perimeterGeoJson as any, {
+        style: {
+          color: range.color,
+          weight: 1.5,
+          dashArray: '4,3',
+          fillColor: range.color,
+          fillOpacity: 0.22,
+          interactive: false,
+        } as any,
+      });
+      poly.addTo(this.map);
+      this.layers.push(poly);
+
+      const centroid = polygonCentroid(range.perimeterGeoJson.coordinates[0] as number[][]);
+      const label = L.marker([centroid[1], centroid[0]], {
+        icon: L.divIcon({
+          className: 'range-label',
+          html: `<span>${range.name.toUpperCase()}</span>`,
+        }),
+        interactive: false,
+      }).addTo(this.map);
+      this.layers.push(label);
+    }
+  }
+}
+
+function polygonCentroid(ring: number[][]): [number, number] {
+  let twiceArea = 0, cx = 0, cy = 0;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [x0, y0] = ring[j];
+    const [x1, y1] = ring[i];
+    const f = x0 * y1 - x1 * y0;
+    twiceArea += f;
+    cx += (x0 + x1) * f;
+    cy += (y0 + y1) * f;
+  }
+  const area = twiceArea / 2;
+  return area === 0 ? ring[0] as [number, number] : [cx / (6 * area), cy / (6 * area)];
 }
