@@ -86,7 +86,7 @@ export class MapHome implements OnDestroy {
     const el = this.mapContainer()?.nativeElement;
     if (!el) return;
 
-    const L = await import('leaflet');
+    const L = await loadLeaflet();
 
     this.map = L.map(el, {
       center: [43.0, -113.6],
@@ -124,7 +124,7 @@ export class MapHome implements OnDestroy {
 
   private async renderLayers() {
     if (!this.map || this.ranges().length === 0) return;
-    const L = await import('leaflet');
+    const L = await loadLeaflet();
 
     for (const layer of this.layers) this.map.removeLayer(layer);
     this.layers = [];
@@ -157,14 +157,10 @@ export class MapHome implements OnDestroy {
 
   private async renderMarkers() {
     if (!this.map || this.routes().length === 0) return;
-    const L = (await import('leaflet')) as any;
+    const L = await loadLeaflet();
     await import('leaflet.markercluster');
-
-    // leaflet.markercluster attaches markerClusterGroup to window.L (the global)
-    // but not to the ESM module-namespace L we got from dynamic import.
-    // Use window.L for the cluster constructor; fall back to local L if window.L
-    // is missing (SSR shouldn't hit this — afterNextRender is browser-only — but defensive).
-    const Lcluster = ((typeof window !== 'undefined' && (window as any).L) ?? L) as any;
+    // markercluster augments window.L (which loadLeaflet returns), so L.markerClusterGroup exists here.
+    const Lcluster = L as any;
 
     this.markerBySlug.clear();
 
@@ -205,6 +201,15 @@ export class MapHome implements OnDestroy {
       this.layers.push(cluster);
     }
   }
+}
+
+// Leaflet ships UMD-only (no "module"/"exports" in its package.json), so Angular's
+// prod esbuild bundle wraps it as { default: L }. The .d.ts declares named exports
+// that don't exist at runtime — `L.map` would be undefined. The UMD body also
+// assigns window.L, which is the most reliable handle to the real API.
+async function loadLeaflet(): Promise<typeof import('leaflet')> {
+  const mod = await import('leaflet');
+  return (window as any).L ?? (mod as any).default ?? mod;
 }
 
 function polygonCentroid(ring: number[][]): [number, number] {
