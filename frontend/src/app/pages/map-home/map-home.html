@@ -2,6 +2,28 @@
   @if (lastUpdatedLabel(); as label) {
     <div class="updated-chip">Updated {{ label }}</div>
   }
+  <div class="search-overlay">
+    <input
+      type="search"
+      class="search-input"
+      placeholder="Find a peak..."
+      [value]="searchQuery()"
+      (input)="onSearch($any($event.target).value)"
+      aria-label="Search peaks"
+    />
+    @if (searchResults().length > 0) {
+      <ul class="search-results">
+        @for (r of searchResults(); track r.slug) {
+          <li>
+            <button type="button" (click)="focusPeak(r.slug)">
+              <span class="result-name">{{ r.mountain }}</span>
+              <span class="result-range">{{ r.rangeName }}</span>
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  </div>
   <div #mapEl class="map-container"></div>
   @if (error()) {
     <p class="status error">{{ error() }}</p>

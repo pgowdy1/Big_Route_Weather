@@ -37,6 +37,28 @@ export class MapHome implements OnDestroy {
   private map: any | null = null;
   private layers: any[] = [];
 
+  searchQuery = signal('');
+
+  searchResults = computed(() => {
+    const q = this.searchQuery().trim().toLowerCase();
+    if (q.length < 2) return [];
+    return this.routes()
+      .filter(r => r.mountain.toLowerCase().includes(q))
+      .slice(0, 8);
+  });
+
+  onSearch(value: string) { this.searchQuery.set(value); }
+
+  private markerBySlug = new Map<string, any>();
+
+  focusPeak(slug: string) {
+    const m = this.markerBySlug.get(slug);
+    if (!m || !this.map) return;
+    this.map.setView(m.getLatLng(), Math.max(this.map.getZoom(), 8), { animate: true });
+    m.openPopup();
+    this.searchQuery.set('');
+  }
+
   constructor() {
     forkJoin([this.routesSvc.list(), this.rangesSvc.list()]).subscribe({
       next: ([routes, ranges]) => {
@@ -135,6 +157,8 @@ export class MapHome implements OnDestroy {
     const L = (await import('leaflet')) as any;
     await import('leaflet.markercluster');
 
+    this.markerBySlug.clear();
+
     const cluster = L.markerClusterGroup({
       disableClusteringAtZoom: 8,
       showCoverageOnHover: false,
@@ -156,6 +180,7 @@ export class MapHome implements OnDestroy {
 
       const marker = L.marker([route.summitLat, route.summitLon], { icon, title: route.mountain });
       marker.bindPopup(popupHtml(route), { className: 'peak-popup' });
+      this.markerBySlug.set(route.slug, marker);
 
       if (route.rangeSlug === 'colorado-14ers') {
         cluster.addLayer(marker);
