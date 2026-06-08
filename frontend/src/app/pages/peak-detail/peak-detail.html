@@ -28,15 +28,6 @@
         @if (lastUpdatedLabel(); as label) {
           <span class="updated">Updated {{ label }}</span>
         }
-        <button
-          type="button"
-          class="refresh-btn"
-          (click)="refresh()"
-          [disabled]="refreshing()"
-          aria-label="Refresh conditions"
-        >
-          {{ refreshing() ? 'Refreshing…' : 'Refresh' }}
-        </button>
       </div>
     </header>
     @if (error()) {
