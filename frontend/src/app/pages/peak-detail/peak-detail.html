@@ -1,5 +1,9 @@
 <section class="peak-detail">
-  <p class="back"><a routerLink="/all">← All peaks</a></p>
+  <p class="back">
+    <a routerLink="/">← Map</a>
+    <span class="back-sep">·</span>
+    <a routerLink="/all">All peaks</a>
+  </p>
 
   @if (loading()) {
     <p class="status">Loading…</p>
