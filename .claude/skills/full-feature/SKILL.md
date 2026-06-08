@@ -41,11 +41,13 @@ If there are **any** uncommitted changes:
 
 If clean, proceed.
 
-### 1.2 Sync with Main
+### 1.2 Sync with Dev
+
+Feature branches base off `dev`, not `main`. `dev` is the staging environment that auto-deploys to Cloudflare Pages preview — every PR ships there first and is verified before being promoted to `main` (production).
 
 ```bash
-git checkout main
-git pull origin main
+git checkout dev
+git pull origin dev
 ```
 
 If merge conflicts or pull failures, **STOP** and report.
@@ -215,7 +217,7 @@ Frontend: X passed, Y failed
 
 Only optimize files changed in this feature:
 ```bash
-git diff --name-only main...HEAD
+git diff --name-only dev...HEAD
 ```
 
 ### 5.2 Read Conventions
@@ -277,8 +279,8 @@ Spawn an `Explore` subagent to review the diff in a **fresh context**:
 
 ```
 Task: Explore agent
-Prompt: "Review the changes on this branch vs main.
-Run: git diff main...HEAD
+Prompt: "Review the changes on this branch vs dev.
+Run: git diff dev...HEAD
 
 Check for:
 1. Files that were changed but shouldn't have been (unrelated changes)

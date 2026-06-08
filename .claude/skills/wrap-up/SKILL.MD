@@ -13,7 +13,7 @@ consolidated report at the end.
 
 **Commit:**
 1. Run `git status` in each repo directory that was touched during the session
-2. If uncommitted changes exist, auto-commit to main with a descriptive message
+2. If uncommitted changes exist, auto-commit to the current branch with a descriptive message (never to `dev` or `main` directly — if currently on either, stop and ask the user where the changes belong)
 3. Push to remote
 
 **File placement check:**

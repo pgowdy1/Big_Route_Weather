@@ -23,20 +23,20 @@ public class RoutesController : ControllerBase
     }
 
     [HttpGet]
-    public Task<IActionResult> GetAll(CancellationToken ct) => GetAllInternal(CachedPolicy, ct);
+    public Task<IActionResult> GetAll(CancellationToken ct) => GetAllInternal(CachedPolicy, useCache: true, ct);
 
     [HttpGet("refresh")]
-    public Task<IActionResult> GetAllRefresh(CancellationToken ct) => GetAllInternal(RefreshPolicy, ct);
+    public Task<IActionResult> GetAllRefresh(CancellationToken ct) => GetAllInternal(RefreshPolicy, useCache: false, ct);
 
     [HttpGet("{slug}")]
     public Task<IActionResult> GetBySlug(string slug, CancellationToken ct) =>
-        GetBySlugInternal(slug, CachedPolicy, ct);
+        GetBySlugInternal(slug, CachedPolicy, useCache: true, ct);
 
     [HttpGet("{slug}/refresh")]
     public Task<IActionResult> GetBySlugRefresh(string slug, CancellationToken ct) =>
-        GetBySlugInternal(slug, RefreshPolicy, ct);
+        GetBySlugInternal(slug, RefreshPolicy, useCache: false, ct);
 
-    private async Task<IActionResult> GetAllInternal(string cachePolicy, CancellationToken ct)
+    private async Task<IActionResult> GetAllInternal(string cachePolicy, bool useCache, CancellationToken ct)
     {
         var routes = await _routes.GetAllAsync(ct);
         using var gate = new SemaphoreSlim(MaxConcurrentFetches, MaxConcurrentFetches);
@@ -44,7 +44,7 @@ public class RoutesController : ControllerBase
         var tasks = routes.Select(async r =>
         {
             await gate.WaitAsync(ct);
-            try { return await _aggregator.GetConditionsAsync(r, ct); }
+            try { return await _aggregator.GetConditionsAsync(r, useCache, ct); }
             finally { gate.Release(); }
         });
 
@@ -54,11 +54,11 @@ public class RoutesController : ControllerBase
         return Ok(dto);
     }
 
-    private async Task<IActionResult> GetBySlugInternal(string slug, string cachePolicy, CancellationToken ct)
+    private async Task<IActionResult> GetBySlugInternal(string slug, string cachePolicy, bool useCache, CancellationToken ct)
     {
         var route = await _routes.GetBySlugAsync(slug, ct);
         if (route is null) return NotFound();
-        var conditions = await _aggregator.GetConditionsAsync(route, ct);
+        var conditions = await _aggregator.GetConditionsAsync(route, useCache, ct);
         Response.Headers.CacheControl = cachePolicy;
         return Ok(ToDetail(conditions));
     }
@@ -73,11 +73,12 @@ public class RoutesController : ControllerBase
             routeName = c.Route.RouteName,
             summitElevationFt = c.Route.SummitElevationFt,
             classDifficulty = c.Route.ClassDifficulty,
-            grade = (window?.Grade ?? c.Grade)?.ToString(),
-            overallScore = window?.OverallScore ?? c.OverallScore,
-            drivers = window?.Drivers ?? c.Drivers,
+            grade = window?.Grade?.ToString(),
+            overallScore = window?.OverallScore,
+            drivers = window?.Drivers ?? Array.Empty<Driver>(),
             updatedAt = c.UpdatedAt,
             isStale = c.IsStale,
+            consensus = SerializeConsensus(c.Consensus),
         };
     }
 
@@ -110,6 +111,24 @@ public class RoutesController : ControllerBase
             nws = new { fetchedAt = c.Sources.NwsFetchedAt },
             snotel = new { fetchedAt = c.Sources.SnotelFetchedAt },
         },
+        consensus = SerializeConsensus(c.Consensus),
+        perSourceForecast = c.PerSourceForecast?.Select(p => new
+        {
+            sourceName = p.SourceName,
+            windMph = p.WindMph,
+            tempF = p.TempF,
+            precipitationProbabilityPct = p.PrecipitationProbabilityPct,
+            fetchedAt = p.FetchedAt,
+        }),
+    };
+
+    private static object? SerializeConsensus(ConsensusReport? r) => r is null ? null : new
+    {
+        level = r.Level.ToString().ToLowerInvariant(),
+        worstFactor = r.WorstFactor,
+        coefficientOfVariationByFactor = r.CoefficientOfVariationByFactor,
+        sourcesReporting = r.SourcesReporting,
+        sourcesAttempted = r.SourcesAttempted,
     };
 
     private static object SerializeWindow(WindowGrade w) => new

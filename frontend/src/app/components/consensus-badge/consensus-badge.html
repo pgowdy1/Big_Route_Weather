@@ -1,0 +1,12 @@
+@if (visible()) {
+  <span
+    [class]="className()"
+    [attr.data-level]="level()"
+    [attr.data-testid]="'consensus-badge'"
+    [attr.title]="tooltip()"
+    [attr.aria-label]="tooltip()"
+  >
+    <span class="dot" [attr.aria-hidden]="true"></span>
+    <span class="label">Sources disagree</span>
+  </span>
+}

@@ -3,6 +3,7 @@ import { DatePipe, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { GradeBadge } from '../../components/grade-badge/grade-badge';
+import { ConsensusBadge } from '../../components/consensus-badge/consensus-badge';
 import { Sparkline, SparklinePoint } from '../../components/sparkline/sparkline';
 import { RoutesService } from '../../services/routes-service';
 import { FactorScore, RouteDetail, WindowGrade } from '../../models/route-conditions';
@@ -17,7 +18,7 @@ interface WindowView {
 @Component({
   selector: 'app-peak-detail',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, DecimalPipe, GradeBadge, Sparkline, RouterLink],
+  imports: [DatePipe, DecimalPipe, GradeBadge, ConsensusBadge, Sparkline, RouterLink],
   templateUrl: './peak-detail.html',
   styleUrl: './peak-detail.scss',
 })

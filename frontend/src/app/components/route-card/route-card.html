@@ -12,6 +12,9 @@
     @if (route().isStale) {
       <span class="stale-chip">Stale data</span>
     }
+    @if (route().consensus) {
+      <app-consensus-badge [consensus]="route().consensus" />
+    }
   </div>
 
   <ul class="drivers">

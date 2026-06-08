@@ -2,12 +2,13 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
 import { DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { GradeBadge } from '../grade-badge/grade-badge';
+import { ConsensusBadge } from '../consensus-badge/consensus-badge';
 import { RouteSummary } from '../../models/route-conditions';
 
 @Component({
   selector: 'app-route-card',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DecimalPipe, GradeBadge, RouterLink],
+  imports: [DecimalPipe, GradeBadge, ConsensusBadge, RouterLink],
   templateUrl: './route-card.html',
   styleUrl: './route-card.scss',
 })

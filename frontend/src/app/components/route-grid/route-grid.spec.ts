@@ -136,5 +136,6 @@ function summary(slug: string, mountain = 'Test Mountain'): RouteSummary {
     drivers: [],
     updatedAt: new Date().toISOString(),
     isStale: false,
+    consensus: null,
   };
 }
