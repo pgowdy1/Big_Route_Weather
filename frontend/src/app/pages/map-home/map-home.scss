@@ -1,0 +1,10 @@
+.map-home {
+  position: relative;
+  min-height: calc(100vh - 120px);
+}
+.map-container {
+  width: 100%;
+  height: calc(100vh - 120px);
+  background: #0a1525;
+  border-radius: 8px;
+}
