@@ -31,6 +31,7 @@ var connectionString = builder.Configuration["CONNECTION_STRING"]
 
 builder.Services.AddDbContextFactory<RouteWeatherContext>(opts => opts.UseSqlite(connectionString));
 
+builder.Services.AddMemoryCache();
 builder.Services.AddScoped<RouteRepository>();
 builder.Services.AddScoped<ForecastCacheRepository>();
 builder.Services.AddScoped<ConditionsAggregator>();
