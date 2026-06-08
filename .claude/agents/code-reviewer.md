@@ -1,6 +1,7 @@
 ---
 name: code-reviewer
-description: Code review specialist. Use before merging branches to review changes for bugs, security issues, performance problems, and code quality.
+description: Code review specialist. Use before merging branches to review changes for bugs, security issues, performance problems, and code quality. Provide an explicit list of files that the agent should review. These files should be the files that have changed in the recent cycle of code development.
+tools: Read, Glob, Grep, Bash 
 model: opus
 color: yellow
 ---
