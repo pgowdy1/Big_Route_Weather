@@ -81,6 +81,18 @@ export class MapHome implements OnDestroy {
       maxZoom: 12,
     }).addTo(this.map);
 
+    this.map.getContainer().addEventListener('click', (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const cta = target.closest('a.popup-cta[data-peak]') as HTMLAnchorElement | null;
+      if (!cta) return;
+      // Let middle-click and modified clicks behave as native anchors.
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      e.preventDefault();
+      const slug = cta.getAttribute('data-peak')!;
+      this.map.closePopup();
+      this.router.navigate(['/peak', slug]);
+    });
+
     this.renderLayers();
     this.renderMarkers();
   }
