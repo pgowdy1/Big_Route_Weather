@@ -157,9 +157,15 @@ export class MapHome implements OnDestroy {
     const L = (await import('leaflet')) as any;
     await import('leaflet.markercluster');
 
+    // leaflet.markercluster attaches markerClusterGroup to window.L (the global)
+    // but not to the ESM module-namespace L we got from dynamic import.
+    // Use window.L for the cluster constructor; fall back to local L if window.L
+    // is missing (SSR shouldn't hit this — afterNextRender is browser-only — but defensive).
+    const Lcluster = ((typeof window !== 'undefined' && (window as any).L) ?? L) as any;
+
     this.markerBySlug.clear();
 
-    const cluster = L.markerClusterGroup({
+    const cluster = Lcluster.markerClusterGroup({
       disableClusteringAtZoom: 8,
       showCoverageOnHover: false,
       spiderfyOnMaxZoom: true,
