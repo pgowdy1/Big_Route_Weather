@@ -89,8 +89,8 @@ export class MapHome implements OnDestroy {
     const L = await import('leaflet');
 
     this.map = L.map(el, {
-      center: [41.5, -113],
-      zoom: 5,
+      center: [43.0, -113.6],
+      zoom: 6,
       minZoom: 4,
       maxZoom: 12,
       maxBounds: [[28, -130], [52, -100]],
