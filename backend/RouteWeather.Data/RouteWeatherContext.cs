@@ -8,6 +8,7 @@ public class RouteWeatherContext : DbContext
     public RouteWeatherContext(DbContextOptions<RouteWeatherContext> options) : base(options) { }
 
     public DbSet<RouteEntity> Routes => Set<RouteEntity>();
+    public DbSet<RangeEntity> Ranges => Set<RangeEntity>();
     public DbSet<CachedForecastEntity> CachedForecasts => Set<CachedForecastEntity>();
     public DbSet<DailyApiCallEntity> DailyApiCalls => Set<DailyApiCallEntity>();
 
@@ -15,6 +16,19 @@ public class RouteWeatherContext : DbContext
     {
         modelBuilder.Entity<RouteEntity>()
             .HasIndex(r => r.Slug)
+            .IsUnique();
+
+        modelBuilder.Entity<RouteEntity>()
+            .HasOne(r => r.Range)
+            .WithMany(g => g.Routes)
+            .HasForeignKey(r => r.RangeId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<RouteEntity>()
+            .HasIndex(r => r.RangeId);
+
+        modelBuilder.Entity<RangeEntity>()
+            .HasIndex(g => g.Slug)
             .IsUnique();
 
         modelBuilder.Entity<CachedForecastEntity>()
