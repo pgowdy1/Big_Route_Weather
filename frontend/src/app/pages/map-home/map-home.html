@@ -1,3 +1,9 @@
 <section class="map-home">
-  <div id="map" class="map-container"></div>
+  @if (lastUpdatedLabel(); as label) {
+    <div class="updated-chip">Updated {{ label }}</div>
+  }
+  <div #mapEl class="map-container"></div>
+  @if (error()) {
+    <p class="status error">{{ error() }}</p>
+  }
 </section>

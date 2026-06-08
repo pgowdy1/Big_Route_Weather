@@ -8,3 +8,14 @@
   background: #0a1525;
   border-radius: 8px;
 }
+.updated-chip {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 1000;
+  background: rgba(10, 21, 37, 0.85);
+  color: #cfd9e8;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
