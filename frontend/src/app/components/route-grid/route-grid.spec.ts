@@ -81,29 +81,6 @@ describe('RouteGrid', () => {
     expect(cards.length).toBe(0);
   });
 
-  it('refresh button issues GET /api/routes/refresh and replaces the routes', async () => {
-    const fixture = TestBed.createComponent(RouteGrid);
-    fixture.detectChanges();
-    httpMock.expectOne('/api/routes').flush([summary('a-peak', 'A Peak')]);
-    fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
-
-    fixture.componentInstance.refresh();
-    const refreshReq = httpMock.expectOne('/api/routes/refresh');
-    expect(refreshReq.request.method).toBe('GET');
-    refreshReq.flush([summary('b-peak', 'B Peak'), summary('c-peak', 'C Peak')]);
-    fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
-
-    const cards = (fixture.nativeElement as HTMLElement).querySelectorAll('app-route-card');
-    expect(cards.length).toBe(2);
-    expect(fixture.componentInstance.refreshing()).toBe(false);
-    expect(fixture.componentInstance.lastFetchedAt()).not.toBeNull();
-    expect(fixture.componentInstance.lastUpdatedLabel()).toBe('just now');
-  });
-
   it('treats whitespace-only query as empty and shows all peaks', async () => {
     const fixture = TestBed.createComponent(RouteGrid);
     fixture.detectChanges();
@@ -122,20 +99,76 @@ describe('RouteGrid', () => {
     const cards = (fixture.nativeElement as HTMLElement).querySelectorAll('app-route-card');
     expect(cards.length).toBe(2);
   });
+
+  it('opens all visible groups when a search query is active', async () => {
+    const fixture = TestBed.createComponent(RouteGrid);
+    fixture.detectChanges();
+    const data: RouteSummary[] = [
+      summary('mount-rainier', 'Mount Rainier', { rangeSlug: 'cascades', rangeName: 'Cascade Range' }),
+      summary('longs-peak', 'Longs Peak', { rangeSlug: 'colorado-14ers', rangeName: 'Colorado 14ers' }),
+    ];
+    httpMock.expectOne('/api/routes').flush(data);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    // Type a query that only matches the Cascades peak
+    fixture.componentInstance.onSearch('rainier');
+    fixture.detectChanges();
+
+    const groups = (fixture.nativeElement as HTMLElement).querySelectorAll('details.range-group') as NodeListOf<HTMLDetailsElement>;
+    expect(groups.length).toBe(1);                  // colorado-14ers filtered out
+    expect(groups[0].getAttribute('data-range')).toBe('cascades');
+    expect(groups[0].open).toBe(true);              // auto-opened
+  });
+
+  it('groups peaks by rangeName, in the order they first appear', async () => {
+    const fixture = TestBed.createComponent(RouteGrid);
+    fixture.detectChanges();
+    const data: RouteSummary[] = [
+      summary('mount-rainier', 'Mount Rainier', { rangeSlug: 'cascades', rangeName: 'Cascade Range' }),
+      summary('longs-peak', 'Longs Peak', { rangeSlug: 'colorado-14ers', rangeName: 'Colorado 14ers' }),
+      summary('mount-hood', 'Mount Hood', { rangeSlug: 'cascades', rangeName: 'Cascade Range' }),
+    ];
+    httpMock.expectOne('/api/routes').flush(data);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const groups = (fixture.nativeElement as HTMLElement).querySelectorAll('details.range-group');
+    expect(groups.length).toBe(2);
+    expect(groups[0].getAttribute('data-range')).toBe('cascades');
+    expect(groups[1].getAttribute('data-range')).toBe('colorado-14ers');
+
+    // All groups start collapsed so users can see every range header
+    expect((groups[0] as HTMLDetailsElement).open).toBe(false);
+    expect((groups[1] as HTMLDetailsElement).open).toBe(false);
+
+    // First group has Mount Rainier + Mount Hood, second has Longs Peak
+    const firstCards = groups[0].querySelectorAll('app-route-card');
+    expect(firstCards.length).toBe(2);
+    const secondCards = groups[1].querySelectorAll('app-route-card');
+    expect(secondCards.length).toBe(1);
+  });
 });
 
-function summary(slug: string, mountain = 'Test Mountain'): RouteSummary {
+function summary(slug: string, mountain = 'Test Mountain', overrides: Partial<RouteSummary> = {}): RouteSummary {
   return {
     slug,
     mountain,
     routeName: 'Standard',
     summitElevationFt: 14000,
     classDifficulty: '3',
+    rangeSlug: 'colorado-14ers',
+    rangeName: 'Colorado 14ers',
+    summitLat: 39.0,
+    summitLon: -106.0,
     grade: 'B',
     overallScore: 85,
     drivers: [],
     updatedAt: new Date().toISOString(),
     isStale: false,
     consensus: null,
+    ...overrides,
   };
 }

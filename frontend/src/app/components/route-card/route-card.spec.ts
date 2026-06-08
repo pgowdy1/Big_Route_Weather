@@ -29,6 +29,15 @@ describe('RouteCard', () => {
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
     expect(text.toLowerCase()).toContain('stale');
   });
+
+  it('shows the range name as a chip', () => {
+    const fixture = TestBed.createComponent(RouteCard);
+    fixture.componentRef.setInput('route', { ...summary('foo'), rangeName: 'Cascade Range' });
+    fixture.detectChanges();
+
+    const chip = (fixture.nativeElement as HTMLElement).querySelector('.range-chip');
+    expect(chip?.textContent?.trim()).toBe('Cascade Range');
+  });
 });
 
 function summary(slug: string): RouteSummary {
@@ -38,6 +47,10 @@ function summary(slug: string): RouteSummary {
     routeName: 'Standard',
     summitElevationFt: 14000,
     classDifficulty: '3',
+    rangeSlug: 'colorado-14ers',
+    rangeName: 'Colorado 14ers',
+    summitLat: 39.0,
+    summitLon: -106.0,
     grade: 'B',
     overallScore: 85,
     drivers: [],

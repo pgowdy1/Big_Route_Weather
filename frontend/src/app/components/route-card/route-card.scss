@@ -67,3 +67,13 @@
 .pill-neutral  { background: #2a3340; color: #b0bec5; border-color: #455a64; }
 .pill-negative { background: #4a1f1f; color: #ef9a9a; border-color: #c62828; }
 
+.range-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  background: rgba(95, 168, 216, 0.18);
+  color: #cfe5f5;
+  letter-spacing: 0.04em;
+}
+

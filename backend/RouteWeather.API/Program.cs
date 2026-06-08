@@ -34,6 +34,7 @@ builder.Services.AddDbContextFactory<RouteWeatherContext>(opts => opts.UseSqlite
 
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<RouteRepository>();
+builder.Services.AddScoped<RangeRepository>();
 builder.Services.AddScoped<ForecastCacheRepository>();
 builder.Services.AddScoped<DailyApiCallRepository>();
 builder.Services.AddScoped<ConditionsAggregator>();

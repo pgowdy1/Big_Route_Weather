@@ -1,5 +1,9 @@
 <section class="peak-detail">
-  <p class="back"><a routerLink="/">← All peaks</a></p>
+  <p class="back">
+    <a routerLink="/">← Map</a>
+    <span class="back-sep">·</span>
+    <a routerLink="/all">All peaks</a>
+  </p>
 
   @if (loading()) {
     <p class="status">Loading…</p>
@@ -19,6 +23,9 @@
         </p>
       </div>
       <div class="head-meta">
+        @if (d.rangeName) {
+          <span class="range-chip">{{ d.rangeName }}</span>
+        }
         @if (d.isStale) {
           <span class="stale-chip">Stale data</span>
         }
@@ -28,15 +35,6 @@
         @if (lastUpdatedLabel(); as label) {
           <span class="updated">Updated {{ label }}</span>
         }
-        <button
-          type="button"
-          class="refresh-btn"
-          (click)="refresh()"
-          [disabled]="refreshing()"
-          aria-label="Refresh conditions"
-        >
-          {{ refreshing() ? 'Refreshing…' : 'Refresh' }}
-        </button>
       </div>
     </header>
     @if (error()) {

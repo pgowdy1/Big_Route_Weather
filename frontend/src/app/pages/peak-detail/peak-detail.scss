@@ -13,6 +13,11 @@
     &:hover { color: #cfd8dc; }
   }
 
+  .back-sep {
+    margin: 0 0.5rem;
+    color: #6f7a8e;
+  }
+
   .status {
     color: #92a4b5;
     font-style: italic;
@@ -39,16 +44,18 @@
     font-size: 0.75rem;
   }
 
+  .range-chip {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    background: rgba(95, 168, 216, 0.18);
+    color: #cfe5f5;
+    letter-spacing: 0.04em;
+  }
+
   .head-meta { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
   .updated { font-size: 0.75rem; color: #8aa0b4; }
-  .refresh-btn {
-    background: #1a2632; color: #cfd8dc; border: 1px solid #2c3a4a;
-    padding: 0.4rem 0.7rem; border-radius: 0.5rem; font: inherit;
-    font-size: 0.8rem; font-weight: 600; cursor: pointer;
-
-    &:hover:not(:disabled) { border-color: #4a90e2; color: #e8eef3; }
-    &:disabled { opacity: 0.55; cursor: progress; }
-  }
 
   .status.inline { font-size: 0.85rem; padding: 0.3rem 0; }
 }

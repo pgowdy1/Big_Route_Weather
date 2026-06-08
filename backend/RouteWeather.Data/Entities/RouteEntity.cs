@@ -24,4 +24,7 @@ public class RouteEntity
 
     [MaxLength(40)]
     public string SnotelStationTriplet { get; set; } = string.Empty;
+
+    public int RangeId { get; set; }
+    public RangeEntity? Range { get; set; }
 }

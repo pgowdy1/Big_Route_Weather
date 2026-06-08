@@ -29,7 +29,6 @@ export class PeakDetail {
 
   detail = signal<RouteDetail | null>(null);
   loading = signal(true);
-  refreshing = signal(false);
   notFound = signal(false);
   error = signal<string | null>(null);
   lastFetchedAt = signal<number | null>(null);
@@ -70,24 +69,6 @@ export class PeakDetail {
     effect(() => {
       const slug = this.slug();
       untracked(() => this.load(slug));
-    });
-  }
-
-  refresh() {
-    if (this.refreshing()) return;
-    const slug = this.slug();
-    this.refreshing.set(true);
-    this.error.set(null);
-    this.service.detailRefresh(slug).subscribe({
-      next: d => {
-        this.detail.set(d);
-        this.lastFetchedAt.set(Date.now());
-        this.refreshing.set(false);
-      },
-      error: (e: HttpErrorResponse) => {
-        this.error.set(e.message ?? 'Refresh failed — showing cached data');
-        this.refreshing.set(false);
-      },
     });
   }
 
