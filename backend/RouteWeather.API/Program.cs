@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using RouteWeather.API.Options;
 using RouteWeather.API.Services;
 using RouteWeather.Core.Grading;
+using RouteWeather.Core.Services;
 using RouteWeather.Core.Sources;
 using RouteWeather.Data;
 using RouteWeather.Data.Repositories;
@@ -34,10 +35,12 @@ builder.Services.AddDbContextFactory<RouteWeatherContext>(opts => opts.UseSqlite
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<RouteRepository>();
 builder.Services.AddScoped<ForecastCacheRepository>();
+builder.Services.AddScoped<DailyApiCallRepository>();
 builder.Services.AddScoped<ConditionsAggregator>();
 
 builder.Services.Configure<ForecastSourcesOptions>(builder.Configuration.GetSection("ForecastSources"));
 builder.Services.AddSingleton<DailyCallCounter>();
+builder.Services.AddHostedService<DailyCallPersistenceService>();
 builder.Services.AddSingleton(sp =>
 {
     var opts = sp.GetRequiredService<IOptions<ForecastSourcesOptions>>().Value.ConsensusThresholds;
