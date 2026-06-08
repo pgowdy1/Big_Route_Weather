@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using RouteWeather.Core.Models;
+using RouteWeather.Core.Services;
 using RouteWeather.Core.Sources;
 
 namespace RouteWeather.API.Services;
@@ -14,23 +15,27 @@ public class NwsClient : IForecastSource
 
     private readonly HttpClient _http;
     private readonly ILogger<NwsClient> _logger;
+    private readonly DailyCallCounter _calls;
 
-    public NwsClient(HttpClient http, ILogger<NwsClient> logger)
+    public NwsClient(HttpClient http, ILogger<NwsClient> logger, DailyCallCounter calls)
     {
         _http = http;
         _logger = logger;
+        _calls = calls;
     }
 
     public async Task<WeatherSnapshot?> FetchAsync(double lat, double lon, CancellationToken ct = default)
     {
         try
         {
+            _calls.Increment("NWS");
             using var pointResp = await _http.GetAsync($"points/{lat:0.0000},{lon:0.0000}", ct);
             pointResp.EnsureSuccessStatusCode();
             var pointJson = await pointResp.Content.ReadFromJsonAsync<NwsPointResponse>(cancellationToken: ct);
             var hourlyUrl = pointJson?.Properties?.ForecastHourly;
             if (string.IsNullOrWhiteSpace(hourlyUrl)) return null;
 
+            _calls.Increment("NWS");
             using var fcastResp = await _http.GetAsync(hourlyUrl, ct);
             fcastResp.EnsureSuccessStatusCode();
             var fcastJson = await fcastResp.Content.ReadFromJsonAsync<NwsForecastResponse>(cancellationToken: ct);

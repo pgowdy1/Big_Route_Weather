@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using RouteWeather.Core.Models;
+using RouteWeather.Core.Services;
 using RouteWeather.Core.Sources;
 
 namespace RouteWeather.API.Services;
@@ -11,11 +12,13 @@ public class SnotelClient : ISnowpackSource
 
     private readonly HttpClient _http;
     private readonly ILogger<SnotelClient> _logger;
+    private readonly DailyCallCounter _calls;
 
-    public SnotelClient(HttpClient http, ILogger<SnotelClient> logger)
+    public SnotelClient(HttpClient http, ILogger<SnotelClient> logger, DailyCallCounter calls)
     {
         _http = http;
         _logger = logger;
+        _calls = calls;
     }
 
     public async Task<SnowpackSnapshot?> FetchAsync(string stationTriplet, CancellationToken ct = default)
@@ -31,6 +34,7 @@ public class SnotelClient : ISnowpackSource
                       $"&beginDate={weekAgo}&endDate={nowStr}" +
                       "&periodRef=END&centralTendencyType=NONE&returnFlags=false&returnOriginalValues=false&returnSuspectData=false";
 
+            _calls.Increment("SNOTEL");
             using var resp = await _http.GetAsync(url, ct);
             resp.EnsureSuccessStatusCode();
             var stations = await resp.Content.ReadFromJsonAsync<List<SnotelStationData>>(cancellationToken: ct);
