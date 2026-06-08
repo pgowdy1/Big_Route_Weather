@@ -23,6 +23,14 @@ export interface PerSourceForecast {
   fetchedAt: string;
 }
 
+export interface RoutePosition {
+  slug: string;
+  mountain: string;
+  summitLat: number;
+  summitLon: number;
+  rangeSlug: string;
+}
+
 export interface RouteSummary {
   slug: string;
   mountain: string;
