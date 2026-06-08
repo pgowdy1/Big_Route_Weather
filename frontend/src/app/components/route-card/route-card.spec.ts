@@ -29,6 +29,15 @@ describe('RouteCard', () => {
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
     expect(text.toLowerCase()).toContain('stale');
   });
+
+  it('shows the range name as a chip', () => {
+    const fixture = TestBed.createComponent(RouteCard);
+    fixture.componentRef.setInput('route', { ...summary('foo'), rangeName: 'Cascade Range' });
+    fixture.detectChanges();
+
+    const chip = (fixture.nativeElement as HTMLElement).querySelector('.range-chip');
+    expect(chip?.textContent?.trim()).toBe('Cascade Range');
+  });
 });
 
 function summary(slug: string): RouteSummary {
