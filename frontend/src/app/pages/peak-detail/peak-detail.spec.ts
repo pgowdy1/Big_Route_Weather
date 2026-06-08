@@ -128,6 +128,22 @@ describe('PeakDetail', () => {
     expect(noteText).toContain('snow factors excluded today');
   });
 
+  it('shows the range name as a chip', async () => {
+    const fixture = TestBed.createComponent(PeakDetail);
+    fixture.componentRef.setInput('slug', 'longs-peak');
+    fixture.detectChanges();
+
+    const data = detail();
+    data.rangeSlug = 'cascade-range';
+    data.rangeName = 'Cascade Range';
+    httpMock.expectOne('/api/routes/longs-peak').flush(data);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const chip = (fixture.nativeElement as HTMLElement).querySelector('.range-chip');
+    expect(chip?.textContent?.trim()).toBe('Cascade Range');
+  });
+
   it('hides the weights note when all factors are active', async () => {
     const fixture = TestBed.createComponent(PeakDetail);
     fixture.componentRef.setInput('slug', 'longs-peak');

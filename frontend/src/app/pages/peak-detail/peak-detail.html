@@ -19,6 +19,9 @@
         </p>
       </div>
       <div class="head-meta">
+        @if (d.rangeName) {
+          <span class="range-chip">{{ d.rangeName }}</span>
+        }
         @if (d.isStale) {
           <span class="stale-chip">Stale data</span>
         }
