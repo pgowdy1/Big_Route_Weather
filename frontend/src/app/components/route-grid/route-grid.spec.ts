@@ -100,6 +100,28 @@ describe('RouteGrid', () => {
     expect(cards.length).toBe(2);
   });
 
+  it('opens all visible groups when a search query is active', async () => {
+    const fixture = TestBed.createComponent(RouteGrid);
+    fixture.detectChanges();
+    const data: RouteSummary[] = [
+      summary('mount-rainier', 'Mount Rainier', { rangeSlug: 'cascades', rangeName: 'Cascade Range' }),
+      summary('longs-peak', 'Longs Peak', { rangeSlug: 'colorado-14ers', rangeName: 'Colorado 14ers' }),
+    ];
+    httpMock.expectOne('/api/routes').flush(data);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    // Type a query that only matches the Cascades peak
+    fixture.componentInstance.onSearch('rainier');
+    fixture.detectChanges();
+
+    const groups = (fixture.nativeElement as HTMLElement).querySelectorAll('details.range-group') as NodeListOf<HTMLDetailsElement>;
+    expect(groups.length).toBe(1);                  // colorado-14ers filtered out
+    expect(groups[0].getAttribute('data-range')).toBe('cascades');
+    expect(groups[0].open).toBe(true);              // auto-opened
+  });
+
   it('groups peaks by rangeName, in the order they first appear', async () => {
     const fixture = TestBed.createComponent(RouteGrid);
     fixture.detectChanges();
