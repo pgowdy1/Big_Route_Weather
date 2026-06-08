@@ -26,7 +26,7 @@
     <p class="status error inline">{{ error() }}</p>
   }
   @for (g of groups(); track g.slug) {
-    <details class="range-group" [attr.data-range]="g.slug" [open]="g.slug === 'colorado-14ers'">
+    <details class="range-group" [attr.data-range]="g.slug">
       <summary class="range-group-header">
         <span class="range-group-name">{{ g.name }}</span>
         <span class="range-group-count">{{ g.routes.length }}</span>

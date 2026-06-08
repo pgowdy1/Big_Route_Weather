@@ -118,9 +118,9 @@ describe('RouteGrid', () => {
     expect(groups[0].getAttribute('data-range')).toBe('cascades');
     expect(groups[1].getAttribute('data-range')).toBe('colorado-14ers');
 
-    // CO-14ers is expanded; cascades collapsed
+    // All groups start collapsed so users can see every range header
     expect((groups[0] as HTMLDetailsElement).open).toBe(false);
-    expect((groups[1] as HTMLDetailsElement).open).toBe(true);
+    expect((groups[1] as HTMLDetailsElement).open).toBe(false);
 
     // First group has Mount Rainier + Mount Hood, second has Longs Peak
     const firstCards = groups[0].querySelectorAll('app-route-card');
