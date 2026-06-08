@@ -38,21 +38,6 @@
     font-size: 0.75rem;
     color: #8aa0b4;
   }
-
-  .refresh-btn {
-    background: #1a2632;
-    color: #cfd8dc;
-    border: 1px solid #2c3a4a;
-    padding: 0.45rem 0.8rem;
-    border-radius: 0.5rem;
-    font: inherit;
-    font-size: 0.8rem;
-    font-weight: 600;
-    cursor: pointer;
-
-    &:hover:not(:disabled) { border-color: #4a90e2; color: #e6edf3; }
-    &:disabled { opacity: 0.55; cursor: progress; }
-  }
 }
 
 .grid {
@@ -80,4 +65,21 @@
     cursor: pointer;
     font-weight: 600;
   }
+}
+
+.range-group {
+  margin-bottom: 16px;
+}
+.range-group-header {
+  cursor: pointer;
+  padding: 12px 16px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.range-group-count {
+  font-size: 0.85rem;
+  color: #9fb5d5;
 }

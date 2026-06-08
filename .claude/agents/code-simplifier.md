@@ -1,7 +1,8 @@
 ---
 name: code-simplifier
-description: Use this agent when code has been written or modified and needs to be simplified for clarity, consistency, and maintainability while preserving all functionality. Triggered automatically after completing a coding task. Focuses only on recently modified code unless instructed otherwise.
+description: Use this agent when code has been written or modified and needs to be simplified for clarity, consistency, and maintainability while preserving all functionality. Triggered automatically after completing a coding task. Focuses only on recently modified code unless instructed otherwise. Use for optimization step.
 model: opus
+color: red
 ---
 
 <example>

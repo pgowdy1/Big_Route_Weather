@@ -1,0 +1,52 @@
+<section class="diagnostics">
+  <p class="back"><a routerLink="/">&larr; Back to routes</a></p>
+
+  <h2>Daily API calls</h2>
+  <p class="lede">
+    Calls per source, per UTC day. Updated every 30s from the in-memory counter;
+    historical days are read from SQLite.
+  </p>
+
+  @if (loading()) {
+    <p class="status">Loading&hellip;</p>
+  } @else if (error()) {
+    <p class="status error">{{ error() }}</p>
+  } @else if (rows().length === 0) {
+    <p class="status">No data recorded yet.</p>
+  } @else {
+    <div class="meta">
+      <button class="refresh" type="button" (click)="load()">Refresh</button>
+      @if (asOfUtc()) {
+        <span class="as-of">as of {{ asOfUtc() }}</span>
+      }
+    </div>
+
+    <table class="calls">
+      <thead>
+        <tr>
+          <th scope="col">Date (UTC)</th>
+          @for (src of sources(); track src) {
+            <th scope="col">{{ src }}</th>
+          }
+          <th scope="col">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows(); track row.dateUtc) {
+          <tr [class.today]="row.isToday">
+            <th scope="row">
+              {{ row.dateUtc }}
+              @if (row.isToday) {
+                <span class="today-tag">today</span>
+              }
+            </th>
+            @for (count of row.counts; track $index) {
+              <td>{{ count }}</td>
+            }
+            <td class="total">{{ row.total }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</section>

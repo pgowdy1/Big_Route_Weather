@@ -20,27 +20,24 @@
       @if (lastUpdatedLabel(); as label) {
         <span class="updated">Updated {{ label }}</span>
       }
-      <button
-        type="button"
-        class="refresh-btn"
-        (click)="refresh()"
-        [disabled]="refreshing()"
-        aria-label="Refresh conditions"
-      >
-        {{ refreshing() ? 'Refreshing…' : 'Refresh' }}
-      </button>
     </div>
   </div>
   @if (error()) {
     <p class="status error inline">{{ error() }}</p>
   }
-  @if (filtered().length === 0 && query().trim()) {
+  @for (g of groups(); track g.slug) {
+    <details class="range-group" [attr.data-range]="g.slug" [open]="!!query().trim()">
+      <summary class="range-group-header">
+        <span class="range-group-name">{{ g.name }}</span>
+        <span class="range-group-count">{{ g.routes.length }}</span>
+      </summary>
+      <div class="grid">
+        @for (r of g.routes; track r.slug) {
+          <app-route-card [route]="r" />
+        }
+      </div>
+    </details>
+  } @empty {
     <p class="status">No peaks match "{{ query().trim() }}".</p>
-  } @else {
-    <div class="grid">
-      @for (r of filtered(); track r.slug) {
-        <app-route-card [route]="r" />
-      }
-    </div>
   }
 }

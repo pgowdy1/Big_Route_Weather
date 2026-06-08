@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using RouteWeather.API.Services;
 using RouteWeather.Core.Models;
+using RouteWeather.Data.Entities;
 using RouteWeather.Data.Repositories;
 
 namespace RouteWeather.API.Controllers;
@@ -11,7 +12,6 @@ public class RoutesController : ControllerBase
 {
     private const int MaxConcurrentFetches = 8;
     private const string CachedPolicy = "public, max-age=900, stale-while-revalidate=3600";
-    private const string RefreshPolicy = "no-store";
 
     private readonly RouteRepository _routes;
     private readonly ConditionsAggregator _aggregator;
@@ -23,20 +23,7 @@ public class RoutesController : ControllerBase
     }
 
     [HttpGet]
-    public Task<IActionResult> GetAll(CancellationToken ct) => GetAllInternal(CachedPolicy, useCache: true, ct);
-
-    [HttpGet("refresh")]
-    public Task<IActionResult> GetAllRefresh(CancellationToken ct) => GetAllInternal(RefreshPolicy, useCache: false, ct);
-
-    [HttpGet("{slug}")]
-    public Task<IActionResult> GetBySlug(string slug, CancellationToken ct) =>
-        GetBySlugInternal(slug, CachedPolicy, useCache: true, ct);
-
-    [HttpGet("{slug}/refresh")]
-    public Task<IActionResult> GetBySlugRefresh(string slug, CancellationToken ct) =>
-        GetBySlugInternal(slug, RefreshPolicy, useCache: false, ct);
-
-    private async Task<IActionResult> GetAllInternal(string cachePolicy, bool useCache, CancellationToken ct)
+    public async Task<IActionResult> GetAll(CancellationToken ct)
     {
         var routes = await _routes.GetAllAsync(ct);
         using var gate = new SemaphoreSlim(MaxConcurrentFetches, MaxConcurrentFetches);
@@ -44,26 +31,27 @@ public class RoutesController : ControllerBase
         var tasks = routes.Select(async r =>
         {
             await gate.WaitAsync(ct);
-            try { return await _aggregator.GetConditionsAsync(r, useCache, ct); }
+            try { return (Route: r, Conditions: await _aggregator.GetConditionsAsync(r, useCache: true, ct)); }
             finally { gate.Release(); }
         });
 
-        var conditions = await Task.WhenAll(tasks);
-        var dto = conditions.Select(ToSummary).ToList();
-        Response.Headers.CacheControl = cachePolicy;
+        var pairs = await Task.WhenAll(tasks);
+        var dto = pairs.Select(p => ToSummary(p.Route, p.Conditions)).ToList();
+        Response.Headers.CacheControl = CachedPolicy;
         return Ok(dto);
     }
 
-    private async Task<IActionResult> GetBySlugInternal(string slug, string cachePolicy, bool useCache, CancellationToken ct)
+    [HttpGet("{slug}")]
+    public async Task<IActionResult> GetBySlug(string slug, CancellationToken ct)
     {
         var route = await _routes.GetBySlugAsync(slug, ct);
         if (route is null) return NotFound();
-        var conditions = await _aggregator.GetConditionsAsync(route, useCache, ct);
-        Response.Headers.CacheControl = cachePolicy;
-        return Ok(ToDetail(conditions));
+        var conditions = await _aggregator.GetConditionsAsync(route, useCache: true, ct);
+        Response.Headers.CacheControl = CachedPolicy;
+        return Ok(ToDetail(route, conditions));
     }
 
-    private static object ToSummary(RouteConditions c)
+    private static object ToSummary(RouteEntity route, RouteConditions c)
     {
         var window = c.WindowGrades?.Next24h;
         return new
@@ -72,7 +60,11 @@ public class RoutesController : ControllerBase
             mountain = c.Route.Mountain,
             routeName = c.Route.RouteName,
             summitElevationFt = c.Route.SummitElevationFt,
+            summitLat = c.Route.SummitLat,
+            summitLon = c.Route.SummitLon,
             classDifficulty = c.Route.ClassDifficulty,
+            rangeSlug = route.Range?.Slug ?? string.Empty,
+            rangeName = route.Range?.Name ?? string.Empty,
             grade = window?.Grade?.ToString(),
             overallScore = window?.OverallScore,
             drivers = window?.Drivers ?? Array.Empty<Driver>(),
@@ -82,7 +74,7 @@ public class RoutesController : ControllerBase
         };
     }
 
-    private static object ToDetail(RouteConditions c) => new
+    private static object ToDetail(RouteEntity route, RouteConditions c) => new
     {
         slug = c.Route.Slug,
         mountain = c.Route.Mountain,
@@ -91,6 +83,8 @@ public class RoutesController : ControllerBase
         summitLat = c.Route.SummitLat,
         summitLon = c.Route.SummitLon,
         classDifficulty = c.Route.ClassDifficulty,
+        rangeSlug = route.Range?.Slug ?? string.Empty,
+        rangeName = route.Range?.Name ?? string.Empty,
         grade = c.Grade?.ToString(),
         overallScore = c.OverallScore,
         drivers = c.Drivers,

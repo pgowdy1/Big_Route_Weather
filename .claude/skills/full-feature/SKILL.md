@@ -20,6 +20,11 @@ You are running the complete feature development pipeline from start to finish. 
 - The only time you STOP is when a phase **fails** and you cannot recover after 2 attempts. Report the issue clearly and let the user decide.
 - Phase 2 (Plan) requires user answers to questions — that's expected. After the user answers, continue automatically.
 - **Show evidence, not assertions.** Always paste actual command output (test results, build output, errors). Never just say "tests pass" — prove it.
+- **Lean on specialized agents where it makes sense -- research, code-review, optimization.** This pipeline is designed to delegate:
+  - `software-architect` — Phase 2 reconnaissance + helping shape the questions to ask. Pass the original prompt for the skill and let the software-architect think about how it makes sense in the context of the system.
+  - `code-simplifier` — Phase 5 optimization pass on changed files. Pass all of the files and important context for changes done for a full optimization run for this agent.
+  - `code-reviewer` — Phase 7 fresh-context diff review. Have this subagent do a review of all the changes that were done for this feature. Explicitly pass the files to the agent for review.
+  - Stay in the driver's seat: brief each agent with the full context they need (it's a fresh context — they haven't seen this conversation), verify their work, and never delegate understanding.
 
 ---
 
@@ -67,17 +72,40 @@ Output status, then **immediately proceed to Phase 2**.
 
 ## Phase 2: Plan Feature
 
-### 2.1 Codebase Reconnaissance
+### 2.1 Architect-Led Reconnaissance
 
-Before asking questions — **DO NOT IMPLEMENT YET**:
-1. Read `CLAUDE.md` for architecture and conventions
-2. Use Grep/Glob to scan for files related to `$ARGUMENTS`
-3. Identify relevant components, services, endpoints, models
-4. Note reusable patterns and existing utilities — prefer extending over creating
+Before asking questions — **DO NOT IMPLEMENT YET**.
+
+Read `CLAUDE.md` yourself first (it's small and you need it loaded), then delegate the deeper codebase reconnaissance to the `software-architect` agent. The architect has fresh context, so the prompt must be fully self-contained.
+
+```
+Agent: software-architect
+Description: Plan reconnaissance for "$ARGUMENTS"
+Prompt:
+  We're about to plan a new feature: "$ARGUMENTS".
+
+  Do a reconnaissance pass on this codebase to inform the plan. Specifically:
+  1. Identify the layers this feature is likely to touch (frontend / backend / DB / config / docs).
+  2. Find the existing files, components, services, endpoints, and models most relevant to this work — prefer reuse over net-new. List them with file paths.
+  3. Surface the conventions and rules that will constrain implementation (CLAUDE.md, .claude/rules/*, any patterns visible in neighboring code).
+  4. Call out architectural risks, gotchas, or hidden coupling that the user should weigh before we lock the plan.
+  5. Propose 4-8 targeted clarifying questions the user should answer before we implement — questions that would actually change the design, not generic checklist items. Group them as Foundational / Targeted / Edge-case.
+
+  Do NOT write code or modify files. Return a structured report:
+  - Layers touched
+  - Relevant existing files (with paths)
+  - Conventions to follow
+  - Risks / gotchas
+  - Suggested clarifying questions (grouped)
+
+  Keep it focused — under ~400 lines.
+```
+
+Read the architect's report carefully. **You** own the plan and the questions you ask the user — the architect is advising, not deciding.
 
 ### 2.2 Round 1 Questions (Foundational)
 
-Use AskUserQuestion to ask 3-4 questions:
+Use AskUserQuestion to ask 3-4 questions. Start with these defaults, but **replace or refine any of them with the architect's foundational questions** when those are more specific to the feature:
 
 1. **Layers** — "Which layers does this feature touch?"
    - Options: Frontend only, Backend only, Full-stack (frontend + backend), Full-stack + database changes
@@ -89,7 +117,7 @@ Use AskUserQuestion to ask 3-4 questions:
 
 ### 2.3 Round 2 Questions (Targeted)
 
-Based on Round 1, ask 2-4 follow-ups relevant to the layers/scope:
+Based on Round 1 answers + the architect's targeted questions, ask 2-4 follow-ups relevant to the layers/scope:
 - **Frontend:** Component placement, UI patterns (dialog, inline, sidebar, page)
 - **Backend:** New endpoints, external service integration needs
 - **Database:** Data shapes, indexing requirements
@@ -99,10 +127,11 @@ Based on Round 1, ask 2-4 follow-ups relevant to the layers/scope:
 
 1. **Error scenarios** — what should happen when things go wrong?
 2. **Deployment impact** — only ask if new files/deps/config are involved
+3. Any edge-case questions the architect flagged
 
 ### 2.5 Produce the Plan
 
-Write plan to `.claude/plans/<slug>.md` with:
+Write the plan to `.claude/plans/<slug>.md` yourself, incorporating the architect's findings + the user's answers. Include:
 - Feature name, branch, scope, layers
 - Description, requirements, affected files (existing + new)
 - API contract (if backend), data model changes (if DB)
@@ -163,15 +192,15 @@ npx ng build 2>&1 | tail -5
 
 ### Bail-Out Rules
 
-If you encounter a problem that persists after 2 fix attempts:
+If a step persists after 2 fix attempts (whether self or via agent):
 1. **Stop editing the problematic file**
 2. **Assess**: Is the approach fundamentally wrong, or is it a small mistake?
-3. **If wrong approach**: Revert the file and try a different strategy
-4. **If stuck**: Report clearly what's failing, what you tried, and ask the user for direction
+3. **If wrong approach**: Revert and try a different strategy
+4. **If stuck**: Report clearly what's failing, what you tried, what the agent (if any) returned, and ask the user for direction
 
 Do NOT enter a loop of progressively worse fixes.
 
-**After build completes and compiles cleanly, immediately proceed to Phase 4.**
+**After build completes and compiles cleanly across all layers, immediately proceed to Phase 4.**
 
 ---
 
@@ -211,7 +240,7 @@ Frontend: X passed, Y failed
 
 ---
 
-## Phase 5: Optimize
+## Phase 5: Optimize (code-simplifier)
 
 ### 5.1 Determine Scope
 
@@ -220,25 +249,61 @@ Only optimize files changed in this feature:
 git diff --name-only dev...HEAD
 ```
 
-### 5.2 Read Conventions
+Capture that list — it's the exact scope to hand to the simplifier.
 
-Read: `CLAUDE.md`, `.claude/rules/` (any files scoped to changed paths)
+### 5.2 Delegate to code-simplifier
 
-### 5.3 Analyze & Apply
+Spawn the `code-simplifier` agent with the changed-files list. The agent has fresh context, so include the conventions it needs.
 
-For each changed file, check for and fix:
-- Deeply nested conditionals -> flatten with early returns/guard clauses
-- Unused imports, variables, parameters
-- Over-engineered abstractions for one-time operations
-- Convention violations (signals vs subjects, `@if` vs `*ngIf`, `AsNoTracking()`, etc.)
+```
+Agent: code-simplifier
+Description: Post-build cleanup on feature diff
+Prompt:
+  Feature: $ARGUMENTS
+  Branch: feature/<slug>
 
-**Do NOT change:**
-- Working clear logic — don't rewrite for style preference
-- "Why" comments (only remove comments that restate the code)
-- Test assertions — don't weaken them for simplicity
-- Public API contracts — don't change method signatures or endpoint shapes
+  Simplify ONLY these recently modified files (don't touch anything else):
+  <paste output of `git diff --name-only dev...HEAD`>
 
-Use Edit tool for targeted modifications. One concern per edit.
+  Conventions to enforce:
+  - CLAUDE.md (Angular 21 zoneless + signals; ASP.NET .NET 10; 3-project layout)
+  - .claude/rules/ — read any rule file scoped to the paths above
+  - Angular: signals not RxJS subjects, @if/@for not *ngIf/*ngFor
+  - EF Core: AsNoTracking() on read paths; IDbContextFactory for any parallel/fan-out
+  - Default to NO comments; only keep "why" comments that document non-obvious reasoning
+  - Respect SCSS budgets (peak-detail.scss is tight — compact, don't grow)
+
+  Look for and fix:
+  - Deeply nested conditionals -> flatten with early returns / guard clauses
+  - Unused imports, variables, parameters
+  - Over-engineered abstractions for one-time operations
+  - Convention violations
+  - Redundant null checks past framework guarantees
+
+  Do NOT change:
+  - Working clear logic just for style
+  - "Why" comments
+  - Test assertions (don't weaken them)
+  - Public API contracts — method signatures, endpoint shapes, response JSON
+
+  After simplifying, run:
+  - `dotnet build` (if backend files changed)
+  - `npm test` (if frontend files changed — vitest runs once, no flags)
+  - `npx ng build 2>&1 | tail -20` (if frontend files changed)
+
+  Return:
+  1. List of files actually modified
+  2. One-line summary per file of what was simplified
+  3. Build/test output proving nothing broke
+  4. Any change you considered but skipped because it would have broken tests or violated a convention
+```
+
+### 5.3 Review the Simplifier's Output
+
+When the agent returns:
+- Skim the changed files to confirm the edits are surgical (no scope creep, no rewrites of working logic)
+- Confirm the build/test output it pasted actually shows green
+- If anything looks wrong, send a focused follow-up to the same agent — don't fix it yourself
 
 **Immediately proceed to Phase 6.**
 

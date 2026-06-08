@@ -29,6 +29,10 @@ export interface RouteSummary {
   routeName: string;
   summitElevationFt: number;
   classDifficulty: string;
+  rangeSlug: string;
+  rangeName: string;
+  summitLat: number;
+  summitLon: number;
   grade: Grade | null;
   overallScore: number | null;
   drivers: Driver[];
@@ -92,8 +96,6 @@ export interface DetailSources {
 }
 
 export interface RouteDetail extends RouteSummary {
-  summitLat: number;
-  summitLon: number;
   factors: FactorScore[];
   rationale: string;
   forecastNext48h: HourlyForecast[] | null;

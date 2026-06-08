@@ -128,28 +128,20 @@ describe('PeakDetail', () => {
     expect(noteText).toContain('snow factors excluded today');
   });
 
-  it('refresh button issues GET /api/routes/{slug}/refresh and replaces the detail', async () => {
+  it('shows the range name as a chip', async () => {
     const fixture = TestBed.createComponent(PeakDetail);
     fixture.componentRef.setInput('slug', 'longs-peak');
     fixture.detectChanges();
 
-    httpMock.expectOne('/api/routes/longs-peak').flush(detail());
+    const data = detail();
+    data.rangeSlug = 'cascade-range';
+    data.rangeName = 'Cascade Range';
+    httpMock.expectOne('/api/routes/longs-peak').flush(data);
     await fixture.whenStable();
     fixture.detectChanges();
 
-    fixture.componentInstance.refresh();
-    const refreshReq = httpMock.expectOne('/api/routes/longs-peak/refresh');
-    expect(refreshReq.request.method).toBe('GET');
-    const refreshed = detail();
-    refreshed.rationale = 'Refreshed payload.';
-    refreshReq.flush(refreshed);
-    await fixture.whenStable();
-    fixture.detectChanges();
-
-    expect(fixture.componentInstance.detail()?.rationale).toBe('Refreshed payload.');
-    expect(fixture.componentInstance.refreshing()).toBe(false);
-    expect(fixture.componentInstance.lastFetchedAt()).not.toBeNull();
-    expect(fixture.componentInstance.lastUpdatedLabel()).toBe('just now');
+    const chip = (fixture.nativeElement as HTMLElement).querySelector('.range-chip');
+    expect(chip?.textContent?.trim()).toBe('Cascade Range');
   });
 
   it('hides the weights note when all factors are active', async () => {
@@ -185,6 +177,8 @@ function detail(): RouteDetail {
     routeName: 'Keyhole',
     summitElevationFt: 14259,
     classDifficulty: '3',
+    rangeSlug: 'colorado-14ers',
+    rangeName: 'Colorado 14ers',
     grade: 'B',
     overallScore: 84,
     drivers: [],

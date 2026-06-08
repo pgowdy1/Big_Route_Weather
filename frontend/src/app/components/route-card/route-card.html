@@ -9,6 +9,9 @@
 
   <div class="meta">
     <span class="age">Updated {{ ageLabel() }}</span>
+    @if (route().rangeName) {
+      <span class="range-chip">{{ route().rangeName }}</span>
+    }
     @if (route().isStale) {
       <span class="stale-chip">Stale data</span>
     }
