@@ -1,6 +1,6 @@
 ---
 name: git-security
-description: Git security and secret detection specialist. Use for scanning commits for leaked credentials, hardening gitignore, and maintaining clean git history.
+description: Git security and secret detection specialist. Use for scanning commits for leaked credentials, hardening gitignore, and maintaining clean git history. Use this before committing any code to GitHub, before a PR is submitted, or any action is done to the repo.
 tools: Read, Glob, Grep, Bash
 model: opus
 color: red
