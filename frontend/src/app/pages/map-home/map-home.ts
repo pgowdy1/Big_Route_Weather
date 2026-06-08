@@ -45,6 +45,7 @@ export class MapHome implements OnDestroy {
         this.lastFetchedAt.set(Date.now());
         this.loading.set(false);
         this.renderLayers();
+        this.renderMarkers();
       },
       error: e => {
         this.error.set(e?.message ?? 'Could not load conditions');
@@ -81,6 +82,7 @@ export class MapHome implements OnDestroy {
     }).addTo(this.map);
 
     this.renderLayers();
+    this.renderMarkers();
   }
 
   private async renderLayers() {
@@ -115,6 +117,48 @@ export class MapHome implements OnDestroy {
       this.layers.push(label);
     }
   }
+
+  private async renderMarkers() {
+    if (!this.map || this.routes().length === 0) return;
+    const L = (await import('leaflet')) as any;
+    await import('leaflet.markercluster');
+
+    const cluster = L.markerClusterGroup({
+      disableClusteringAtZoom: 8,
+      showCoverageOnHover: false,
+      spiderfyOnMaxZoom: true,
+      maxClusterRadius: 60,
+    });
+    let usedCluster = false;
+
+    for (const route of this.routes()) {
+      if (!route.summitLat || !route.summitLon) continue;
+
+      const grade = (route.grade ?? 'x').toLowerCase();
+      const icon = L.divIcon({
+        className: 'peak-marker',
+        html: `<span class="dot grade-${grade}"></span>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+      });
+
+      const marker = L.marker([route.summitLat, route.summitLon], { icon, title: route.mountain });
+      marker.bindPopup(popupHtml(route), { className: 'peak-popup' });
+
+      if (route.rangeSlug === 'colorado-14ers') {
+        cluster.addLayer(marker);
+        usedCluster = true;
+      } else {
+        marker.addTo(this.map);
+        this.layers.push(marker);
+      }
+    }
+
+    if (usedCluster) {
+      cluster.addTo(this.map);
+      this.layers.push(cluster);
+    }
+  }
 }
 
 function polygonCentroid(ring: number[][]): [number, number] {
@@ -129,4 +173,22 @@ function polygonCentroid(ring: number[][]): [number, number] {
   }
   const area = twiceArea / 2;
   return area === 0 ? ring[0] as [number, number] : [cx / (6 * area), cy / (6 * area)];
+}
+
+function popupHtml(route: RouteSummary): string {
+  const grade = route.grade ?? '?';
+  const drivers = (route.drivers ?? []).slice(0, 2)
+    .map(d => `<div class="popup-driver popup-driver-${d.severity}">${escapeHtml(d.label)}</div>`)
+    .join('');
+  return `
+    <div class="popup-name">${escapeHtml(route.mountain)}</div>
+    <div class="popup-sub">${route.summitElevationFt.toLocaleString()} ft &middot; Class ${escapeHtml(route.classDifficulty)}</div>
+    <div class="popup-grade grade-${grade.toLowerCase()}">${grade}</div>
+    ${drivers}
+    <a class="popup-cta" data-peak="${escapeHtml(route.slug)}" href="/peak/${escapeHtml(route.slug)}">View full forecast &rarr;</a>
+  `;
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 }
