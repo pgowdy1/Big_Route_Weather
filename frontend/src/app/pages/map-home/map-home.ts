@@ -168,7 +168,7 @@ export class MapHome implements OnDestroy {
     let usedCluster = false;
 
     for (const route of this.routes()) {
-      if (!route.summitLat || !route.summitLon) continue;
+      if (route.summitLat == null || route.summitLon == null) continue;
 
       const grade = (route.grade ?? 'x').toLowerCase();
       const icon = L.divIcon({
