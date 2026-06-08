@@ -81,29 +81,6 @@ describe('RouteGrid', () => {
     expect(cards.length).toBe(0);
   });
 
-  it('refresh button issues GET /api/routes/refresh and replaces the routes', async () => {
-    const fixture = TestBed.createComponent(RouteGrid);
-    fixture.detectChanges();
-    httpMock.expectOne('/api/routes').flush([summary('a-peak', 'A Peak')]);
-    fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
-
-    fixture.componentInstance.refresh();
-    const refreshReq = httpMock.expectOne('/api/routes/refresh');
-    expect(refreshReq.request.method).toBe('GET');
-    refreshReq.flush([summary('b-peak', 'B Peak'), summary('c-peak', 'C Peak')]);
-    fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
-
-    const cards = (fixture.nativeElement as HTMLElement).querySelectorAll('app-route-card');
-    expect(cards.length).toBe(2);
-    expect(fixture.componentInstance.refreshing()).toBe(false);
-    expect(fixture.componentInstance.lastFetchedAt()).not.toBeNull();
-    expect(fixture.componentInstance.lastUpdatedLabel()).toBe('just now');
-  });
-
   it('treats whitespace-only query as empty and shows all peaks', async () => {
     const fixture = TestBed.createComponent(RouteGrid);
     fixture.detectChanges();

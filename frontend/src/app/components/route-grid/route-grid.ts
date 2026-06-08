@@ -15,7 +15,6 @@ export class RouteGrid implements OnInit {
 
   routes = signal<RouteSummary[]>([]);
   loading = signal(false);
-  refreshing = signal(false);
   error = signal<string | null>(null);
   query = signal('');
   lastFetchedAt = signal<number | null>(null);
@@ -47,23 +46,6 @@ export class RouteGrid implements OnInit {
       error: e => {
         this.error.set(e?.message ?? 'Could not reach the backend');
         this.loading.set(false);
-      },
-    });
-  }
-
-  refresh() {
-    if (this.refreshing()) return;
-    this.refreshing.set(true);
-    this.error.set(null);
-    this.service.listRefresh().subscribe({
-      next: r => {
-        this.routes.set(r);
-        this.lastFetchedAt.set(Date.now());
-        this.refreshing.set(false);
-      },
-      error: e => {
-        this.error.set(e?.message ?? 'Refresh failed — showing cached data');
-        this.refreshing.set(false);
       },
     });
   }
