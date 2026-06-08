@@ -3,6 +3,12 @@ import { RoutesService } from '../../services/routes-service';
 import { RouteSummary } from '../../models/route-conditions';
 import { RouteCard } from '../route-card/route-card';
 
+interface RangeGroup {
+  slug: string;
+  name: string;
+  routes: RouteSummary[];
+}
+
 @Component({
   selector: 'app-route-grid',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -19,10 +25,23 @@ export class RouteGrid implements OnInit {
   query = signal('');
   lastFetchedAt = signal<number | null>(null);
 
-  filtered = computed(() => {
+  groups = computed<RangeGroup[]>(() => {
     const q = this.query().trim().toLowerCase();
-    if (!q) return this.routes();
-    return this.routes().filter(r => r.mountain.toLowerCase().includes(q));
+    const filtered = q
+      ? this.routes().filter(r => r.mountain.toLowerCase().includes(q))
+      : this.routes();
+
+    const bySlug = new Map<string, RangeGroup>();
+    for (const r of filtered) {
+      const key = r.rangeSlug || '';
+      let g = bySlug.get(key);
+      if (!g) {
+        g = { slug: key, name: r.rangeName || 'Other', routes: [] };
+        bySlug.set(key, g);
+      }
+      g.routes.push(r);
+    }
+    return Array.from(bySlug.values());
   });
 
   lastUpdatedLabel = computed(() => {

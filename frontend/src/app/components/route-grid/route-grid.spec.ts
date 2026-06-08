@@ -99,9 +99,38 @@ describe('RouteGrid', () => {
     const cards = (fixture.nativeElement as HTMLElement).querySelectorAll('app-route-card');
     expect(cards.length).toBe(2);
   });
+
+  it('groups peaks by rangeName, in the order they first appear', async () => {
+    const fixture = TestBed.createComponent(RouteGrid);
+    fixture.detectChanges();
+    const data: RouteSummary[] = [
+      summary('mount-rainier', 'Mount Rainier', { rangeSlug: 'cascades', rangeName: 'Cascade Range' }),
+      summary('longs-peak', 'Longs Peak', { rangeSlug: 'colorado-14ers', rangeName: 'Colorado 14ers' }),
+      summary('mount-hood', 'Mount Hood', { rangeSlug: 'cascades', rangeName: 'Cascade Range' }),
+    ];
+    httpMock.expectOne('/api/routes').flush(data);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const groups = (fixture.nativeElement as HTMLElement).querySelectorAll('details.range-group');
+    expect(groups.length).toBe(2);
+    expect(groups[0].getAttribute('data-range')).toBe('cascades');
+    expect(groups[1].getAttribute('data-range')).toBe('colorado-14ers');
+
+    // CO-14ers is expanded; cascades collapsed
+    expect((groups[0] as HTMLDetailsElement).open).toBe(false);
+    expect((groups[1] as HTMLDetailsElement).open).toBe(true);
+
+    // First group has Mount Rainier + Mount Hood, second has Longs Peak
+    const firstCards = groups[0].querySelectorAll('app-route-card');
+    expect(firstCards.length).toBe(2);
+    const secondCards = groups[1].querySelectorAll('app-route-card');
+    expect(secondCards.length).toBe(1);
+  });
 });
 
-function summary(slug: string, mountain = 'Test Mountain'): RouteSummary {
+function summary(slug: string, mountain = 'Test Mountain', overrides: Partial<RouteSummary> = {}): RouteSummary {
   return {
     slug,
     mountain,
@@ -118,5 +147,6 @@ function summary(slug: string, mountain = 'Test Mountain'): RouteSummary {
     updatedAt: new Date().toISOString(),
     isStale: false,
     consensus: null,
+    ...overrides,
   };
 }

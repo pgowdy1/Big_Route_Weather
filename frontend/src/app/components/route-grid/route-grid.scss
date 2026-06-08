@@ -66,3 +66,20 @@
     font-weight: 600;
   }
 }
+
+.range-group {
+  margin-bottom: 16px;
+}
+.range-group-header {
+  cursor: pointer;
+  padding: 12px 16px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.range-group-count {
+  font-size: 0.85rem;
+  color: #9fb5d5;
+}
