@@ -61,6 +61,57 @@
 .result-name { font-weight: 600; }
 .result-range { font-size: 0.75rem; color: #9fb5d5; }
 
+.map-error-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 21, 37, 0.78);
+  border-radius: 8px;
+}
+.map-error-card {
+  background: #1a2942;
+  border: 1px solid #c44;
+  border-radius: 8px;
+  padding: 20px 28px;
+  max-width: 360px;
+  text-align: center;
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+
+  h2 {
+    font-size: 1.1rem;
+    margin: 0 0 8px;
+    color: #ff8a8a;
+  }
+  p {
+    color: #cfd9e8;
+    margin: 0 0 16px;
+    font-size: 0.9rem;
+  }
+  button {
+    background: #c44;
+    color: #fff;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+
+    &:hover { background: #d55; }
+  }
+}
+
+.peak-marker {
+  animation: peak-fade-in 220ms ease-out;
+}
+@keyframes peak-fade-in {
+  from { opacity: 0; transform: scale(0.6); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
 @media (max-width: 480px) {
   .search-overlay {
     min-width: 0;

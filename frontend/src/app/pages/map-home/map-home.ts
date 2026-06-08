@@ -1,10 +1,11 @@
 import { ChangeDetectionStrategy, Component, ElementRef, OnDestroy, afterNextRender, computed, inject, signal, viewChild } from '@angular/core';
-import { forkJoin } from 'rxjs';
 import { Router } from '@angular/router';
 import { RoutesService } from '../../services/routes-service';
 import { RangesService } from '../../services/ranges-service';
 import { RouteSummary } from '../../models/route-conditions';
 import { RangeMeta } from '../../models/range';
+
+type MapError = { kind: 'routes' | 'leaflet'; message: string };
 
 @Component({
   selector: 'app-map-home',
@@ -22,7 +23,7 @@ export class MapHome implements OnDestroy {
   routes = signal<RouteSummary[]>([]);
   ranges = signal<RangeMeta[]>([]);
   loading = signal(true);
-  error = signal<string | null>(null);
+  error = signal<MapError | null>(null);
   lastFetchedAt = signal<number | null>(null);
 
   lastUpdatedLabel = computed(() => {
@@ -60,22 +61,46 @@ export class MapHome implements OnDestroy {
   }
 
   constructor() {
-    forkJoin([this.routesSvc.list(), this.rangesSvc.list()]).subscribe({
-      next: ([routes, ranges]) => {
-        this.routes.set(routes);
+    this.fetchRanges();
+    this.fetchRoutes();
+    afterNextRender(() => this.initMap());
+  }
+
+  private fetchRanges() {
+    this.rangesSvc.list().subscribe({
+      next: ranges => {
         this.ranges.set(ranges);
+        this.renderLayers();
+      },
+      error: e => {
+        console.warn('ranges load failed', e);
+      },
+    });
+  }
+
+  private fetchRoutes() {
+    this.routesSvc.list().subscribe({
+      next: routes => {
+        this.routes.set(routes);
         this.lastFetchedAt.set(Date.now());
         this.loading.set(false);
-        this.renderLayers();
         this.renderMarkers();
       },
       error: e => {
-        this.error.set(e?.message ?? 'Could not load conditions');
         this.loading.set(false);
+        this.error.set({ kind: 'routes', message: e?.message ?? 'Could not load conditions' });
       },
     });
+  }
 
-    afterNextRender(() => this.initMap());
+  retryRoutes() {
+    this.error.set(null);
+    this.loading.set(true);
+    this.fetchRoutes();
+  }
+
+  reload() {
+    window.location.reload();
   }
 
   ngOnDestroy() {
@@ -86,7 +111,14 @@ export class MapHome implements OnDestroy {
     const el = this.mapContainer()?.nativeElement;
     if (!el) return;
 
-    const L = await loadLeaflet();
+    let L: typeof import('leaflet');
+    try {
+      L = await loadLeaflet();
+    } catch (e) {
+      console.error('Leaflet failed to load', e);
+      this.error.set({ kind: 'leaflet', message: 'Map failed to load. Reload the page to try again.' });
+      return;
+    }
 
     const isMobile = window.innerWidth <= 480;
 
