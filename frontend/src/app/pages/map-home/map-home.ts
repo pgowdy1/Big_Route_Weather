@@ -95,7 +95,10 @@ export class MapHome implements OnDestroy {
       maxZoom: 12,
       maxBounds: [[28, -130], [52, -100]],
       scrollWheelZoom: true,
+      zoomControl: false,
     });
+
+    L.control.zoom({ position: 'topright' }).addTo(this.map);
 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
