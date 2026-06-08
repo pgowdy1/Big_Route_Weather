@@ -25,7 +25,17 @@
     }
   </div>
   <div #mapEl class="map-container"></div>
-  @if (error()) {
-    <p class="status error">{{ error() }}</p>
+  @if (error(); as err) {
+    <div class="map-error-overlay" role="alert" aria-live="assertive">
+      <div class="map-error-card">
+        <h2>{{ err.kind === 'leaflet' ? 'Map failed to load' : "Couldn't load conditions" }}</h2>
+        <p>{{ err.message }}</p>
+        @if (err.kind === 'routes') {
+          <button type="button" (click)="retryRoutes()">Retry</button>
+        } @else {
+          <button type="button" (click)="reload()">Reload page</button>
+        }
+      </div>
+    </div>
   }
 </section>
