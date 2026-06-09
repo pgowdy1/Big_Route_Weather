@@ -40,6 +40,7 @@ builder.Services.AddScoped<DailyApiCallRepository>();
 builder.Services.AddScoped<ConditionsAggregator>();
 
 builder.Services.Configure<ForecastSourcesOptions>(builder.Configuration.GetSection("ForecastSources"));
+builder.Services.Configure<WarmerOptions>(builder.Configuration.GetSection("Warmer"));
 builder.Services.AddSingleton<DailyCallCounter>();
 builder.Services.AddHostedService<DailyCallPersistenceService>();
 builder.Services.AddSingleton(sp =>
