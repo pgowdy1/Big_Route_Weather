@@ -39,6 +39,7 @@ export class MapHome implements OnDestroy {
   private map: any | null = null;
   private layers: any[] = [];
   private ghostLayers: any[] = [];
+  private markerLayers: any[] = [];
 
   searchQuery = signal('');
 
@@ -238,6 +239,10 @@ export class MapHome implements OnDestroy {
     for (const layer of this.ghostLayers) this.map.removeLayer(layer);
     this.ghostLayers = [];
 
+    // Re-renders (stale-recovery refetch) must replace markers, not stack them.
+    for (const layer of this.markerLayers) this.map.removeLayer(layer);
+    this.markerLayers = [];
+
     this.markerBySlug.clear();
 
     const cluster = Lcluster.markerClusterGroup({
@@ -251,13 +256,20 @@ export class MapHome implements OnDestroy {
     for (const route of this.routes()) {
       if (route.summitLat == null || route.summitLon == null) continue;
 
-      const grade = (route.grade ?? 'x').toLowerCase();
+      const spec = markerIconSpec(route);
       const icon = L.divIcon({
-        className: 'peak-marker',
-        html: `<span class="dot grade-${grade}"></span>`,
+        className: spec.className,
+        html: `<span class="dot ${spec.dotClass}"></span>`,
         iconSize: [28, 28],
         iconAnchor: [14, 14],
       });
+
+      if (!spec.interactive) {
+        const ghost = L.marker([route.summitLat, route.summitLon], { icon, interactive: false });
+        ghost.addTo(this.map);
+        this.markerLayers.push(ghost);
+        continue;
+      }
 
       const marker = L.marker([route.summitLat, route.summitLon], { icon, title: route.mountain });
       marker.bindPopup(popupHtml(route), { className: 'peak-popup' });
@@ -268,13 +280,13 @@ export class MapHome implements OnDestroy {
         usedCluster = true;
       } else {
         marker.addTo(this.map);
-        this.layers.push(marker);
+        this.markerLayers.push(marker);
       }
     }
 
     if (usedCluster) {
       cluster.addTo(this.map);
-      this.layers.push(cluster);
+      this.markerLayers.push(cluster);
     }
   }
 }
@@ -300,6 +312,21 @@ function polygonCentroid(ring: number[][]): [number, number] {
   }
   const area = twiceArea / 2;
   return area === 0 ? ring[0] as [number, number] : [cx / (6 * area), cy / (6 * area)];
+}
+
+export interface MarkerIconSpec {
+  className: string;
+  dotClass: string;
+  interactive: boolean;
+}
+
+// Null grade = no usable data (<=24h) on the backend; show the same ghost
+// treatment as the pre-data positions markers instead of a broken grade dot.
+export function markerIconSpec(route: Pick<RouteSummary, 'grade'>): MarkerIconSpec {
+  if (route.grade == null) {
+    return { className: 'peak-marker peak-marker-ghost', dotClass: 'grade-ghost', interactive: false };
+  }
+  return { className: 'peak-marker', dotClass: `grade-${route.grade.toLowerCase()}`, interactive: true };
 }
 
 function popupHtml(route: RouteSummary): string {

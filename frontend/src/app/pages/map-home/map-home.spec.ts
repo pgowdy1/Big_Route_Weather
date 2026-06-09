@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
-import { MapHome } from './map-home';
+import { MapHome, markerIconSpec } from './map-home';
 
 describe('MapHome', () => {
   let httpMock: HttpTestingController;
@@ -173,5 +173,21 @@ describe('MapHome', () => {
 
     expect(fixture.nativeElement.querySelector('.map-error-overlay')).toBeNull();
     expect(fixture.componentInstance.loading()).toBe(false);
+  });
+});
+
+describe('markerIconSpec', () => {
+  it('renders graded routes as interactive grade dots', () => {
+    const spec = markerIconSpec({ grade: 'B' });
+    expect(spec.className).toBe('peak-marker');
+    expect(spec.dotClass).toBe('grade-b');
+    expect(spec.interactive).toBe(true);
+  });
+
+  it('renders null-grade routes as non-interactive ghost markers', () => {
+    const spec = markerIconSpec({ grade: null });
+    expect(spec.className).toBe('peak-marker peak-marker-ghost');
+    expect(spec.dotClass).toBe('grade-ghost');
+    expect(spec.interactive).toBe(false);
   });
 });
