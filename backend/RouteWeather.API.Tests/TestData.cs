@@ -31,6 +31,8 @@ public static class TestData
     };
 
     /// Benign weather that grades well, with enough hourly data for window grades.
+    /// Captures wall-clock UtcNow at call time — tests asserting exact time
+    /// boundaries should build their own snapshots with explicit timestamps.
     public static WeatherSnapshot Snapshot() => new(
         WindMph: 5,
         TempF: 30,

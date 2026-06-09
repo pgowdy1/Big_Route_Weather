@@ -12,7 +12,10 @@ public sealed class TestDbContextFactory : IDbContextFactory<RouteWeatherContext
     public TestDbContextFactory(string dbName)
     {
         _options = new DbContextOptionsBuilder<RouteWeatherContext>()
-            .UseInMemoryDatabase(dbName)
+            // Suffix with a GUID: EF InMemory stores are keyed process-wide by name,
+            // so identical test names (or parallel runs) must never share state.
+            // Sharing within one test happens via this factory INSTANCE, not the name.
+            .UseInMemoryDatabase($"{dbName}-{Guid.NewGuid():N}")
             .Options;
     }
 
