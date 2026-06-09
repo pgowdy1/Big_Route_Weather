@@ -1,5 +1,9 @@
 <section class="map-home">
-  @if (lastUpdatedLabel(); as label) {
+  @if (loading() && !error()) {
+    <div class="updated-chip loading-chip" aria-live="polite">
+      <span class="loading-pulse"></span>Loading conditions&hellip;
+    </div>
+  } @else if (lastUpdatedLabel(); as label) {
     <div class="updated-chip">Updated {{ label }}</div>
   }
   <div class="search-overlay">
