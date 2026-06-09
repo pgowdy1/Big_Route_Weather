@@ -12,6 +12,7 @@ public class RoutesController : ControllerBase
 {
     private const int MaxConcurrentFetches = 8;
     private const string CachedPolicy = "public, max-age=900, stale-while-revalidate=3600";
+    private const string PositionsCachePolicy = "public, max-age=86400, stale-while-revalidate=604800";
 
     private readonly RouteRepository _routes;
     private readonly ConditionsAggregator _aggregator;
@@ -20,6 +21,22 @@ public class RoutesController : ControllerBase
     {
         _routes = routes;
         _aggregator = aggregator;
+    }
+
+    [HttpGet("positions")]
+    public async Task<IActionResult> GetPositions(CancellationToken ct)
+    {
+        var positions = await _routes.GetPositionsAsync(ct);
+        var dto = positions.Select(p => new
+        {
+            slug = p.Slug,
+            mountain = p.Mountain,
+            summitLat = p.SummitLat,
+            summitLon = p.SummitLon,
+            rangeSlug = p.RangeSlug,
+        });
+        Response.Headers.CacheControl = PositionsCachePolicy;
+        return Ok(dto);
     }
 
     [HttpGet]
