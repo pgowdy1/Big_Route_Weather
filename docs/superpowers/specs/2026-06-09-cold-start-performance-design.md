@@ -61,8 +61,10 @@ User request (GET /api/routes, GET /api/routes/{slug})
        Never fetches upstream. Worst case ≈ 2–3s after a deploy, not 60–90s.
 ```
 
-**Who may fetch upstream:** the warmer, and the `/refresh` endpoint (explicit user
-action; keeps its current "bypass edge + memory tiers" meaning). Ordinary GETs may not.
+**Who may fetch upstream:** the warmer only. Ordinary GETs may not. (Implementation
+note: there is no server-side `/refresh` endpoint in the current code — the `/all`
+page's Refresh button re-GETs `/api/routes` — so the warmer is the sole upstream
+caller and there is no refresh path to migrate.)
 
 **Invariants preserved:**
 
@@ -96,7 +98,7 @@ A `BackgroundService`:
 
 The `useCache: bool` parameter becomes an explicit `FetchMode`:
 
-- **`FetchMode.ReadThrough`** (warmer, `/refresh`): current behavior — check SQLite
+- **`FetchMode.ReadThrough`** (warmer only): current behavior — check SQLite
   per-source TTL, fetch upstream on expiry, upsert, compute grade, write to memory
   cache with a **30-minute** TTL (up from 5m). Rationale: the warmer overwrites
   entries every 10 minutes; if the warmer stalls, entries expire at 30m and reads
@@ -128,7 +130,8 @@ requests touching SQLite concurrently).
   stale-while-revalidate=3600`. Otherwise the browser caches the stale payload for
   15 minutes and the frontend's recovery refetch would receive the same stale bytes.
   Fresh responses keep the existing policy. The same rule applies to `GetBySlug`.
-- `/refresh` keeps `ReadThrough` semantics, unchanged.
+- The `/all` page's Refresh button (a plain re-GET of `/api/routes`) becomes a
+  cache-only read like any other GET — no server change needed.
 
 ### 5. Configuration
 
@@ -196,7 +199,7 @@ fetched. `DailyCallCounter` remains the observability check.
 - Warmer: a per-route exception does not abort the cycle; a cycle exception does
   not kill the service; `Enabled: false` results in no cycles.
 - Controllers: stale content → `Cache-Control: no-cache`; fresh content → existing
-  900s+SWR policy; `/refresh` still reaches upstream (`ReadThrough`).
+  900s+SWR policy; the warmer still reaches upstream (`ReadThrough`).
 
 **Frontend (Vitest + jsdom, per `.claude/rules/testing.md`):**
 
