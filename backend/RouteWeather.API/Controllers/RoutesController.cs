@@ -10,14 +10,16 @@ namespace RouteWeather.API.Controllers;
 [Route("api/routes")]
 public class RoutesController : ControllerBase
 {
-    private const int MaxConcurrentFetches = 8;
     private const string CachedPolicy = "public, max-age=900, stale-while-revalidate=3600";
     private const string PositionsCachePolicy = "public, max-age=86400, stale-while-revalidate=604800";
+    // Stale payloads must not be browser-cached for 15 minutes, or the
+    // frontend's recovery refetch would be served the same stale bytes.
+    private const string NoCachePolicy = "no-cache";
 
     private readonly RouteRepository _routes;
-    private readonly ConditionsAggregator _aggregator;
+    private readonly IConditionsAggregator _aggregator;
 
-    public RoutesController(RouteRepository routes, ConditionsAggregator aggregator)
+    public RoutesController(RouteRepository routes, IConditionsAggregator aggregator)
     {
         _routes = routes;
         _aggregator = aggregator;
@@ -43,18 +45,9 @@ public class RoutesController : ControllerBase
     public async Task<IActionResult> GetAll(CancellationToken ct)
     {
         var routes = await _routes.GetAllAsync(ct);
-        using var gate = new SemaphoreSlim(MaxConcurrentFetches, MaxConcurrentFetches);
-
-        var tasks = routes.Select(async r =>
-        {
-            await gate.WaitAsync(ct);
-            try { return (Route: r, Conditions: await _aggregator.GetConditionsAsync(r, useCache: true, ct)); }
-            finally { gate.Release(); }
-        });
-
-        var pairs = await Task.WhenAll(tasks);
+        var pairs = await _aggregator.GetManyCacheOnlyAsync(routes, ct);
         var dto = pairs.Select(p => ToSummary(p.Route, p.Conditions)).ToList();
-        Response.Headers.CacheControl = CachedPolicy;
+        Response.Headers.CacheControl = pairs.Any(p => p.Conditions.IsStale) ? NoCachePolicy : CachedPolicy;
         return Ok(dto);
     }
 
@@ -63,8 +56,8 @@ public class RoutesController : ControllerBase
     {
         var route = await _routes.GetBySlugAsync(slug, ct);
         if (route is null) return NotFound();
-        var conditions = await _aggregator.GetConditionsAsync(route, useCache: true, ct);
-        Response.Headers.CacheControl = CachedPolicy;
+        var conditions = await _aggregator.GetConditionsAsync(route, FetchMode.CacheOnly, ct);
+        Response.Headers.CacheControl = conditions.IsStale ? NoCachePolicy : CachedPolicy;
         return Ok(ToDetail(route, conditions));
     }
 

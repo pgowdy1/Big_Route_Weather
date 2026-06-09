@@ -52,21 +52,6 @@ public class ConditionsAggregator : IConditionsAggregator
         _logger = logger;
     }
 
-    // Legacy entry point; controllers move off it in the next commit.
-    public async Task<RouteConditions> GetConditionsAsync(
-        RouteEntity routeEntity,
-        bool useCache = true,
-        CancellationToken ct = default)
-    {
-        if (useCache
-            && _conditionsCache.TryGetValue(ConditionsCacheKey(routeEntity.Slug), out RouteConditions? cached)
-            && cached is not null)
-        {
-            return cached;
-        }
-        return await GetConditionsAsync(routeEntity, FetchMode.ReadThrough, ct);
-    }
-
     public async Task<RouteConditions> GetConditionsAsync(
         RouteEntity routeEntity,
         FetchMode mode,
