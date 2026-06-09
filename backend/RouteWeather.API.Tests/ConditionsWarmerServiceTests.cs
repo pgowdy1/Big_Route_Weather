@@ -65,6 +65,22 @@ public class ConditionsWarmerServiceTests
     }
 
     [Fact]
+    public async Task RunCycle_PreCancelledToken_ThrowsOce_AndWarmsNothing()
+    {
+        var dbFactory = new TestDbContextFactory(nameof(RunCycle_PreCancelledToken_ThrowsOce_AndWarmsNothing));
+        await TestData.SeedRoutesAsync(dbFactory, TestData.Route());
+        var (scopeFactory, fake) = BuildScope(dbFactory);
+        var warmer = BuildWarmer(scopeFactory);
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        // A pre-cancelled token aborts at the initial GetAllAsync; the OCE is the
+        // contract ExecuteAsync's outer catch handles. No route may be warmed.
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => warmer.RunCycleAsync(cts.Token));
+        Assert.Equal(0, fake.Calls);
+    }
+
+    [Fact]
     public async Task Disabled_RunsNoCycles()
     {
         var dbFactory = new TestDbContextFactory(nameof(Disabled_RunsNoCycles));

@@ -52,6 +52,8 @@ public class ConditionsWarmerService : BackgroundService
             {
                 await RunCycleAsync(ct);
             }
+            // Realistic trigger: cancellation during the initial GetAllAsync —
+            // per-route OCEs are swallowed inside the cycle, so they never reach here.
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
                 break;
@@ -93,7 +95,10 @@ public class ConditionsWarmerService : BackgroundService
         });
         await Task.WhenAll(tasks);
 
-        _logger.LogInformation("Warm cycle completed for {Count} routes", routes.Count);
+        if (!ct.IsCancellationRequested)
+        {
+            _logger.LogInformation("Warm cycle completed for {Count} routes", routes.Count);
+        }
     }
 
     private static async Task<bool> WaitForNextTickSafeAsync(PeriodicTimer timer, CancellationToken ct)
