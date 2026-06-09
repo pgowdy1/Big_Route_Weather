@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using RouteWeather.API.Options;
 using RouteWeather.API.Services;
 using RouteWeather.Core.Grading;
+using RouteWeather.Core.Models;
 using RouteWeather.Data.Entities;
 using RouteWeather.Data.Repositories;
 
@@ -11,6 +12,7 @@ namespace RouteWeather.API.Tests;
 
 public class ConditionsAggregatorTests
 {
+    // Must mirror ConditionsAggregator.JsonOpts — rows written here are read by production code.
     private static readonly JsonSerializerOptions JsonOpts = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
     private sealed class Harness
@@ -170,5 +172,45 @@ public class ConditionsAggregatorTests
         Assert.NotNull(pairs.Single(p => p.Route.Slug == "mt-test").Conditions.Grade);
         Assert.Null(pairs.Single(p => p.Route.Slug == "mt-bare").Conditions.Grade);
         Assert.Equal(0, h.Forecast.FetchCount);
+    }
+
+    [Fact]
+    public async Task CacheOnly_CorruptPayload_OtherSourceStillGrades_NoThrow()
+    {
+        var h = new Harness(nameof(CacheOnly_CorruptPayload_OtherSourceStillGrades_NoThrow));
+        var snowpack = new SnowpackSnapshot(
+            SnowWaterEquivalentIn: 12.0,
+            SnowDepthIn: 40.0,
+            NewSnowLast7DaysIn: 6.0,
+            PercentOfNormalSwe: 110.0,
+            StationTriplet: "999:WY:SNTL",
+            DailyDepthIn: Array.Empty<DailyDepthPoint>());
+
+        await using (var db = await h.DbFactory.CreateDbContextAsync())
+        {
+            db.CachedForecasts.Add(new CachedForecastEntity
+            {
+                RouteId = h.Route.Id,
+                Source = "NWS",
+                PayloadJson = "{ not valid json",
+                FetchedAtUtc = DateTime.UtcNow.AddMinutes(-10),
+                ExpiresAtUtc = DateTime.UtcNow.AddMinutes(50),
+            });
+            db.CachedForecasts.Add(new CachedForecastEntity
+            {
+                RouteId = h.Route.Id,
+                Source = "SNOTEL",
+                PayloadJson = JsonSerializer.Serialize(snowpack, JsonOpts),
+                FetchedAtUtc = DateTime.UtcNow.AddMinutes(-10),
+                ExpiresAtUtc = DateTime.UtcNow.AddMinutes(50),
+            });
+            await db.SaveChangesAsync();
+        }
+
+        var conditions = await h.Aggregator.GetConditionsAsync(h.Route, FetchMode.CacheOnly);
+
+        Assert.NotNull(conditions.Grade); // corrupt NWS degrades to "source absent"; SNOTEL still grades
+        Assert.Equal(0, h.Forecast.FetchCount);
+        Assert.Equal(0, h.Snowpack.FetchCount);
     }
 }

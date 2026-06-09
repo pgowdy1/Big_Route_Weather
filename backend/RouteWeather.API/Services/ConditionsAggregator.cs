@@ -137,7 +137,9 @@ public class ConditionsAggregator : IConditionsAggregator
             }
             else
             {
-                results.Add(new RouteConditionsPair(route, BuildFromCachedRows(route, rowsByRoute![route.Id].ToList())));
+                var rows = rowsByRoute?[route.Id].ToList()
+                    ?? await _cache.GetForRouteAsync(route.Id, ct);
+                results.Add(new RouteConditionsPair(route, BuildFromCachedRows(route, rows)));
             }
         }
         return results;
@@ -155,7 +157,7 @@ public class ConditionsAggregator : IConditionsAggregator
             {
                 return new SourceFetchResult(s.Name, null, null, true, s.ActiveFactors);
             }
-            return new SourceFetchResult(s.Name, Deserialize<WeatherSnapshot>(row.PayloadJson),
+            return new SourceFetchResult(s.Name, TryDeserialize<WeatherSnapshot>(row.PayloadJson, s.Name, routeEntity.Id),
                 new DateTimeOffset(row.FetchedAtUtc, TimeSpan.Zero), row.ExpiresAtUtc <= nowUtc, s.ActiveFactors);
         }).ToList();
 
@@ -166,7 +168,7 @@ public class ConditionsAggregator : IConditionsAggregator
             {
                 return new SnowpackFetchResult(s.Name, null, null, true);
             }
-            return new SnowpackFetchResult(s.Name, Deserialize<SnowpackSnapshot>(row.PayloadJson),
+            return new SnowpackFetchResult(s.Name, TryDeserialize<SnowpackSnapshot>(row.PayloadJson, s.Name, routeEntity.Id),
                 new DateTimeOffset(row.FetchedAtUtc, TimeSpan.Zero), row.ExpiresAtUtc <= nowUtc);
         }).ToList();
 
@@ -180,6 +182,8 @@ public class ConditionsAggregator : IConditionsAggregator
         var conditions = BuildConditions(routeEntity, forecastResults, snowpackResults, forceStale);
 
         var cacheKey = ConditionsCacheKey(routeEntity.Slug);
+        // Best-effort guard, not atomic: a racing warmer Set can still be
+        // overwritten; any such stale entry is bounded by the 2-minute TTL.
         if (conditions.Grade is not null && !_conditionsCache.TryGetValue(cacheKey, out _))
         {
             _conditionsCache.Set(cacheKey, conditions, CacheOnlyCacheTtl);
@@ -338,6 +342,19 @@ public class ConditionsAggregator : IConditionsAggregator
     }
 
     private static T? Deserialize<T>(string json) => JsonSerializer.Deserialize<T>(json, JsonOpts);
+
+    private T? TryDeserialize<T>(string json, string source, int routeId)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<T>(json, JsonOpts);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Discarding corrupt cached payload for route {RouteId} source {Source}", routeId, source);
+            return default;
+        }
+    }
 
     private static DateTimeOffset? MaxOf(DateTimeOffset? a, DateTimeOffset? b) =>
         (a, b) switch
