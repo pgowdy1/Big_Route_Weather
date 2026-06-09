@@ -78,6 +78,33 @@ describe('MapHome', () => {
     httpMock.expectOne('/api/routes/positions').flush([]);
   });
 
+  it('shows a loading chip while conditions are pending and hides it after', () => {
+    const fixture = TestBed.createComponent(MapHome);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.loading-chip')).not.toBeNull();
+
+    httpMock.expectOne('/api/ranges').flush([]);
+    httpMock.expectOne('/api/routes/positions').flush([]);
+    httpMock.expectOne('/api/routes').flush([]);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.loading-chip')).toBeNull();
+  });
+
+  it('hides the loading chip when an error overlay takes over', () => {
+    const fixture = TestBed.createComponent(MapHome);
+    fixture.detectChanges();
+
+    httpMock.expectOne('/api/ranges').flush([]);
+    httpMock.expectOne('/api/routes/positions').flush([]);
+    httpMock.expectOne('/api/routes').error(new ProgressEvent('boom'), { status: 500, statusText: 'boom' });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.loading-chip')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.map-error-overlay')).not.toBeNull();
+  });
+
   it('stays silent when ranges fails (no error overlay)', () => {
     const fixture = TestBed.createComponent(MapHome);
     fixture.detectChanges();
