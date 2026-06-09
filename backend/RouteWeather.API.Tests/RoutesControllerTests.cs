@@ -19,13 +19,16 @@ public class RoutesControllerTests
     {
         var dbFactory = new TestDbContextFactory(nameof(GetAll_AllFresh_KeepsEdgeCachePolicy));
         await TestData.SeedRoutesAsync(dbFactory, TestData.Route());
-        var controller = Build(dbFactory, new FakeConditionsAggregator());
+        var fake = new FakeConditionsAggregator();
+        var controller = Build(dbFactory, fake);
 
         var result = await controller.GetAll(CancellationToken.None);
 
         Assert.IsType<OkObjectResult>(result);
         Assert.Equal("public, max-age=900, stale-while-revalidate=3600",
             controller.Response.Headers.CacheControl.ToString());
+        Assert.Equal(1, fake.Calls);      // one bulk call...
+        Assert.Empty(fake.ModesSeen);     // ...and zero per-route fan-out
     }
 
     [Fact]
