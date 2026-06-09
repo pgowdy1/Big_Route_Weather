@@ -44,6 +44,7 @@ builder.Services.Configure<ForecastSourcesOptions>(builder.Configuration.GetSect
 builder.Services.Configure<WarmerOptions>(builder.Configuration.GetSection("Warmer"));
 builder.Services.AddSingleton<DailyCallCounter>();
 builder.Services.AddHostedService<DailyCallPersistenceService>();
+builder.Services.AddHostedService<ConditionsWarmerService>();
 builder.Services.AddSingleton(sp =>
 {
     var opts = sp.GetRequiredService<IOptions<ForecastSourcesOptions>>().Value.ConsensusThresholds;
