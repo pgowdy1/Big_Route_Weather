@@ -38,6 +38,7 @@ builder.Services.AddScoped<RangeRepository>();
 builder.Services.AddScoped<ForecastCacheRepository>();
 builder.Services.AddScoped<DailyApiCallRepository>();
 builder.Services.AddScoped<ConditionsAggregator>();
+builder.Services.AddScoped<IConditionsAggregator>(sp => sp.GetRequiredService<ConditionsAggregator>());
 
 builder.Services.Configure<ForecastSourcesOptions>(builder.Configuration.GetSection("ForecastSources"));
 builder.Services.Configure<WarmerOptions>(builder.Configuration.GetSection("Warmer"));
