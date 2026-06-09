@@ -40,6 +40,17 @@ html, body {
 .peak-marker .dot.grade-d { background: #e88848; }
 .peak-marker .dot.grade-f { background: #d04848; }
 .peak-marker .dot.grade-x { background: #6f7a8e; }
+.peak-marker-ghost .dot.grade-ghost {
+  background: #3a4a62;
+  border-color: rgba(255, 255, 255, 0.35);
+  box-shadow: none;
+  opacity: 0.7;
+  animation: peak-ghost-pulse 1.6s ease-in-out infinite;
+}
+@keyframes peak-ghost-pulse {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 0.85; }
+}
 
 .peak-popup .popup-name { font-weight: 700; font-size: 1.05rem; color: #f5f8fb; margin-bottom: 2px; }
 .peak-popup .popup-sub  { font-size: 0.8rem;  color: #9fb5d5; margin-bottom: 8px; }

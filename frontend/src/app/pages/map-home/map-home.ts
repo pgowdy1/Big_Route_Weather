@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, ElementRef, OnDestroy, afterNextRen
 import { Router } from '@angular/router';
 import { RoutesService } from '../../services/routes-service';
 import { RangesService } from '../../services/ranges-service';
-import { RouteSummary } from '../../models/route-conditions';
+import { RoutePosition, RouteSummary } from '../../models/route-conditions';
 import { RangeMeta } from '../../models/range';
 
 type MapError = { kind: 'routes' | 'leaflet'; message: string };
@@ -21,6 +21,7 @@ export class MapHome implements OnDestroy {
   mapContainer = viewChild<ElementRef<HTMLDivElement>>('mapEl');
 
   routes = signal<RouteSummary[]>([]);
+  positions = signal<RoutePosition[]>([]);
   ranges = signal<RangeMeta[]>([]);
   loading = signal(true);
   error = signal<MapError | null>(null);
@@ -37,6 +38,7 @@ export class MapHome implements OnDestroy {
 
   private map: any | null = null;
   private layers: any[] = [];
+  private ghostLayers: any[] = [];
 
   searchQuery = signal('');
 
@@ -62,6 +64,7 @@ export class MapHome implements OnDestroy {
 
   constructor() {
     this.fetchRanges();
+    this.fetchPositions();
     this.fetchRoutes();
     afterNextRender(() => this.initMap());
   }
@@ -74,6 +77,18 @@ export class MapHome implements OnDestroy {
       },
       error: e => {
         console.warn('ranges load failed', e);
+      },
+    });
+  }
+
+  private fetchPositions() {
+    this.routesSvc.positions().subscribe({
+      next: positions => {
+        this.positions.set(positions);
+        this.renderGhostMarkers();
+      },
+      error: e => {
+        console.warn('positions load failed', e);
       },
     });
   }
@@ -153,6 +168,7 @@ export class MapHome implements OnDestroy {
     });
 
     this.renderLayers();
+    this.renderGhostMarkers();
     this.renderMarkers();
   }
 
@@ -189,12 +205,38 @@ export class MapHome implements OnDestroy {
     }
   }
 
+  private async renderGhostMarkers() {
+    if (!this.map || this.positions().length === 0) return;
+    // Real data already arrived — skip; renderMarkers will populate.
+    if (this.routes().length > 0) return;
+    const L = await loadLeaflet();
+
+    for (const layer of this.ghostLayers) this.map.removeLayer(layer);
+    this.ghostLayers = [];
+
+    for (const pos of this.positions()) {
+      if (pos.summitLat == null || pos.summitLon == null) continue;
+      const icon = L.divIcon({
+        className: 'peak-marker peak-marker-ghost',
+        html: '<span class="dot grade-ghost"></span>',
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+      });
+      const marker = L.marker([pos.summitLat, pos.summitLon], { icon, interactive: false });
+      marker.addTo(this.map);
+      this.ghostLayers.push(marker);
+    }
+  }
+
   private async renderMarkers() {
     if (!this.map || this.routes().length === 0) return;
     const L = await loadLeaflet();
     await import('leaflet.markercluster');
     // markercluster augments window.L (which loadLeaflet returns), so L.markerClusterGroup exists here.
     const Lcluster = L as any;
+
+    for (const layer of this.ghostLayers) this.map.removeLayer(layer);
+    this.ghostLayers = [];
 
     this.markerBySlug.clear();
 

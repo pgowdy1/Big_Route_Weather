@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { RouteSummary, RouteDetail } from '../models/route-conditions';
+import { RoutePosition, RouteSummary, RouteDetail } from '../models/route-conditions';
 
 @Injectable({ providedIn: 'root' })
 export class RoutesService {
@@ -9,6 +9,10 @@ export class RoutesService {
 
   list(): Observable<RouteSummary[]> {
     return this.http.get<RouteSummary[]>('/api/routes');
+  }
+
+  positions(): Observable<RoutePosition[]> {
+    return this.http.get<RoutePosition[]>('/api/routes/positions');
   }
 
   detail(slug: string): Observable<RouteDetail> {

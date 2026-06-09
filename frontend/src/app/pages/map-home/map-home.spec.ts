@@ -17,10 +17,15 @@ describe('MapHome', () => {
 
   afterEach(() => httpMock.verify());
 
-  it('requests routes and ranges on init', () => {
+  function flushAll(opts: { ranges?: any[]; positions?: any[]; routes?: any[] } = {}) {
+    httpMock.expectOne('/api/ranges').flush(opts.ranges ?? []);
+    httpMock.expectOne('/api/routes/positions').flush(opts.positions ?? []);
+    httpMock.expectOne('/api/routes').flush(opts.routes ?? []);
+  }
+
+  it('requests ranges, positions, and routes on init', () => {
     TestBed.createComponent(MapHome).detectChanges();
-    httpMock.expectOne('/api/routes').flush([]);
-    httpMock.expectOne('/api/ranges').flush([]);
+    flushAll();
   });
 
   it('paints ranges independently of routes (does not wait on routes)', () => {
@@ -42,7 +47,22 @@ describe('MapHome', () => {
     expect(fixture.componentInstance.loading()).toBe(true);
     expect(fixture.componentInstance.error()).toBeNull();
 
-    // Flush the remaining outstanding routes request to keep verify() happy.
+    httpMock.expectOne('/api/routes/positions').flush([]);
+    httpMock.expectOne('/api/routes').flush([]);
+  });
+
+  it('captures positions for ghost markers when /api/routes/positions resolves', () => {
+    const fixture = TestBed.createComponent(MapHome);
+    fixture.detectChanges();
+
+    httpMock.expectOne('/api/ranges').flush([]);
+    httpMock.expectOne('/api/routes/positions').flush([
+      { slug: 'mt-x', mountain: 'Mt X', summitLat: 40, summitLon: -105, rangeSlug: 'r' },
+    ]);
+
+    expect(fixture.componentInstance.positions().length).toBe(1);
+    expect(fixture.componentInstance.routes().length).toBe(0);
+
     httpMock.expectOne('/api/routes').flush([]);
   });
 
@@ -55,6 +75,7 @@ describe('MapHome', () => {
     expect(fixture.componentInstance.lastFetchedAt()).not.toBeNull();
 
     httpMock.expectOne('/api/ranges').flush([]);
+    httpMock.expectOne('/api/routes/positions').flush([]);
   });
 
   it('stays silent when ranges fails (no error overlay)', () => {
@@ -62,12 +83,25 @@ describe('MapHome', () => {
     fixture.detectChanges();
 
     httpMock.expectOne('/api/ranges').error(new ProgressEvent('boom'));
+    httpMock.expectOne('/api/routes/positions').flush([]);
     httpMock.expectOne('/api/routes').flush([]);
 
     fixture.detectChanges();
     expect(fixture.componentInstance.error()).toBeNull();
-    const overlay = fixture.nativeElement.querySelector('.map-error-overlay');
-    expect(overlay).toBeNull();
+    expect(fixture.nativeElement.querySelector('.map-error-overlay')).toBeNull();
+  });
+
+  it('stays silent when positions fails (no error overlay)', () => {
+    const fixture = TestBed.createComponent(MapHome);
+    fixture.detectChanges();
+
+    httpMock.expectOne('/api/ranges').flush([]);
+    httpMock.expectOne('/api/routes/positions').error(new ProgressEvent('boom'));
+    httpMock.expectOne('/api/routes').flush([]);
+
+    fixture.detectChanges();
+    expect(fixture.componentInstance.error()).toBeNull();
+    expect(fixture.nativeElement.querySelector('.map-error-overlay')).toBeNull();
   });
 
   it('surfaces an obvious overlay when routes fails', () => {
@@ -75,6 +109,7 @@ describe('MapHome', () => {
     fixture.detectChanges();
 
     httpMock.expectOne('/api/ranges').flush([]);
+    httpMock.expectOne('/api/routes/positions').flush([]);
     httpMock.expectOne('/api/routes').error(new ProgressEvent('boom'), { status: 500, statusText: 'boom' });
 
     fixture.detectChanges();
@@ -95,6 +130,7 @@ describe('MapHome', () => {
     fixture.detectChanges();
 
     httpMock.expectOne('/api/ranges').flush([]);
+    httpMock.expectOne('/api/routes/positions').flush([]);
     httpMock.expectOne('/api/routes').error(new ProgressEvent('boom'), { status: 500, statusText: 'boom' });
     fixture.detectChanges();
 
