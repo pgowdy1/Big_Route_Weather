@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, ElementRef, OnDestroy, afterNextRender, computed, inject, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, OnDestroy, afterNextRender, computed, inject, signal, viewChild } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { RoutesService } from '../../services/routes-service';
 import { RangesService } from '../../services/ranges-service';
@@ -17,6 +18,7 @@ export class MapHome implements OnDestroy {
   private routesSvc = inject(RoutesService);
   private rangesSvc = inject(RangesService);
   private router = inject(Router);
+  private destroyRef = inject(DestroyRef);
 
   mapContainer = viewChild<ElementRef<HTMLDivElement>>('mapEl');
 
@@ -100,7 +102,7 @@ export class MapHome implements OnDestroy {
   }
 
   private fetchRoutes() {
-    this.routesSvc.list().subscribe({
+    this.routesSvc.list().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: routes => {
         this.routes.set(routes);
         this.lastFetchedAt.set(Date.now());
@@ -147,7 +149,7 @@ export class MapHome implements OnDestroy {
   }
 
   private refetchStaleRoutes() {
-    this.routesSvc.list().subscribe({
+    this.routesSvc.list().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: routes => {
         this.routes.set(routes);
         this.lastFetchedAt.set(Date.now());

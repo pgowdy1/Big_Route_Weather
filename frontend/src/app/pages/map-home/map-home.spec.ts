@@ -268,6 +268,18 @@ describe('MapHome', () => {
       vi.advanceTimersByTime(180_000);
       // httpMock.verify in afterEach asserts no request fired after destroy.
     });
+
+    it('cancels an in-flight refetch when the component is destroyed', () => {
+      const fixture = init([summary({ isStale: true })]);
+
+      vi.advanceTimersByTime(60_000);
+      const req = httpMock.expectOne('/api/routes'); // refetch in flight, not yet flushed
+      fixture.destroy();
+
+      expect(req.cancelled).toBe(true);
+      vi.advanceTimersByTime(180_000);
+      // httpMock.verify in afterEach asserts no zombie re-arm fired a new request.
+    });
   });
 });
 
