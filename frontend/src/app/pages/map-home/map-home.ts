@@ -36,6 +36,11 @@ export class MapHome implements OnDestroy {
     return `${Math.round(diffMin / 60)}h ago`;
   });
 
+  private static readonly STALE_REFETCH_DELAY_MS = 60_000;
+  private static readonly STALE_REFETCH_MAX_ATTEMPTS = 5;
+  private staleRefetchTimer: ReturnType<typeof setTimeout> | null = null;
+  private staleRefetchAttempts = 0;
+
   private map: any | null = null;
   private layers: any[] = [];
   private ghostLayers: any[] = [];
@@ -101,6 +106,7 @@ export class MapHome implements OnDestroy {
         this.lastFetchedAt.set(Date.now());
         this.loading.set(false);
         this.renderMarkers();
+        this.scheduleStaleRefetch();
       },
       error: e => {
         this.loading.set(false);
@@ -110,6 +116,7 @@ export class MapHome implements OnDestroy {
   }
 
   retryRoutes() {
+    this.staleRefetchAttempts = 0;
     this.error.set(null);
     this.loading.set(true);
     this.fetchRoutes();
@@ -119,7 +126,43 @@ export class MapHome implements OnDestroy {
     window.location.reload();
   }
 
+  // Backend serves last-known data marked isStale while its warmer catches up
+  // (typically <= one 10-min cycle). Quietly poll until fresh — no spinner,
+  // no chip; grades are already on screen.
+  private scheduleStaleRefetch() {
+    if (this.staleRefetchTimer !== null) {
+      clearTimeout(this.staleRefetchTimer);
+      this.staleRefetchTimer = null;
+    }
+    if (!this.routes().some(r => r.isStale)) {
+      this.staleRefetchAttempts = 0;
+      return;
+    }
+    if (this.staleRefetchAttempts >= MapHome.STALE_REFETCH_MAX_ATTEMPTS) return;
+    this.staleRefetchAttempts++;
+    this.staleRefetchTimer = setTimeout(() => {
+      this.staleRefetchTimer = null;
+      this.refetchStaleRoutes();
+    }, MapHome.STALE_REFETCH_DELAY_MS);
+  }
+
+  private refetchStaleRoutes() {
+    this.routesSvc.list().subscribe({
+      next: routes => {
+        this.routes.set(routes);
+        this.lastFetchedAt.set(Date.now());
+        this.renderMarkers();
+        this.scheduleStaleRefetch();
+      },
+      error: e => {
+        console.warn('stale refetch failed', e);
+        this.scheduleStaleRefetch();
+      },
+    });
+  }
+
   ngOnDestroy() {
+    if (this.staleRefetchTimer !== null) { clearTimeout(this.staleRefetchTimer); this.staleRefetchTimer = null; }
     if (this.map) { this.map.remove(); this.map = null; }
   }
 

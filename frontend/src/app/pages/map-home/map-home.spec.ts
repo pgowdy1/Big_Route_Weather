@@ -2,7 +2,9 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
+import { vi } from 'vitest';
 import { MapHome, markerIconSpec } from './map-home';
+import { RouteSummary } from '../../models/route-conditions';
 
 describe('MapHome', () => {
   let httpMock: HttpTestingController;
@@ -21,6 +23,27 @@ describe('MapHome', () => {
     httpMock.expectOne('/api/ranges').flush(opts.ranges ?? []);
     httpMock.expectOne('/api/routes/positions').flush(opts.positions ?? []);
     httpMock.expectOne('/api/routes').flush(opts.routes ?? []);
+  }
+
+  function summary(overrides: Partial<RouteSummary> = {}): RouteSummary {
+    return {
+      slug: 'mt-x',
+      mountain: 'Mt X',
+      routeName: 'SW Ridge',
+      summitElevationFt: 12000,
+      classDifficulty: '2',
+      rangeSlug: 'r',
+      rangeName: 'R',
+      summitLat: 40,
+      summitLon: -105,
+      grade: 'A',
+      overallScore: 92,
+      drivers: [],
+      updatedAt: new Date().toISOString(),
+      isStale: false,
+      consensus: null,
+      ...overrides,
+    };
   }
 
   it('requests ranges, positions, and routes on init', () => {
@@ -173,6 +196,78 @@ describe('MapHome', () => {
 
     expect(fixture.nativeElement.querySelector('.map-error-overlay')).toBeNull();
     expect(fixture.componentInstance.loading()).toBe(false);
+  });
+
+  describe('stale recovery refetch', () => {
+    // Only fake the timer APIs the loop uses; faking microtasks/rAF would
+    // interfere with zoneless change detection.
+    beforeEach(() => vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] }));
+    afterEach(() => vi.useRealTimers());
+
+    function init(routes: RouteSummary[]) {
+      const fixture = TestBed.createComponent(MapHome);
+      fixture.detectChanges();
+      httpMock.expectOne('/api/ranges').flush([]);
+      httpMock.expectOne('/api/routes/positions').flush([]);
+      httpMock.expectOne('/api/routes').flush(routes);
+      fixture.detectChanges();
+      return fixture;
+    }
+
+    it('silently refetches 60s after a stale response and stops once fresh', () => {
+      const fixture = init([summary({ isStale: true })]);
+      expect(fixture.componentInstance.loading()).toBe(false);
+      expect(fixture.nativeElement.querySelector('.loading-chip')).toBeNull();
+
+      vi.advanceTimersByTime(60_000);
+      httpMock.expectOne('/api/routes').flush([summary({ isStale: false })]);
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.loading()).toBe(false);
+      expect(fixture.nativeElement.querySelector('.loading-chip')).toBeNull();
+
+      // Fresh data — no further polling (httpMock.verify in afterEach enforces it).
+      vi.advanceTimersByTime(180_000);
+    });
+
+    it('keeps polling while stale, capped at 5 attempts', () => {
+      init([summary({ isStale: true })]);
+
+      for (let attempt = 0; attempt < 5; attempt++) {
+        vi.advanceTimersByTime(60_000);
+        httpMock.expectOne('/api/routes').flush([summary({ isStale: true })]);
+      }
+
+      // Attempt budget exhausted — no sixth request.
+      vi.advanceTimersByTime(180_000);
+    });
+
+    it('stays silent when a refetch fails, then keeps trying', () => {
+      const fixture = init([summary({ isStale: true })]);
+
+      vi.advanceTimersByTime(60_000);
+      httpMock.expectOne('/api/routes').error(new ProgressEvent('boom'), { status: 500, statusText: 'boom' });
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.error()).toBeNull();
+      expect(fixture.nativeElement.querySelector('.map-error-overlay')).toBeNull();
+
+      vi.advanceTimersByTime(60_000);
+      httpMock.expectOne('/api/routes').flush([summary({ isStale: false })]);
+    });
+
+    it('does not schedule a refetch when the first response is fresh', () => {
+      init([summary({ isStale: false })]);
+      vi.advanceTimersByTime(180_000);
+      // httpMock.verify in afterEach asserts no request fired.
+    });
+
+    it('cancels the pending refetch when the component is destroyed', () => {
+      const fixture = init([summary({ isStale: true })]);
+      fixture.destroy();
+      vi.advanceTimersByTime(180_000);
+      // httpMock.verify in afterEach asserts no request fired after destroy.
+    });
   });
 });
 
