@@ -264,6 +264,8 @@ export class MapHome implements OnDestroy {
         iconAnchor: [14, 14],
       });
 
+      // Ghost routes are intentionally absent from markerBySlug: there is no
+      // popup to open, so search-focus skips them until a grade arrives.
       if (!spec.interactive) {
         const ghost = L.marker([route.summitLat, route.summitLon], { icon, interactive: false });
         ghost.addTo(this.map);

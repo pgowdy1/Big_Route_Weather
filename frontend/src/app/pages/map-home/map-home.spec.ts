@@ -178,10 +178,12 @@ describe('MapHome', () => {
 
 describe('markerIconSpec', () => {
   it('renders graded routes as interactive grade dots', () => {
-    const spec = markerIconSpec({ grade: 'B' });
-    expect(spec.className).toBe('peak-marker');
-    expect(spec.dotClass).toBe('grade-b');
-    expect(spec.interactive).toBe(true);
+    for (const grade of ['A', 'B', 'C', 'D', 'F'] as const) {
+      const spec = markerIconSpec({ grade });
+      expect(spec.className).toBe('peak-marker');
+      expect(spec.dotClass).toBe(`grade-${grade.toLowerCase()}`);
+      expect(spec.interactive).toBe(true);
+    }
   });
 
   it('renders null-grade routes as non-interactive ghost markers', () => {
