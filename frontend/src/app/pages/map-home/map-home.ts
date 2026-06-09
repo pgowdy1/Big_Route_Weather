@@ -44,9 +44,9 @@ export class MapHome implements OnDestroy {
   private staleRefetchAttempts = 0;
 
   private map: any | null = null;
-  private layers: any[] = [];
-  private ghostLayers: any[] = [];
-  private markerLayers: any[] = [];
+  private layers: any[] = [];       // range polygons + labels — owned by renderLayers
+  private ghostLayers: any[] = [];  // pre-data position ghosts — owned by renderGhostMarkers
+  private markerLayers: any[] = []; // graded markers AND null-grade ghosts — owned by renderMarkers
 
   searchQuery = signal('');
 

@@ -169,6 +169,8 @@ public class ConditionsAggregator : IConditionsAggregator
         var cacheKey = ConditionsCacheKey(routeEntity.Slug);
         // Best-effort guard, not atomic: a racing warmer Set can still be
         // overwritten; any such stale entry is bounded by the 2-minute TTL.
+        // Stale results are cached deliberately — refetches keep seeing isStale
+        // (and no-cache headers) until the warmer's ReadThrough write lands.
         if (conditions.Grade is not null && !_conditionsCache.TryGetValue(cacheKey, out _))
         {
             _conditionsCache.Set(cacheKey, conditions, CacheOnlyCacheTtl);

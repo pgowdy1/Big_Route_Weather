@@ -219,6 +219,23 @@ fetched. `DailyCallCounter` remains the observability check.
   with no user action.
 - `/api/diagnostics` daily call counts remain in their current range.
 
+## As-built deltas
+
+Improvements added during implementation review loops (the sections above
+describe the design as approved; the code additionally has):
+
+- **Corrupt-payload resilience:** `TryDeserialize` in the cache-only read path
+  degrades a corrupt/old-schema SQLite row to "source absent" (ghost) instead of
+  failing the whole response, with a regression test.
+- **Warmer interval clamp:** `IntervalMinutes < 1` is clamped to 1 with a logged
+  warning — post-inversion the warmer is the only upstream path, so a config
+  typo must not kill it.
+- **Frontend lifecycle hardening:** the routes subscriptions use
+  `takeUntilDestroyed`, so an in-flight refetch is cancelled on destroy and can
+  never re-arm the poll timer on a dead component.
+- **Test isolation:** the API test project's `TestDbContextFactory` GUID-suffixes
+  EF InMemory store names so parallel tests can never share state.
+
 ## Rollout
 
 1. Ship backend + frontend together in one PR to `dev` (the frontend change is
