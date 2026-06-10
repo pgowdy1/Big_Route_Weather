@@ -5,7 +5,6 @@ using Microsoft.Extensions.Options;
 using RouteWeather.API.Options;
 using RouteWeather.Core.Grading;
 using RouteWeather.Core.Models;
-using RouteWeather.Core.Services;
 using RouteWeather.Core.Sources;
 using RouteWeather.Data.Entities;
 using RouteWeather.Data.Repositories;
@@ -259,9 +258,6 @@ public class ConditionsAggregator : IConditionsAggregator
                 r.FetchedAt ?? DateTimeOffset.UtcNow))
             .ToList();
 
-        // Daylight is computed locally from the route's coordinates — no upstream call.
-        var daylight = SolarCalculator.NextDaylight(routeEntity.SummitLat, routeEntity.SummitLon, DateTimeOffset.UtcNow);
-
         return new RouteConditions(
             route,
             blendedWeather is null && snowpack is null ? null : result.Grade,
@@ -277,8 +273,7 @@ public class ConditionsAggregator : IConditionsAggregator
             sourceFreshness,
             ensemble.Consensus,
             perSourceForecast.Count == 0 ? null : perSourceForecast,
-            airQuality.Snapshot,
-            daylight);
+            airQuality.Snapshot);
     }
 
     private static string ConditionsCacheKey(string slug) => $"conditions:{slug}";

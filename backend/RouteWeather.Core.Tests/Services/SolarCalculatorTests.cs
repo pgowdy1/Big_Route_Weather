@@ -39,6 +39,16 @@ public class SolarCalculatorTests
     }
 
     [Fact]
+    public void NextDaylight_easternLongitude_pastSunset_returnsTomorrowsWindow()
+    {
+        var now = DateTimeOffset.Parse("2026-06-20T22:00:00Z");
+        var next = SolarCalculator.NextDaylight(45.833, 6.865, now);
+        Assert.NotNull(next);
+        Assert.True(next!.SunriseUtc > now);
+        Assert.Equal(21, next.SunriseUtc.Day); // tomorrow's window
+    }
+
+    [Fact]
     public void PolarNight_returnsNull() =>
         Assert.Null(SolarCalculator.ComputeUtc(80.0, 0.0, new DateOnly(2026, 12, 21)));
 

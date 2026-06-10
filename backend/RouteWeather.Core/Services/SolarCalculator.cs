@@ -1,6 +1,6 @@
-namespace RouteWeather.Core.Services;
+using RouteWeather.Core.Models;
 
-public record DaylightInfo(DateTimeOffset SunriseUtc, DateTimeOffset SunsetUtc, double DaylightHours);
+namespace RouteWeather.Core.Services;
 
 /// <summary>NOAA sunrise/sunset approximation — accurate to a couple of minutes at mid-latitudes.</summary>
 public static class SolarCalculator
