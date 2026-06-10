@@ -58,4 +58,11 @@ public class PrecipitationFactorTests
         Assert.DoesNotContain("expected", PrecipitationFactor.Detail(40, null));
         Assert.Equal(PrecipitationFactor.Detail(40, null), PrecipitationFactor.Detail(40, 0.01));
     }
+
+    [Fact]
+    public void Score_atExactEngageFloor_amountEngages()
+    {
+        // 0.05" over 12h (bad=0.5") -> amountScore 90; prob 0 -> probScore 100; min = 90.
+        Assert.Equal(90, PrecipitationFactor.Score(0, 0.05, 12));
+    }
 }
