@@ -16,6 +16,24 @@ public class ForecastCacheRepository
             .FirstOrDefaultAsync(c => c.RouteId == routeId && c.Source == source, ct);
     }
 
+    /// Last-known rows for one route, ignoring TTL — the cache-only read path
+    /// decides staleness itself.
+    public async Task<List<CachedForecastEntity>> GetForRouteAsync(int routeId, CancellationToken ct = default)
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync(ct);
+        return await db.CachedForecasts.AsNoTracking()
+            .Where(c => c.RouteId == routeId)
+            .ToListAsync(ct);
+    }
+
+    /// All last-known rows in one query (87 routes × 6 sources ≈ 522 rows),
+    /// so a cold GET /api/routes costs 1 query instead of 522.
+    public async Task<List<CachedForecastEntity>> GetAllLatestAsync(CancellationToken ct = default)
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync(ct);
+        return await db.CachedForecasts.AsNoTracking().ToListAsync(ct);
+    }
+
     public async Task UpsertAsync(int routeId, string source, string payloadJson, DateTime expiresAtUtc, CancellationToken ct = default)
     {
         await using var db = await _dbFactory.CreateDbContextAsync(ct);

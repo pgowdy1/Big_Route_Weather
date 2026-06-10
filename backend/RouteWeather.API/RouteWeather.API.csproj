@@ -19,4 +19,8 @@
     <ProjectReference Include="..\RouteWeather.Data\RouteWeather.Data.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="RouteWeather.API.Tests" />
+  </ItemGroup>
+
 </Project>

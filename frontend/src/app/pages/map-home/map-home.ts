@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, ElementRef, OnDestroy, afterNextRender, computed, inject, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, OnDestroy, afterNextRender, computed, inject, signal, viewChild } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { RoutesService } from '../../services/routes-service';
 import { RangesService } from '../../services/ranges-service';
@@ -17,6 +18,7 @@ export class MapHome implements OnDestroy {
   private routesSvc = inject(RoutesService);
   private rangesSvc = inject(RangesService);
   private router = inject(Router);
+  private destroyRef = inject(DestroyRef);
 
   mapContainer = viewChild<ElementRef<HTMLDivElement>>('mapEl');
 
@@ -36,9 +38,15 @@ export class MapHome implements OnDestroy {
     return `${Math.round(diffMin / 60)}h ago`;
   });
 
+  private static readonly STALE_REFETCH_DELAY_MS = 60_000;
+  private static readonly STALE_REFETCH_MAX_ATTEMPTS = 5;
+  private staleRefetchTimer: ReturnType<typeof setTimeout> | null = null;
+  private staleRefetchAttempts = 0;
+
   private map: any | null = null;
-  private layers: any[] = [];
-  private ghostLayers: any[] = [];
+  private layers: any[] = [];       // range polygons + labels — owned by renderLayers
+  private ghostLayers: any[] = [];  // pre-data position ghosts — owned by renderGhostMarkers
+  private markerLayers: any[] = []; // graded markers AND null-grade ghosts — owned by renderMarkers
 
   searchQuery = signal('');
 
@@ -94,12 +102,13 @@ export class MapHome implements OnDestroy {
   }
 
   private fetchRoutes() {
-    this.routesSvc.list().subscribe({
+    this.routesSvc.list().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: routes => {
         this.routes.set(routes);
         this.lastFetchedAt.set(Date.now());
         this.loading.set(false);
         this.renderMarkers();
+        this.scheduleStaleRefetch();
       },
       error: e => {
         this.loading.set(false);
@@ -109,6 +118,7 @@ export class MapHome implements OnDestroy {
   }
 
   retryRoutes() {
+    this.staleRefetchAttempts = 0;
     this.error.set(null);
     this.loading.set(true);
     this.fetchRoutes();
@@ -118,7 +128,43 @@ export class MapHome implements OnDestroy {
     window.location.reload();
   }
 
+  // Backend serves last-known data marked isStale while its warmer catches up
+  // (typically <= one 10-min cycle). Quietly poll until fresh — no spinner,
+  // no chip; grades are already on screen.
+  private scheduleStaleRefetch() {
+    if (this.staleRefetchTimer !== null) {
+      clearTimeout(this.staleRefetchTimer);
+      this.staleRefetchTimer = null;
+    }
+    if (!this.routes().some(r => r.isStale)) {
+      this.staleRefetchAttempts = 0;
+      return;
+    }
+    if (this.staleRefetchAttempts >= MapHome.STALE_REFETCH_MAX_ATTEMPTS) return;
+    this.staleRefetchAttempts++;
+    this.staleRefetchTimer = setTimeout(() => {
+      this.staleRefetchTimer = null;
+      this.refetchStaleRoutes();
+    }, MapHome.STALE_REFETCH_DELAY_MS);
+  }
+
+  private refetchStaleRoutes() {
+    this.routesSvc.list().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: routes => {
+        this.routes.set(routes);
+        this.lastFetchedAt.set(Date.now());
+        this.renderMarkers();
+        this.scheduleStaleRefetch();
+      },
+      error: e => {
+        console.warn('stale refetch failed', e);
+        this.scheduleStaleRefetch();
+      },
+    });
+  }
+
   ngOnDestroy() {
+    if (this.staleRefetchTimer !== null) { clearTimeout(this.staleRefetchTimer); this.staleRefetchTimer = null; }
     if (this.map) { this.map.remove(); this.map = null; }
   }
 
@@ -238,6 +284,10 @@ export class MapHome implements OnDestroy {
     for (const layer of this.ghostLayers) this.map.removeLayer(layer);
     this.ghostLayers = [];
 
+    // Re-renders (stale-recovery refetch) must replace markers, not stack them.
+    for (const layer of this.markerLayers) this.map.removeLayer(layer);
+    this.markerLayers = [];
+
     this.markerBySlug.clear();
 
     const cluster = Lcluster.markerClusterGroup({
@@ -251,13 +301,22 @@ export class MapHome implements OnDestroy {
     for (const route of this.routes()) {
       if (route.summitLat == null || route.summitLon == null) continue;
 
-      const grade = (route.grade ?? 'x').toLowerCase();
+      const spec = markerIconSpec(route);
       const icon = L.divIcon({
-        className: 'peak-marker',
-        html: `<span class="dot grade-${grade}"></span>`,
+        className: spec.className,
+        html: `<span class="dot ${spec.dotClass}"></span>`,
         iconSize: [28, 28],
         iconAnchor: [14, 14],
       });
+
+      // Ghost routes are intentionally absent from markerBySlug: there is no
+      // popup to open, so search-focus skips them until a grade arrives.
+      if (!spec.interactive) {
+        const ghost = L.marker([route.summitLat, route.summitLon], { icon, interactive: false });
+        ghost.addTo(this.map);
+        this.markerLayers.push(ghost);
+        continue;
+      }
 
       const marker = L.marker([route.summitLat, route.summitLon], { icon, title: route.mountain });
       marker.bindPopup(popupHtml(route), { className: 'peak-popup' });
@@ -268,13 +327,13 @@ export class MapHome implements OnDestroy {
         usedCluster = true;
       } else {
         marker.addTo(this.map);
-        this.layers.push(marker);
+        this.markerLayers.push(marker);
       }
     }
 
     if (usedCluster) {
       cluster.addTo(this.map);
-      this.layers.push(cluster);
+      this.markerLayers.push(cluster);
     }
   }
 }
@@ -300,6 +359,21 @@ function polygonCentroid(ring: number[][]): [number, number] {
   }
   const area = twiceArea / 2;
   return area === 0 ? ring[0] as [number, number] : [cx / (6 * area), cy / (6 * area)];
+}
+
+export interface MarkerIconSpec {
+  className: string;
+  dotClass: string;
+  interactive: boolean;
+}
+
+// Null grade = no usable data (<=24h) on the backend; show the same ghost
+// treatment as the pre-data positions markers instead of a broken grade dot.
+export function markerIconSpec(route: Pick<RouteSummary, 'grade'>): MarkerIconSpec {
+  if (route.grade == null) {
+    return { className: 'peak-marker peak-marker-ghost', dotClass: 'grade-ghost', interactive: false };
+  }
+  return { className: 'peak-marker', dotClass: `grade-${route.grade.toLowerCase()}`, interactive: true };
 }
 
 function popupHtml(route: RouteSummary): string {
