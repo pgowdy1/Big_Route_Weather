@@ -13,7 +13,7 @@ public static class ThunderstormFactor
     public static bool IsActive(double maxCapeJkg) => maxCapeJkg >= ActiveFloorJkg;
 
     public static int Score(double maxCapeJkg) =>
-        ScoringMath.LinearBetween(maxCapeJkg, goodValue: 200, badValue: 2000);
+        ScoringMath.LinearBetween(maxCapeJkg, goodValue: ActiveFloorJkg, badValue: 2000);
 
     public static string Detail(double maxCapeJkg) =>
         $"Peak instability {maxCapeJkg:0} J/kg CAPE";

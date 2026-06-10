@@ -53,4 +53,11 @@ public class ThunderstormFactorTests
     [Fact]
     public void Cap_reasonMentionsCape() =>
         Assert.Contains("1200", ThunderstormFactor.Cap(1200).Reason);
+
+    [Fact]
+    public void Detail_mentionsCapeValueAndUnit()
+    {
+        Assert.Contains("1200", ThunderstormFactor.Detail(1200));
+        Assert.Contains("CAPE", ThunderstormFactor.Detail(1200));
+    }
 }
