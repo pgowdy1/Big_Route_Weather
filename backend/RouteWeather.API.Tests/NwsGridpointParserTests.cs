@@ -98,8 +98,12 @@ public class NwsGridpointParserTests
               { "validTime": "2026-06-10T12:00:00+00:00/PT1H", "value": 10.0 },
               { "validTime": "not-a-date/PT1H", "value": 99.0 },
               { "validTime": "2026-06-10T13:00:00+00:00/P10675200D", "value": 99.0 } ] },
-            "windSpeed": { "uom": "wmoUnit:km_h-1", "values": {} },
-            "weather": { "values": 5 }
+            "windSpeed": { "uom": 5, "values": [
+              { "validTime": "2026-06-10T12:00:00+00:00/PT1H", "value": 16.0 } ] },
+            "skyCover": { "uom": "wmoUnit:percent", "values": {} },
+            "visibility": 5,
+            "weather": { "values": [
+              { "validTime": "2026-06-10T12:00:00+00:00/PT1H", "value": [ null, 5 ] } ] }
           }
         }
         """;
@@ -107,6 +111,17 @@ public class NwsGridpointParserTests
         var snap = NwsGridpointParser.Parse(doc.RootElement, DateTimeOffset.Parse("2026-06-10T12:00:00+00:00"));
         Assert.NotNull(snap);
         Assert.Single(snap!.Next48Hours); // only the one well-formed temperature hour survives
+    }
+
+    [Theory]
+    [InlineData("""{ "properties": 5 }""")]
+    [InlineData("""{ "properties": [] }""")]
+    [InlineData("5")]
+    [InlineData("[]")]
+    public void Parse_nonObjectRootOrProperties_returnsNullWithoutThrowing(string json)
+    {
+        using var doc = JsonDocument.Parse(json);
+        Assert.Null(NwsGridpointParser.Parse(doc.RootElement, Now));
     }
 
     [Fact]

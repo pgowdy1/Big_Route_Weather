@@ -16,7 +16,9 @@ public static class NwsGridpointParser
     public static WeatherSnapshot? Parse(JsonElement root, DateTimeOffset nowUtc)
     {
         nowUtc = nowUtc.ToUniversalTime();
+        if (root.ValueKind != JsonValueKind.Object) return null;
         if (!root.TryGetProperty("properties", out var props)) return null;
+        if (props.ValueKind != JsonValueKind.Object) return null;
 
         var temp = Layer(props, "temperature", spread: false);
         if (temp.Count == 0) return null;
@@ -74,10 +76,10 @@ public static class NwsGridpointParser
     private static LayerData Layer(JsonElement props, string name, bool spread)
     {
         var values = new Dictionary<DateTimeOffset, double>();
-        if (!props.TryGetProperty(name, out var layer))
+        if (!props.TryGetProperty(name, out var layer) || layer.ValueKind != JsonValueKind.Object)
             return new LayerData(string.Empty, values);
 
-        var uom = layer.TryGetProperty("uom", out var u) ? u.GetString() ?? string.Empty : string.Empty;
+        var uom = layer.TryGetProperty("uom", out var u) && u.ValueKind == JsonValueKind.String ? u.GetString() ?? string.Empty : string.Empty;
         if (!layer.TryGetProperty("values", out var arr) || arr.ValueKind != JsonValueKind.Array)
             return new LayerData(uom, values);
 
@@ -99,6 +101,7 @@ public static class NwsGridpointParser
     {
         var result = new Dictionary<DateTimeOffset, string>();
         if (!props.TryGetProperty("weather", out var layer)
+            || layer.ValueKind != JsonValueKind.Object
             || !layer.TryGetProperty("values", out var arr)
             || arr.ValueKind != JsonValueKind.Array)
             return result;
@@ -112,6 +115,7 @@ public static class NwsGridpointParser
             var text = string.Empty;
             foreach (var ph in phenomena.EnumerateArray())
             {
+                if (ph.ValueKind != JsonValueKind.Object) continue;
                 if (ph.TryGetProperty("weather", out var w) && w.ValueKind == JsonValueKind.String)
                 {
                     var raw = w.GetString();
