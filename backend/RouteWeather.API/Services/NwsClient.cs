@@ -87,6 +87,7 @@ public class NwsClient : IForecastSource
     {
         _calls.Increment("NWS");
         using var resp = await _http.GetAsync($"gridpoints/{grid.GridId}/{grid.GridX},{grid.GridY}", ct);
+        // Non-success returns null so a cached-mapping 404 can re-resolve; thrown errors are transient and handled by the caller's catch-all.
         if (!resp.IsSuccessStatusCode)
         {
             _logger.LogWarning("NWS gridpoints {Status} for {Grid}", (int)resp.StatusCode, grid);

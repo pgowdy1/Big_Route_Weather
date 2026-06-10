@@ -17,8 +17,9 @@ public class NwsClientTests
     // Minimal gridpoint body the parser accepts (one temperature interval starting now).
     private static string GridJson()
     {
-        var start = new DateTimeOffset(DateTime.UtcNow.Year, DateTime.UtcNow.Month, DateTime.UtcNow.Day,
-            DateTime.UtcNow.Hour, 0, 0, TimeSpan.Zero).ToString("yyyy-MM-dd'T'HH:mm:sszzz",
+        var now = DateTime.UtcNow;
+        var start = new DateTimeOffset(now.Year, now.Month, now.Day,
+            now.Hour, 0, 0, TimeSpan.Zero).ToString("yyyy-MM-dd'T'HH:mm:sszzz",
             System.Globalization.CultureInfo.InvariantCulture);
         return $$"""
         { "properties": { "temperature": { "uom": "wmoUnit:degC", "values": [
