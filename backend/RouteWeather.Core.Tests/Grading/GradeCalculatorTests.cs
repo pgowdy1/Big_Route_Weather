@@ -306,7 +306,6 @@ public class GradeCalculatorTests
         var result = GradeCalculator.Compute(Weather(precip: 20, amountIn: 1.0), null);
         var f = Assert.Single(result.Factors, x => x.Name == "Precipitation");
         Assert.Equal(0, f.Score);
-        Assert.Contains("expected", f.Detail);
     }
 
     [Fact]

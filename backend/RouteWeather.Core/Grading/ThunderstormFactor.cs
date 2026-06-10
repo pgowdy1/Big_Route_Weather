@@ -10,6 +10,8 @@ public static class ThunderstormFactor
     // deliberately lower than Plains-storm conventions.
     public const double ActiveFloorJkg = 200;
 
+    public const string InactiveDetail = "No meaningful storm energy in window";
+
     public static bool IsActive(double maxCapeJkg) => maxCapeJkg >= ActiveFloorJkg;
 
     public static int Score(double maxCapeJkg) =>

@@ -10,6 +10,8 @@ public static class GustFactor
     // WindFactor would permanently dilute every other weight.
     public const double ActiveFloorMph = 25;
 
+    public const string InactiveDetail = "Gusts close to sustained wind";
+
     public static bool IsActive(double maxGustMph) => maxGustMph >= ActiveFloorMph;
 
     public static int Score(double maxGustMph) =>

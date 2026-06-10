@@ -49,7 +49,7 @@ public static class GradeCalculator
                     "Thunderstorm",
                     ThunderstormFactor.Score(cape),
                     ThunderstormFactor.Weight,
-                    capeActive ? ThunderstormFactor.Detail(cape) : "No meaningful storm energy in window",
+                    capeActive ? ThunderstormFactor.Detail(cape) : ThunderstormFactor.InactiveDetail,
                     IsActive: capeActive));
                 if (capeActive)
                     AddCap(capCandidates, "Thunderstorm", ThunderstormFactor.Cap(cape));
@@ -62,7 +62,7 @@ public static class GradeCalculator
                     "Gusts",
                     GustFactor.Score(gust),
                     GustFactor.Weight,
-                    gustActive ? GustFactor.Detail(gust) : "Gusts close to sustained wind",
+                    gustActive ? GustFactor.Detail(gust) : GustFactor.InactiveDetail,
                     IsActive: gustActive));
                 if (gustActive)
                     AddCap(capCandidates, "Gusts", GustFactor.Cap(gust));
