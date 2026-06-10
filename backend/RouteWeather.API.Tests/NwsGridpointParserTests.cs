@@ -95,6 +95,7 @@ public class NwsGridpointParserTests
         {
           "properties": {
             "temperature": { "uom": "wmoUnit:degC", "values": [
+              5, null, "x",
               { "validTime": "2026-06-10T12:00:00+00:00/PT1H", "value": 10.0 },
               { "validTime": "not-a-date/PT1H", "value": 99.0 },
               { "validTime": "2026-06-10T13:00:00+00:00/P10675200D", "value": 99.0 } ] },
@@ -103,6 +104,7 @@ public class NwsGridpointParserTests
             "skyCover": { "uom": "wmoUnit:percent", "values": {} },
             "visibility": 5,
             "weather": { "values": [
+              7, null, "y",
               { "validTime": "2026-06-10T12:00:00+00:00/PT1H", "value": [ null, 5 ] } ] }
           }
         }

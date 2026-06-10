@@ -85,6 +85,7 @@ public static class NwsGridpointParser
 
         foreach (var entry in arr.EnumerateArray())
         {
+            if (entry.ValueKind != JsonValueKind.Object) continue;
             if (!entry.TryGetProperty("value", out var valEl) || valEl.ValueKind != JsonValueKind.Number) continue;
             var (intervalStart, durationHours) = ParseValidTime(entry);
             if (intervalStart is null || durationHours <= 0) continue;
@@ -108,6 +109,7 @@ public static class NwsGridpointParser
 
         foreach (var entry in arr.EnumerateArray())
         {
+            if (entry.ValueKind != JsonValueKind.Object) continue;
             var (intervalStart, durationHours) = ParseValidTime(entry);
             if (intervalStart is null || durationHours <= 0) continue;
             if (!entry.TryGetProperty("value", out var phenomena) || phenomena.ValueKind != JsonValueKind.Array) continue;
