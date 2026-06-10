@@ -87,4 +87,36 @@ public class NwsGridpointParserTests
         using var doc = JsonDocument.Parse("""{ "properties": { } }""");
         Assert.Null(NwsGridpointParser.Parse(doc.RootElement, Now));
     }
+
+    [Fact]
+    public void Parse_toleratesMalformedLayers()
+    {
+        const string hostile = """
+        {
+          "properties": {
+            "temperature": { "uom": "wmoUnit:degC", "values": [
+              { "validTime": "2026-06-10T12:00:00+00:00/PT1H", "value": 10.0 },
+              { "validTime": "not-a-date/PT1H", "value": 99.0 },
+              { "validTime": "2026-06-10T13:00:00+00:00/P10675200D", "value": 99.0 } ] },
+            "windSpeed": { "uom": "wmoUnit:km_h-1", "values": {} },
+            "weather": { "values": 5 }
+          }
+        }
+        """;
+        using var doc = JsonDocument.Parse(hostile);
+        var snap = NwsGridpointParser.Parse(doc.RootElement, DateTimeOffset.Parse("2026-06-10T12:00:00+00:00"));
+        Assert.NotNull(snap);
+        Assert.Single(snap!.Next48Hours); // only the one well-formed temperature hour survives
+    }
+
+    [Fact]
+    public void Parse_normalizesNonUtcNow()
+    {
+        using var doc = JsonDocument.Parse(SampleJson);
+        // Same instant as Now but expressed at -04:00; must yield the identical window.
+        var offsetNow = DateTimeOffset.Parse("2026-06-10T08:00:00-04:00");
+        var snap = NwsGridpointParser.Parse(doc.RootElement, offsetNow);
+        Assert.NotNull(snap);
+        Assert.Equal(3, snap!.Next48Hours.Count);
+    }
 }

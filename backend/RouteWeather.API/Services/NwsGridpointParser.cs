@@ -12,8 +12,10 @@ namespace RouteWeather.API.Services;
 /// </summary>
 public static class NwsGridpointParser
 {
+    /// <param name="nowUtc">Any offset accepted; normalized to UTC internally.</param>
     public static WeatherSnapshot? Parse(JsonElement root, DateTimeOffset nowUtc)
     {
+        nowUtc = nowUtc.ToUniversalTime();
         if (!root.TryGetProperty("properties", out var props)) return null;
 
         var temp = Layer(props, "temperature", spread: false);
@@ -37,16 +39,16 @@ public static class NwsGridpointParser
 
             hours.Add(new HourlyForecast(
                 Time: t,
-                TempF: Convert(tempVal, temp.Uom),
-                WindMph: wind.Values.TryGetValue(t, out var w) ? Convert(w, wind.Uom) : 0,
+                TempF: ToImperial(tempVal, temp.Uom),
+                WindMph: wind.Values.TryGetValue(t, out var w) ? ToImperial(w, wind.Uom) : 0,
                 PrecipitationProbabilityPct: pop.Values.TryGetValue(t, out var p) ? (int)Math.Round(p) : 0,
                 ShortForecast: weather.TryGetValue(t, out var text) ? text : string.Empty,
-                GustMph: gust.Values.TryGetValue(t, out var g) ? Convert(g, gust.Uom) : null,
+                GustMph: gust.Values.TryGetValue(t, out var g) ? ToImperial(g, gust.Uom) : null,
                 CapeJkg: null,
-                PrecipitationIn: qpf.Values.TryGetValue(t, out var q) ? Convert(q, qpf.Uom) : null,
+                PrecipitationIn: qpf.Values.TryGetValue(t, out var q) ? ToImperial(q, qpf.Uom) : null,
                 CloudCoverPct: sky.Values.TryGetValue(t, out var s) ? (int)Math.Round(s) : null,
-                VisibilityMiles: vis.Values.TryGetValue(t, out var v) ? Math.Round(Convert(v, vis.Uom), 1) : null,
-                ApparentTempF: apparent.Values.TryGetValue(t, out var a) ? Convert(a, apparent.Uom) : null));
+                VisibilityMiles: vis.Values.TryGetValue(t, out var v) ? Math.Round(ToImperial(v, vis.Uom), 1) : null,
+                ApparentTempF: apparent.Values.TryGetValue(t, out var a) ? ToImperial(a, apparent.Uom) : null));
         }
 
         if (hours.Count == 0) return null;
@@ -76,7 +78,8 @@ public static class NwsGridpointParser
             return new LayerData(string.Empty, values);
 
         var uom = layer.TryGetProperty("uom", out var u) ? u.GetString() ?? string.Empty : string.Empty;
-        if (!layer.TryGetProperty("values", out var arr)) return new LayerData(uom, values);
+        if (!layer.TryGetProperty("values", out var arr) || arr.ValueKind != JsonValueKind.Array)
+            return new LayerData(uom, values);
 
         foreach (var entry in arr.EnumerateArray())
         {
@@ -87,7 +90,7 @@ public static class NwsGridpointParser
             var value = valEl.GetDouble();
             var perHour = spread ? value / durationHours : value;
             for (var h = 0; h < durationHours; h++)
-                values[intervalStart.Value.AddHours(h)] = perHour;
+                values[intervalStart.Value.AddHours(h)] = perHour; // overlapping intervals: last interval wins
         }
         return new LayerData(uom, values);
     }
@@ -95,7 +98,9 @@ public static class NwsGridpointParser
     private static Dictionary<DateTimeOffset, string> WeatherTextLayer(JsonElement props)
     {
         var result = new Dictionary<DateTimeOffset, string>();
-        if (!props.TryGetProperty("weather", out var layer) || !layer.TryGetProperty("values", out var arr))
+        if (!props.TryGetProperty("weather", out var layer)
+            || !layer.TryGetProperty("values", out var arr)
+            || arr.ValueKind != JsonValueKind.Array)
             return result;
 
         foreach (var entry in arr.EnumerateArray())
@@ -137,13 +142,13 @@ public static class NwsGridpointParser
             var duration = XmlConvert.ToTimeSpan(parts[1]);
             return (start, (int)Math.Max(1, Math.Round(duration.TotalHours)));
         }
-        catch (FormatException)
+        catch (Exception ex) when (ex is FormatException or OverflowException)
         {
             return (null, 0);
         }
     }
 
-    private static double Convert(double value, string uom) => uom switch
+    private static double ToImperial(double value, string uom) => uom switch
     {
         "wmoUnit:degC" => value * 9.0 / 5.0 + 32.0,
         "wmoUnit:degF" => value,
