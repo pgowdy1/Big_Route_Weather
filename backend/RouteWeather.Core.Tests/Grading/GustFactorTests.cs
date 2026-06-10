@@ -38,9 +38,13 @@ public class GustFactorTests
         Assert.Equal(expected, GustFactor.Cap(gust).Cap);
 
     [Fact]
-    public void Detail_mentionsGustValue()
+    public void Detail_mentionsGustValueAndUnit()
     {
         Assert.Contains("42", GustFactor.Detail(42));
         Assert.Contains("mph", GustFactor.Detail(42));
     }
+
+    [Fact]
+    public void Cap_reasonMentionsGustValue() =>
+        Assert.Contains("60", GustFactor.Cap(60).Reason);
 }
