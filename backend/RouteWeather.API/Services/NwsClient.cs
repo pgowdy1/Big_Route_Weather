@@ -1,9 +1,10 @@
-using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using RouteWeather.Core.Models;
 using RouteWeather.Core.Services;
 using RouteWeather.Core.Sources;
+using RouteWeather.Data.Repositories;
 
 namespace RouteWeather.API.Services;
 
@@ -13,65 +14,90 @@ public class NwsClient : IForecastSource
 
     public IReadOnlySet<string> ActiveFactors => ForecastFactors.All;
 
+    // The lat/lon -> grid mapping is static per route; persist it in the forecast
+    // cache table under this pseudo-source so refreshes cost one NWS call, not two.
+    private const string GridCacheSource = "NWS-Grid";
+    private static readonly TimeSpan GridCacheTtl = TimeSpan.FromDays(365);
+    private static readonly JsonSerializerOptions JsonOpts = new() { PropertyNameCaseInsensitive = true };
+
     private readonly HttpClient _http;
     private readonly ILogger<NwsClient> _logger;
     private readonly DailyCallCounter _calls;
+    private readonly ForecastCacheRepository _cache;
 
-    public NwsClient(HttpClient http, ILogger<NwsClient> logger, DailyCallCounter calls)
+    public NwsClient(HttpClient http, ILogger<NwsClient> logger, DailyCallCounter calls, ForecastCacheRepository cache)
     {
         _http = http;
         _logger = logger;
         _calls = calls;
+        _cache = cache;
     }
 
     public async Task<WeatherSnapshot?> FetchAsync(ForecastLocation location, CancellationToken ct = default)
     {
-        var lat = location.Lat;
-        var lon = location.Lon;
         try
         {
-            _calls.Increment("NWS");
-            using var pointResp = await _http.GetAsync($"points/{lat:0.0000},{lon:0.0000}", ct);
-            pointResp.EnsureSuccessStatusCode();
-            var pointJson = await pointResp.Content.ReadFromJsonAsync<NwsPointResponse>(cancellationToken: ct);
-            var hourlyUrl = pointJson?.Properties?.ForecastHourly;
-            if (string.IsNullOrWhiteSpace(hourlyUrl)) return null;
+            var (grid, fromPoints) = await ResolveGridAsync(location, forceRefresh: false, ct);
+            if (grid is null) return null;
 
-            _calls.Increment("NWS");
-            using var fcastResp = await _http.GetAsync(hourlyUrl, ct);
-            fcastResp.EnsureSuccessStatusCode();
-            var fcastJson = await fcastResp.Content.ReadFromJsonAsync<NwsForecastResponse>(cancellationToken: ct);
-            var periods = fcastJson?.Properties?.Periods ?? new List<NwsPeriod>();
-            var next48 = periods.Take(48)
-                .Select(p => new HourlyForecast(
-                    p.StartTime,
-                    p.Temperature,
-                    ParseWindMph(p.WindSpeed),
-                    p.ProbabilityOfPrecipitation?.Value ?? 0,
-                    p.ShortForecast ?? string.Empty))
-                .ToList();
-
-            if (next48.Count == 0) return null;
-
-            return new WeatherSnapshot(
-                WindMph: next48.Max(h => h.WindMph),
-                TempF: next48.Min(h => h.TempF),
-                PrecipitationProbabilityPct: next48.Max(h => h.PrecipitationProbabilityPct),
-                Next48Hours: next48);
+            var snap = await FetchGridpointAsync(grid, ct);
+            if (snap is null && !fromPoints)
+            {
+                // Cached mapping may be stale after an NWS regrid — re-resolve once.
+                (grid, _) = await ResolveGridAsync(location, forceRefresh: true, ct);
+                if (grid is null) return null;
+                snap = await FetchGridpointAsync(grid, ct);
+            }
+            return snap;
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "NWS fetch failed for {Lat},{Lon}", lat, lon);
+            _logger.LogWarning(ex, "NWS fetch failed for {Lat},{Lon}", location.Lat, location.Lon);
             return null;
         }
     }
 
-    private static double ParseWindMph(string? windSpeed)
+    private async Task<(GridRef? Grid, bool FromPointsCall)> ResolveGridAsync(
+        ForecastLocation location, bool forceRefresh, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(windSpeed)) return 0;
-        var token = windSpeed.Split(' ').FirstOrDefault(s => double.TryParse(s, out _));
-        return double.TryParse(token, out var mph) ? mph : 0;
+        if (!forceRefresh)
+        {
+            var row = await _cache.GetAsync(location.RouteId, GridCacheSource, ct);
+            if (row is not null && row.ExpiresAtUtc > DateTime.UtcNow)
+            {
+                var cached = JsonSerializer.Deserialize<GridRef>(row.PayloadJson, JsonOpts);
+                if (cached is not null) return (cached, false);
+            }
+        }
+
+        _calls.Increment("NWS");
+        using var resp = await _http.GetAsync($"points/{location.Lat:0.0000},{location.Lon:0.0000}", ct);
+        resp.EnsureSuccessStatusCode();
+        var point = await resp.Content.ReadFromJsonAsync<NwsPointResponse>(cancellationToken: ct);
+        var props = point?.Properties;
+        if (props?.GridId is null) return (null, true);
+
+        var grid = new GridRef(props.GridId, props.GridX, props.GridY);
+        await _cache.UpsertAsync(location.RouteId, GridCacheSource,
+            JsonSerializer.Serialize(grid, JsonOpts), DateTime.UtcNow.Add(GridCacheTtl), ct);
+        return (grid, true);
     }
+
+    private async Task<WeatherSnapshot?> FetchGridpointAsync(GridRef grid, CancellationToken ct)
+    {
+        _calls.Increment("NWS");
+        using var resp = await _http.GetAsync($"gridpoints/{grid.GridId}/{grid.GridX},{grid.GridY}", ct);
+        if (!resp.IsSuccessStatusCode)
+        {
+            _logger.LogWarning("NWS gridpoints {Status} for {Grid}", (int)resp.StatusCode, grid);
+            return null;
+        }
+        await using var stream = await resp.Content.ReadAsStreamAsync(ct);
+        using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
+        return NwsGridpointParser.Parse(doc.RootElement, DateTimeOffset.UtcNow);
+    }
+
+    public sealed record GridRef(string GridId, int GridX, int GridY);
 
     private sealed class NwsPointResponse
     {
@@ -80,31 +106,8 @@ public class NwsClient : IForecastSource
 
     private sealed class NwsPointProperties
     {
-        [JsonPropertyName("forecast")] public string? Forecast { get; set; }
-        [JsonPropertyName("forecastHourly")] public string? ForecastHourly { get; set; }
-    }
-
-    private sealed class NwsForecastResponse
-    {
-        [JsonPropertyName("properties")] public NwsForecastProperties? Properties { get; set; }
-    }
-
-    private sealed class NwsForecastProperties
-    {
-        [JsonPropertyName("periods")] public List<NwsPeriod>? Periods { get; set; }
-    }
-
-    private sealed class NwsPeriod
-    {
-        [JsonPropertyName("startTime")] public DateTimeOffset StartTime { get; set; }
-        [JsonPropertyName("temperature")] public double Temperature { get; set; }
-        [JsonPropertyName("windSpeed")] public string? WindSpeed { get; set; }
-        [JsonPropertyName("shortForecast")] public string? ShortForecast { get; set; }
-        [JsonPropertyName("probabilityOfPrecipitation")] public NwsValue? ProbabilityOfPrecipitation { get; set; }
-    }
-
-    private sealed class NwsValue
-    {
-        [JsonPropertyName("value")] public int? Value { get; set; }
+        [JsonPropertyName("gridId")] public string? GridId { get; set; }
+        [JsonPropertyName("gridX")] public int GridX { get; set; }
+        [JsonPropertyName("gridY")] public int GridY { get; set; }
     }
 }
