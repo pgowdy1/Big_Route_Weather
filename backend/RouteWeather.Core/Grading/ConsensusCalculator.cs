@@ -33,7 +33,7 @@ public class ConsensusCalculator
 
         var blended = BlendSnapshots(inputs);
         var cvByFactor = ComputeCvByFactor(inputs);
-        var (level, worst) = ResolveLevel(inputs, cvByFactor);
+        var (level, worst) = ResolveLevel(cvByFactor);
         var report = new ConsensusReport(level, worst, cvByFactor, inputs.Count, sourcesAttempted);
         return new EnsembleResult(blended, report);
     }
@@ -210,7 +210,6 @@ public class ConsensusCalculator
     }
 
     private (ConsensusLevel Level, string? WorstFactor) ResolveLevel(
-        IReadOnlyList<ConsensusInput> inputs,
         IReadOnlyDictionary<string, double> cv)
     {
         // The >=2-reporter filter now lives in AddCv, so every key in the dict already

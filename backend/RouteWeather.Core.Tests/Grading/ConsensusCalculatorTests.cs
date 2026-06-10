@@ -229,4 +229,16 @@ public class ConsensusCalculatorTests
         }, 2);
         Assert.True(two.Consensus!.CoefficientOfVariationByFactor[ForecastFactors.Gust] > 0);
     }
+
+    [Fact]
+    public void Cv_belowCapeSpreadFloor_countsAsAgreement()
+    {
+        var calc = new ConsensusCalculator();
+        var result = calc.Compute(new[]
+        {
+            InputWith("A", 10, 50, 0, cape: 400),
+            InputWith("B", 10, 50, 0, cape: 550), // spread 150 < 200 J/kg floor
+        }, 2);
+        Assert.Equal(0, result.Consensus!.CoefficientOfVariationByFactor[ForecastFactors.Cape]);
+    }
 }
