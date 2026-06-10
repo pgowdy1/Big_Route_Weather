@@ -24,7 +24,9 @@ public record PerSourceForecast(
     double WindMph,
     double TempF,
     int? PrecipitationProbabilityPct,
-    DateTimeOffset FetchedAt
+    DateTimeOffset FetchedAt,
+    double? MaxGustMph = null,
+    double? MaxCapeJkg = null
 );
 
 public record RouteConditions(

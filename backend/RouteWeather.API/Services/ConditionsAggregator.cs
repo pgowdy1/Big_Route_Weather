@@ -255,7 +255,9 @@ public class ConditionsAggregator : IConditionsAggregator
                 r.Snapshot!.WindMph,
                 r.Snapshot.TempF,
                 r.ActiveFactors.Contains(ForecastFactors.Precipitation) ? r.Snapshot.PrecipitationProbabilityPct : (int?)null,
-                r.FetchedAt ?? DateTimeOffset.UtcNow))
+                r.FetchedAt ?? DateTimeOffset.UtcNow,
+                r.Snapshot.MaxGustMph,
+                r.Snapshot.MaxCapeJkg))
             .ToList();
 
         return new RouteConditions(
