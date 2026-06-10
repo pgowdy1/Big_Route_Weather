@@ -57,5 +57,6 @@ function summary(slug: string): RouteSummary {
     updatedAt: new Date().toISOString(),
     isStale: false,
     consensus: null,
+    airQualityUsAqi: null,
   };
 }

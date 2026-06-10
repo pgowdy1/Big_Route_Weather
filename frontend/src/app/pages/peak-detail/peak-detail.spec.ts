@@ -170,6 +170,12 @@ function detail(): RouteDetail {
     windMph: 8,
     precipitationProbabilityPct: 10,
     shortForecast: 'Sunny',
+    gustMph: null,
+    capeJkg: null,
+    precipitationIn: null,
+    cloudCoverPct: null,
+    visibilityMiles: null,
+    apparentTempF: null,
   }));
   return {
     slug: 'longs-peak',
@@ -207,6 +213,9 @@ function detail(): RouteDetail {
       snotel: { fetchedAt: new Date().toISOString() },
     },
     consensus: null,
+    airQualityUsAqi: null,
     perSourceForecast: null,
+    airQuality: null,
+    daylight: null,
   };
 }
