@@ -27,4 +27,35 @@ public class PrecipitationFactorTests
     [InlineData(100, Grade.F)]
     public void Cap_appliesAtCorrectThresholds(int pct, Grade? expected) =>
         Assert.Equal(expected, PrecipitationFactor.Cap(pct).Cap);
+
+    [Fact]
+    public void Score_withNullAmount_equalsProbabilityScore() =>
+        Assert.Equal(PrecipitationFactor.Score(40), PrecipitationFactor.Score(40, null, 24));
+
+    [Fact]
+    public void Score_withTraceAmount_belowEngageFloor_equalsProbabilityScore() =>
+        Assert.Equal(PrecipitationFactor.Score(40), PrecipitationFactor.Score(40, 0.04, 24));
+
+    [Fact]
+    public void Score_takesWorseOfProbabilityAndAmount()
+    {
+        // 20% prob -> probScore 75. 0.5" in 24h (bad=1.0") -> amountScore 50. min() = 50.
+        Assert.Equal(50, PrecipitationFactor.Score(20, 0.5, 24));
+    }
+
+    [Fact]
+    public void Score_amountThresholdScalesByWindowHours()
+    {
+        // 0.5" over 12h (bad=0.5") -> amountScore 0; same 0.5" over 48h (bad=2.0") -> 75.
+        Assert.Equal(0, PrecipitationFactor.Score(0, 0.5, 12));
+        Assert.Equal(75, PrecipitationFactor.Score(0, 0.5, 48));
+    }
+
+    [Fact]
+    public void Detail_mentionsAmount_onlyWhenEngaged()
+    {
+        Assert.Contains("0.5", PrecipitationFactor.Detail(40, 0.5));
+        Assert.DoesNotContain("expected", PrecipitationFactor.Detail(40, null));
+        Assert.Equal(PrecipitationFactor.Detail(40, null), PrecipitationFactor.Detail(40, 0.01));
+    }
 }
