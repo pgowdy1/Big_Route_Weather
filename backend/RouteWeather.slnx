@@ -1,4 +1,5 @@
 <Solution>
+  <Project Path="RouteWeather.API.Tests/RouteWeather.API.Tests.csproj" />
   <Project Path="RouteWeather.API/RouteWeather.API.csproj" />
   <Project Path="RouteWeather.Core.Tests/RouteWeather.Core.Tests.csproj" />
   <Project Path="RouteWeather.Core/RouteWeather.Core.csproj" />

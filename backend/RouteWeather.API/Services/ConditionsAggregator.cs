@@ -11,16 +11,23 @@ using RouteWeather.Data.Repositories;
 
 namespace RouteWeather.API.Services;
 
-public class ConditionsAggregator
+public class ConditionsAggregator : IConditionsAggregator
 {
     private static readonly JsonSerializerOptions JsonOpts = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     private static readonly ConcurrentDictionary<string, SemaphoreSlim> Gates = new();
-    private static readonly TimeSpan ConditionsCacheTtl = TimeSpan.FromMinutes(5);
+
+    // The warmer overwrites entries every cycle (default 10m). If it stalls, entries
+    // expire at 30m and reads degrade to SQLite last-known instead of frozen data.
+    private static readonly TimeSpan ReadThroughCacheTtl = TimeSpan.FromMinutes(30);
+    // Cache-only results may be stale; keep them only briefly so the warmer's
+    // fresh write supersedes them quickly.
+    private static readonly TimeSpan CacheOnlyCacheTtl = TimeSpan.FromMinutes(2);
 
     private readonly IReadOnlyList<IForecastSource> _forecastSources;
     private readonly IReadOnlyList<ISnowpackSource> _snowpackSources;
     private readonly ForecastCacheRepository _cache;
     private readonly ForecastSourcesOptions _options;
+    private readonly TimeSpan _serveStaleMax;
     private readonly ConsensusCalculator _consensus;
     private readonly IMemoryCache _conditionsCache;
     private readonly ILogger<ConditionsAggregator> _logger;
@@ -30,6 +37,7 @@ public class ConditionsAggregator
         IEnumerable<ISnowpackSource> snowpackSources,
         ForecastCacheRepository cache,
         IOptions<ForecastSourcesOptions> options,
+        IOptions<WarmerOptions> warmerOptions,
         ConsensusCalculator consensus,
         IMemoryCache conditionsCache,
         ILogger<ConditionsAggregator> logger)
@@ -38,6 +46,7 @@ public class ConditionsAggregator
         _snowpackSources = snowpackSources.ToArray();
         _cache = cache;
         _options = options.Value;
+        _serveStaleMax = TimeSpan.FromHours(warmerOptions.Value.ServeStaleMaxHours);
         _consensus = consensus;
         _conditionsCache = conditionsCache;
         _logger = logger;
@@ -45,24 +54,27 @@ public class ConditionsAggregator
 
     public async Task<RouteConditions> GetConditionsAsync(
         RouteEntity routeEntity,
-        bool useCache = true,
+        FetchMode mode,
         CancellationToken ct = default)
     {
         var cacheKey = ConditionsCacheKey(routeEntity.Slug);
-        if (!useCache)
+
+        if (mode == FetchMode.CacheOnly)
         {
-            _conditionsCache.Remove(cacheKey);
+            // No per-slug gate here: reads must never queue behind a warmer
+            // aggregation that is mid-flight on upstream fetches.
+            if (_conditionsCache.TryGetValue(cacheKey, out RouteConditions? cached) && cached is not null)
+            {
+                return cached;
+            }
+            var rows = await _cache.GetForRouteAsync(routeEntity.Id, ct);
+            return BuildFromCachedRows(routeEntity, rows);
         }
 
         var gate = Gates.GetOrAdd(routeEntity.Slug, _ => new SemaphoreSlim(1, 1));
         await gate.WaitAsync(ct);
         try
         {
-            if (useCache && _conditionsCache.TryGetValue(cacheKey, out RouteConditions? cached) && cached is not null)
-            {
-                return cached;
-            }
-
             var forecastFetches = _forecastSources
                 .Select(s => FetchForecastAsync(routeEntity, s, ct))
                 .ToArray();
@@ -72,76 +84,15 @@ public class ConditionsAggregator
 
             await Task.WhenAll(forecastFetches.Cast<Task>().Concat(snowpackFetches));
 
-            var forecastResults = forecastFetches.Select(t => t.Result).ToList();
-            var snowpackResults = snowpackFetches.Select(t => t.Result).ToList();
-
-            var liveForecasts = forecastResults.Where(r => r.Snapshot is not null).ToList();
-            var consensusInputs = liveForecasts
-                .Select(r => new ConsensusInput(
-                    new SourceSnapshot(r.SourceName, r.Snapshot!, r.FetchedAt ?? DateTimeOffset.UtcNow, r.ActiveFactors),
-                    _options.WeightFor(r.SourceName)))
-                .ToList();
-
-            var ensemble = _consensus.Compute(consensusInputs, _forecastSources.Count);
-            var blendedWeather = ensemble.Blended;
-            var snowpack = snowpackResults.FirstOrDefault(r => r.Snapshot is not null).Snapshot;
-
-            var result = GradeCalculator.Compute(blendedWeather, snowpack);
-
-            var weatherFetched = liveForecasts.Count == 0 ? null : liveForecasts.Max(r => r.FetchedAt);
-            var snowpackFetched = snowpackResults.Where(r => r.Snapshot is not null).Select(r => r.FetchedAt).FirstOrDefault();
-
-            var updatedAt = MaxOf(weatherFetched, snowpackFetched) ?? DateTimeOffset.UtcNow;
-            var isStale = (forecastResults.Any(r => r.IsStale) && liveForecasts.Count == 0)
-                          || snowpackResults.Any(r => r.IsStale && snowpack is not null);
-
-            var windowGrades = blendedWeather is null && snowpack is null
-                ? null
-                : WindowGradeCalculator.Compute(blendedWeather, snowpack);
-
-            var route = new Core.Models.Route(
-                routeEntity.Slug,
-                routeEntity.Mountain,
-                routeEntity.RouteName,
-                routeEntity.SummitElevationFt,
-                routeEntity.SummitLat,
-                routeEntity.SummitLon,
-                routeEntity.ClassDifficulty,
-                routeEntity.SnotelStationTriplet);
-
-            var nwsResult = forecastResults.FirstOrDefault(r => r.SourceName == "NWS");
-            var sourceFreshness = new SourceFreshness(
-                nwsResult.FetchedAt ?? weatherFetched,
-                snowpackFetched);
-
-            var perSourceForecast = liveForecasts
-                .Select(r => new PerSourceForecast(
-                    r.SourceName,
-                    r.Snapshot!.WindMph,
-                    r.Snapshot.TempF,
-                    r.ActiveFactors.Contains(ForecastFactors.Precipitation) ? r.Snapshot.PrecipitationProbabilityPct : (int?)null,
-                    r.FetchedAt ?? DateTimeOffset.UtcNow))
-                .ToList();
-
-            var conditions = new RouteConditions(
-                route,
-                blendedWeather is null && snowpack is null ? null : result.Grade,
-                blendedWeather is null && snowpack is null ? null : result.OverallScore,
-                result.Drivers,
-                result.Factors,
-                result.Rationale,
-                updatedAt,
-                isStale,
-                blendedWeather,
-                snowpack,
-                windowGrades,
-                sourceFreshness,
-                ensemble.Consensus,
-                perSourceForecast.Count == 0 ? null : perSourceForecast);
+            var conditions = BuildConditions(
+                routeEntity,
+                forecastFetches.Select(t => t.Result).ToList(),
+                snowpackFetches.Select(t => t.Result).ToList(),
+                forceStale: false);
 
             if (conditions.Grade is not null)
             {
-                _conditionsCache.Set(cacheKey, conditions, ConditionsCacheTtl);
+                _conditionsCache.Set(cacheKey, conditions, ReadThroughCacheTtl);
             }
 
             return conditions;
@@ -150,6 +101,153 @@ public class ConditionsAggregator
         {
             gate.Release();
         }
+    }
+
+    public async Task<IReadOnlyList<RouteConditionsPair>> GetManyCacheOnlyAsync(
+        IReadOnlyList<RouteEntity> routes,
+        CancellationToken ct = default)
+    {
+        var anyMiss = routes.Any(r =>
+            !_conditionsCache.TryGetValue(ConditionsCacheKey(r.Slug), out RouteConditions? c) || c is null);
+        var rowsByRoute = anyMiss
+            ? (await _cache.GetAllLatestAsync(ct)).ToLookup(r => r.RouteId)
+            : null;
+
+        var results = new List<RouteConditionsPair>(routes.Count);
+        foreach (var route in routes)
+        {
+            if (_conditionsCache.TryGetValue(ConditionsCacheKey(route.Slug), out RouteConditions? cached) && cached is not null)
+            {
+                results.Add(new RouteConditionsPair(route, cached));
+            }
+            else
+            {
+                var rows = rowsByRoute?[route.Id].ToList()
+                    ?? await _cache.GetForRouteAsync(route.Id, ct);
+                results.Add(new RouteConditionsPair(route, BuildFromCachedRows(route, rows)));
+            }
+        }
+        return results;
+    }
+
+    private RouteConditions BuildFromCachedRows(RouteEntity routeEntity, IReadOnlyList<CachedForecastEntity> rows)
+    {
+        var nowUtc = DateTime.UtcNow;
+        var cutoffUtc = nowUtc - _serveStaleMax;
+
+        var forecastResults = _forecastSources.Select(s =>
+        {
+            var row = rows.FirstOrDefault(r => string.Equals(r.Source, s.Name, StringComparison.OrdinalIgnoreCase));
+            if (row is null || row.FetchedAtUtc < cutoffUtc)
+            {
+                return new SourceFetchResult(s.Name, null, null, true, s.ActiveFactors);
+            }
+            return new SourceFetchResult(s.Name, TryDeserialize<WeatherSnapshot>(row.PayloadJson, s.Name, routeEntity.Id),
+                new DateTimeOffset(row.FetchedAtUtc, TimeSpan.Zero), row.ExpiresAtUtc <= nowUtc, s.ActiveFactors);
+        }).ToList();
+
+        var snowpackResults = _snowpackSources.Select(s =>
+        {
+            var row = rows.FirstOrDefault(r => string.Equals(r.Source, s.Name, StringComparison.OrdinalIgnoreCase));
+            if (row is null || row.FetchedAtUtc < cutoffUtc)
+            {
+                return new SnowpackFetchResult(s.Name, null, null, true);
+            }
+            return new SnowpackFetchResult(s.Name, TryDeserialize<SnowpackSnapshot>(row.PayloadJson, s.Name, routeEntity.Id),
+                new DateTimeOffset(row.FetchedAtUtc, TimeSpan.Zero), row.ExpiresAtUtc <= nowUtc);
+        }).ToList();
+
+        // Stale = any *served* row past its per-source TTL. Rows missing entirely
+        // (never fetched, or beyond the 24h cap) flow through the standard
+        // "source absent" semantics instead, so a chronically failing source
+        // cannot mark every response stale forever.
+        var forceStale = forecastResults.Any(r => r.Snapshot is not null && r.IsStale)
+                         || snowpackResults.Any(r => r.Snapshot is not null && r.IsStale);
+
+        var conditions = BuildConditions(routeEntity, forecastResults, snowpackResults, forceStale);
+
+        var cacheKey = ConditionsCacheKey(routeEntity.Slug);
+        // Best-effort guard, not atomic: a racing warmer Set can still be
+        // overwritten; any such stale entry is bounded by the 2-minute TTL.
+        // Stale results are cached deliberately — refetches keep seeing isStale
+        // (and no-cache headers) until the warmer's ReadThrough write lands.
+        if (conditions.Grade is not null && !_conditionsCache.TryGetValue(cacheKey, out _))
+        {
+            _conditionsCache.Set(cacheKey, conditions, CacheOnlyCacheTtl);
+        }
+        return conditions;
+    }
+
+    private RouteConditions BuildConditions(
+        RouteEntity routeEntity,
+        List<SourceFetchResult> forecastResults,
+        List<SnowpackFetchResult> snowpackResults,
+        bool forceStale)
+    {
+        var liveForecasts = forecastResults.Where(r => r.Snapshot is not null).ToList();
+        var consensusInputs = liveForecasts
+            .Select(r => new ConsensusInput(
+                new SourceSnapshot(r.SourceName, r.Snapshot!, r.FetchedAt ?? DateTimeOffset.UtcNow, r.ActiveFactors),
+                _options.WeightFor(r.SourceName)))
+            .ToList();
+
+        var ensemble = _consensus.Compute(consensusInputs, _forecastSources.Count);
+        var blendedWeather = ensemble.Blended;
+        var snowpack = snowpackResults.FirstOrDefault(r => r.Snapshot is not null).Snapshot;
+
+        var result = GradeCalculator.Compute(blendedWeather, snowpack);
+
+        var weatherFetched = liveForecasts.Count == 0 ? null : liveForecasts.Max(r => r.FetchedAt);
+        var snowpackFetched = snowpackResults.Where(r => r.Snapshot is not null).Select(r => r.FetchedAt).FirstOrDefault();
+
+        var updatedAt = MaxOf(weatherFetched, snowpackFetched) ?? DateTimeOffset.UtcNow;
+        var isStale = forceStale
+                      || (forecastResults.Any(r => r.IsStale) && liveForecasts.Count == 0)
+                      || snowpackResults.Any(r => r.IsStale && snowpack is not null);
+
+        var windowGrades = blendedWeather is null && snowpack is null
+            ? null
+            : WindowGradeCalculator.Compute(blendedWeather, snowpack);
+
+        var route = new Core.Models.Route(
+            routeEntity.Slug,
+            routeEntity.Mountain,
+            routeEntity.RouteName,
+            routeEntity.SummitElevationFt,
+            routeEntity.SummitLat,
+            routeEntity.SummitLon,
+            routeEntity.ClassDifficulty,
+            routeEntity.SnotelStationTriplet);
+
+        var nwsResult = forecastResults.FirstOrDefault(r => r.SourceName == "NWS");
+        var sourceFreshness = new SourceFreshness(
+            nwsResult.FetchedAt ?? weatherFetched,
+            snowpackFetched);
+
+        var perSourceForecast = liveForecasts
+            .Select(r => new PerSourceForecast(
+                r.SourceName,
+                r.Snapshot!.WindMph,
+                r.Snapshot.TempF,
+                r.ActiveFactors.Contains(ForecastFactors.Precipitation) ? r.Snapshot.PrecipitationProbabilityPct : (int?)null,
+                r.FetchedAt ?? DateTimeOffset.UtcNow))
+            .ToList();
+
+        return new RouteConditions(
+            route,
+            blendedWeather is null && snowpack is null ? null : result.Grade,
+            blendedWeather is null && snowpack is null ? null : result.OverallScore,
+            result.Drivers,
+            result.Factors,
+            result.Rationale,
+            updatedAt,
+            isStale,
+            blendedWeather,
+            snowpack,
+            windowGrades,
+            sourceFreshness,
+            ensemble.Consensus,
+            perSourceForecast.Count == 0 ? null : perSourceForecast);
     }
 
     private static string ConditionsCacheKey(string slug) => $"conditions:{slug}";
@@ -231,6 +329,19 @@ public class ConditionsAggregator
     }
 
     private static T? Deserialize<T>(string json) => JsonSerializer.Deserialize<T>(json, JsonOpts);
+
+    private T? TryDeserialize<T>(string json, string source, int routeId)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<T>(json, JsonOpts);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Discarding corrupt cached payload for route {RouteId} source {Source}", routeId, source);
+            return default;
+        }
+    }
 
     private static DateTimeOffset? MaxOf(DateTimeOffset? a, DateTimeOffset? b) =>
         (a, b) switch
