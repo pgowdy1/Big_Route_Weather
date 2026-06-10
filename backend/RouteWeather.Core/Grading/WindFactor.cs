@@ -4,7 +4,7 @@ namespace RouteWeather.Core.Grading;
 
 public static class WindFactor
 {
-    public const double Weight = 0.25;
+    public const double Weight = 0.20;
 
     public static int Score(double summitWindMph) =>
         ScoringMath.LinearBetween(summitWindMph, goodValue: 10, badValue: 40);

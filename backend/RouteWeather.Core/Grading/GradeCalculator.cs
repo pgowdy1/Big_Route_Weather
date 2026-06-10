@@ -34,12 +34,39 @@ public static class GradeCalculator
                 TemperatureFactor.Detail(weather.TempF)));
             AddCap(capCandidates, "Temperature", TemperatureFactor.Cap(weather.TempF));
 
+            var windowHours = weather.Next48Hours.Count;
             factors.Add(new FactorScore(
                 "Precipitation",
-                PrecipitationFactor.Score(weather.PrecipitationProbabilityPct),
+                PrecipitationFactor.Score(weather.PrecipitationProbabilityPct, weather.PrecipAmountIn, windowHours),
                 PrecipitationFactor.Weight,
-                PrecipitationFactor.Detail(weather.PrecipitationProbabilityPct)));
+                PrecipitationFactor.Detail(weather.PrecipitationProbabilityPct, weather.PrecipAmountIn)));
             AddCap(capCandidates, "Precipitation", PrecipitationFactor.Cap(weather.PrecipitationProbabilityPct));
+
+            if (weather.MaxCapeJkg is double cape)
+            {
+                var capeActive = ThunderstormFactor.IsActive(cape);
+                factors.Add(new FactorScore(
+                    "Thunderstorm",
+                    ThunderstormFactor.Score(cape),
+                    ThunderstormFactor.Weight,
+                    capeActive ? ThunderstormFactor.Detail(cape) : "No meaningful storm energy in window",
+                    IsActive: capeActive));
+                if (capeActive)
+                    AddCap(capCandidates, "Thunderstorm", ThunderstormFactor.Cap(cape));
+            }
+
+            if (weather.MaxGustMph is double gust)
+            {
+                var gustActive = GustFactor.IsActive(gust);
+                factors.Add(new FactorScore(
+                    "Gusts",
+                    GustFactor.Score(gust),
+                    GustFactor.Weight,
+                    gustActive ? GustFactor.Detail(gust) : "Gusts close to sustained wind",
+                    IsActive: gustActive));
+                if (gustActive)
+                    AddCap(capCandidates, "Gusts", GustFactor.Cap(gust));
+            }
         }
 
         if (snowpack is not null)
@@ -135,6 +162,8 @@ public static class GradeCalculator
         "Precipitation" => severity == "negative" ? "Wet weather" : "Clear skies",
         "Recent snow" => severity == "negative" ? "Fresh snow on rock" : "Dry rock",
         "Snowpack" => severity == "negative" ? "Out-of-season snowpack" : "Typical snowpack",
+        "Thunderstorm" => severity == "negative" ? "Storm risk" : severity == "neutral" ? "Some instability" : "Low storm risk",
+        "Gusts" => severity == "negative" ? "Strong gusts" : severity == "neutral" ? "Gusty" : "Manageable gusts",
         _ => f.Name,
     };
 

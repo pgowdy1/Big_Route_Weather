@@ -4,7 +4,7 @@ namespace RouteWeather.Core.Grading;
 
 public static class PrecipitationFactor
 {
-    public const double Weight = 0.20;
+    public const double Weight = 0.18;
 
     // Trace forecasts below this don't drag the score.
     public const double AmountEngageFloorIn = 0.05;
