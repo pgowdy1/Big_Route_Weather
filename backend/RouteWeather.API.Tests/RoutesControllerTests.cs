@@ -10,7 +10,11 @@ namespace RouteWeather.API.Tests;
 
 public class RoutesControllerTests
 {
-    private static readonly JsonSerializerOptions JsonOpts = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+    private static readonly JsonSerializerOptions JsonOpts = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() },
+    };
 
     private static RoutesController Build(TestDbContextFactory dbFactory, IConditionsAggregator aggregator) =>
         new(new RouteRepository(dbFactory), aggregator)
