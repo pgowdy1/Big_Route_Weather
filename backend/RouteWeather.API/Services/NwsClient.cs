@@ -24,8 +24,10 @@ public class NwsClient : IForecastSource
         _calls = calls;
     }
 
-    public async Task<WeatherSnapshot?> FetchAsync(double lat, double lon, CancellationToken ct = default)
+    public async Task<WeatherSnapshot?> FetchAsync(ForecastLocation location, CancellationToken ct = default)
     {
+        var lat = location.Lat;
+        var lon = location.Lon;
         try
         {
             _calls.Increment("NWS");

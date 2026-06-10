@@ -267,7 +267,8 @@ public class ConditionsAggregator : IConditionsAggregator
         WeatherSnapshot? fresh = null;
         try
         {
-            fresh = await source.FetchAsync(route.SummitLat, route.SummitLon, ct);
+            fresh = await source.FetchAsync(
+                new ForecastLocation(route.Id, route.SummitLat, route.SummitLon, route.SummitElevationFt), ct);
         }
         catch (Exception ex)
         {

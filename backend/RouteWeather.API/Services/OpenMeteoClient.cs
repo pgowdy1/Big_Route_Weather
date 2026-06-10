@@ -34,16 +34,16 @@ public class OpenMeteoClient
         _calls = calls;
     }
 
-    public Task<IReadOnlyDictionary<string, WeatherSnapshot>> FetchAllModelsAsync(double lat, double lon, CancellationToken ct = default)
+    public Task<IReadOnlyDictionary<string, WeatherSnapshot>> FetchAllModelsAsync(double lat, double lon, int summitElevationFt, CancellationToken ct = default)
     {
         var key = $"{lat:F4},{lon:F4}";
-        var lazy = _inflight.GetOrAdd(key, _ => new Lazy<Task<IReadOnlyDictionary<string, WeatherSnapshot>>>(() => FetchImpl(lat, lon, ct)));
+        var lazy = _inflight.GetOrAdd(key, _ => new Lazy<Task<IReadOnlyDictionary<string, WeatherSnapshot>>>(() => FetchImpl(lat, lon, summitElevationFt, ct)));
         var task = lazy.Value;
         task.ContinueWith(_ => _inflight.TryRemove(new KeyValuePair<string, Lazy<Task<IReadOnlyDictionary<string, WeatherSnapshot>>>>(key, lazy)), TaskScheduler.Default);
         return task;
     }
 
-    private async Task<IReadOnlyDictionary<string, WeatherSnapshot>> FetchImpl(double lat, double lon, CancellationToken ct)
+    private async Task<IReadOnlyDictionary<string, WeatherSnapshot>> FetchImpl(double lat, double lon, int summitElevationFt, CancellationToken ct)
     {
         var primaryTask = FetchPrimaryAsync(lat, lon, ct);
         var gfsProbTask = FetchGfsProbabilityAsync(lat, lon, ct);
