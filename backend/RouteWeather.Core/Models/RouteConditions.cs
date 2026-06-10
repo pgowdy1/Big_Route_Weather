@@ -1,3 +1,5 @@
+using RouteWeather.Core.Services;
+
 namespace RouteWeather.Core.Models;
 
 public record Driver(string Label, string Severity);
@@ -42,5 +44,6 @@ public record RouteConditions(
     SourceFreshness Sources,
     ConsensusReport? Consensus,
     IReadOnlyList<PerSourceForecast>? PerSourceForecast,
-    AirQualitySnapshot? AirQuality = null
+    AirQualitySnapshot? AirQuality = null,
+    DaylightInfo? Daylight = null
 );
