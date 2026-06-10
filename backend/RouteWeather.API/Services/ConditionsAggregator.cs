@@ -25,6 +25,7 @@ public class ConditionsAggregator : IConditionsAggregator
 
     private readonly IReadOnlyList<IForecastSource> _forecastSources;
     private readonly IReadOnlyList<ISnowpackSource> _snowpackSources;
+    private readonly IReadOnlyList<IAirQualitySource> _airQualitySources;
     private readonly ForecastCacheRepository _cache;
     private readonly ForecastSourcesOptions _options;
     private readonly TimeSpan _serveStaleMax;
@@ -35,6 +36,7 @@ public class ConditionsAggregator : IConditionsAggregator
     public ConditionsAggregator(
         IEnumerable<IForecastSource> forecastSources,
         IEnumerable<ISnowpackSource> snowpackSources,
+        IEnumerable<IAirQualitySource> airQualitySources,
         ForecastCacheRepository cache,
         IOptions<ForecastSourcesOptions> options,
         IOptions<WarmerOptions> warmerOptions,
@@ -44,6 +46,7 @@ public class ConditionsAggregator : IConditionsAggregator
     {
         _forecastSources = forecastSources.ToArray();
         _snowpackSources = snowpackSources.ToArray();
+        _airQualitySources = airQualitySources.ToArray();
         _cache = cache;
         _options = options.Value;
         _serveStaleMax = TimeSpan.FromHours(warmerOptions.Value.ServeStaleMaxHours);
@@ -81,13 +84,19 @@ public class ConditionsAggregator : IConditionsAggregator
             var snowpackFetches = _snowpackSources
                 .Select(s => FetchSnowpackAsync(routeEntity, s, ct))
                 .ToArray();
+            var airQualityFetches = _airQualitySources
+                .Select(s => FetchAirQualityAsync(routeEntity, s, ct))
+                .ToArray();
 
-            await Task.WhenAll(forecastFetches.Cast<Task>().Concat(snowpackFetches));
+            await Task.WhenAll(forecastFetches.Cast<Task>()
+                .Concat(snowpackFetches)
+                .Concat(airQualityFetches));
 
             var conditions = BuildConditions(
                 routeEntity,
                 forecastFetches.Select(t => t.Result).ToList(),
                 snowpackFetches.Select(t => t.Result).ToList(),
+                airQualityFetches.Select(t => t.Result).ToList(),
                 forceStale: false);
 
             if (conditions.Grade is not null)
@@ -157,14 +166,27 @@ public class ConditionsAggregator : IConditionsAggregator
                 new DateTimeOffset(row.FetchedAtUtc, TimeSpan.Zero), row.ExpiresAtUtc <= nowUtc);
         }).ToList();
 
+        // Air quality is display context, not a grading input, so it is never
+        // folded into forceStale: a stale/missing AQI row must not mark the route stale.
+        var airQualityResults = _airQualitySources.Select(s =>
+        {
+            var row = rows.FirstOrDefault(r => string.Equals(r.Source, s.Name, StringComparison.OrdinalIgnoreCase));
+            if (row is null || row.FetchedAtUtc < cutoffUtc)
+            {
+                return new AirQualityFetchResult(null, null);
+            }
+            return new AirQualityFetchResult(TryDeserialize<AirQualitySnapshot>(row.PayloadJson, s.Name, routeEntity.Id),
+                new DateTimeOffset(row.FetchedAtUtc, TimeSpan.Zero));
+        }).ToList();
+
         // Stale = any *served* row past its per-source TTL. Rows missing entirely
         // (never fetched, or beyond the 24h cap) flow through the standard
         // "source absent" semantics instead, so a chronically failing source
-        // cannot mark every response stale forever.
+        // cannot mark every response stale forever. AirQuality is intentionally absent here.
         var forceStale = forecastResults.Any(r => r.Snapshot is not null && r.IsStale)
                          || snowpackResults.Any(r => r.Snapshot is not null && r.IsStale);
 
-        var conditions = BuildConditions(routeEntity, forecastResults, snowpackResults, forceStale);
+        var conditions = BuildConditions(routeEntity, forecastResults, snowpackResults, airQualityResults, forceStale);
 
         var cacheKey = ConditionsCacheKey(routeEntity.Slug);
         // Best-effort guard, not atomic: a racing warmer Set can still be
@@ -182,8 +204,10 @@ public class ConditionsAggregator : IConditionsAggregator
         RouteEntity routeEntity,
         List<SourceFetchResult> forecastResults,
         List<SnowpackFetchResult> snowpackResults,
+        List<AirQualityFetchResult> airQualityResults,
         bool forceStale)
     {
+        var airQuality = airQualityResults.FirstOrDefault(r => r.Snapshot is not null);
         var liveForecasts = forecastResults.Where(r => r.Snapshot is not null).ToList();
         var consensusInputs = liveForecasts
             .Select(r => new ConsensusInput(
@@ -222,7 +246,8 @@ public class ConditionsAggregator : IConditionsAggregator
         var nwsResult = forecastResults.FirstOrDefault(r => r.SourceName == "NWS");
         var sourceFreshness = new SourceFreshness(
             nwsResult.FetchedAt ?? weatherFetched,
-            snowpackFetched);
+            snowpackFetched,
+            airQuality.FetchedAt);
 
         var perSourceForecast = liveForecasts
             .Select(r => new PerSourceForecast(
@@ -247,7 +272,8 @@ public class ConditionsAggregator : IConditionsAggregator
             windowGrades,
             sourceFreshness,
             ensemble.Consensus,
-            perSourceForecast.Count == 0 ? null : perSourceForecast);
+            perSourceForecast.Count == 0 ? null : perSourceForecast,
+            airQuality.Snapshot);
     }
 
     private static string ConditionsCacheKey(string slug) => $"conditions:{slug}";
@@ -329,6 +355,46 @@ public class ConditionsAggregator : IConditionsAggregator
         return new SnowpackFetchResult(source.Name, null, null, true);
     }
 
+    // Mirrors FetchSnowpackAsync but carries NO stale flag: AQI is display context,
+    // so a stale or failed AQI fetch must never influence the route's isStale.
+    private async Task<AirQualityFetchResult> FetchAirQualityAsync(RouteEntity route, IAirQualitySource source, CancellationToken ct)
+    {
+        var ttl = _options.TtlFor(source.Name);
+        var nowUtc = DateTime.UtcNow;
+        var cached = await _cache.GetAsync(route.Id, source.Name, ct);
+
+        if (cached is not null && cached.ExpiresAtUtc > nowUtc)
+        {
+            return new AirQualityFetchResult(TryDeserialize<AirQualitySnapshot>(cached.PayloadJson, source.Name, route.Id),
+                new DateTimeOffset(cached.FetchedAtUtc, TimeSpan.Zero));
+        }
+
+        AirQualitySnapshot? fresh = null;
+        try
+        {
+            fresh = await source.FetchAsync(route.SummitLat, route.SummitLon, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "AirQuality source {Source} threw for {Slug}", source.Name, route.Slug);
+        }
+
+        if (fresh is not null)
+        {
+            await _cache.UpsertAsync(route.Id, source.Name, JsonSerializer.Serialize(fresh, JsonOpts), nowUtc.Add(ttl), ct);
+            return new AirQualityFetchResult(fresh, DateTimeOffset.UtcNow);
+        }
+
+        if (cached is not null)
+        {
+            _logger.LogInformation("Serving stale {Source} data for {Slug}", source.Name, route.Slug);
+            return new AirQualityFetchResult(TryDeserialize<AirQualitySnapshot>(cached.PayloadJson, source.Name, route.Id),
+                new DateTimeOffset(cached.FetchedAtUtc, TimeSpan.Zero));
+        }
+
+        return new AirQualityFetchResult(null, null);
+    }
+
     private static T? Deserialize<T>(string json) => JsonSerializer.Deserialize<T>(json, JsonOpts);
 
     private T? TryDeserialize<T>(string json, string source, int routeId)
@@ -355,4 +421,5 @@ public class ConditionsAggregator : IConditionsAggregator
 
     private record struct SourceFetchResult(string SourceName, WeatherSnapshot? Snapshot, DateTimeOffset? FetchedAt, bool IsStale, IReadOnlySet<string> ActiveFactors);
     private record struct SnowpackFetchResult(string SourceName, SnowpackSnapshot? Snapshot, DateTimeOffset? FetchedAt, bool IsStale);
+    private record struct AirQualityFetchResult(AirQualitySnapshot? Snapshot, DateTimeOffset? FetchedAt);
 }

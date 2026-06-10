@@ -17,7 +17,7 @@ public record WindowGrades(
     WindowGrade Next48h
 );
 
-public record SourceFreshness(DateTimeOffset? NwsFetchedAt, DateTimeOffset? SnotelFetchedAt);
+public record SourceFreshness(DateTimeOffset? NwsFetchedAt, DateTimeOffset? SnotelFetchedAt, DateTimeOffset? AirQualityFetchedAt = null);
 
 public record PerSourceForecast(
     string SourceName,
@@ -41,5 +41,6 @@ public record RouteConditions(
     WindowGrades? WindowGrades,
     SourceFreshness Sources,
     ConsensusReport? Consensus,
-    IReadOnlyList<PerSourceForecast>? PerSourceForecast
+    IReadOnlyList<PerSourceForecast>? PerSourceForecast,
+    AirQualitySnapshot? AirQuality = null
 );

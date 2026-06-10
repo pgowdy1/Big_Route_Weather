@@ -20,6 +20,7 @@ public class ConditionsAggregatorTests
         public TestDbContextFactory DbFactory { get; }
         public FakeForecastSource Forecast { get; } = new();
         public FakeSnowpackSource Snowpack { get; } = new();
+        public FakeAirQualitySource AirQuality { get; } = new();
         public MemoryCache Memory { get; } = new(new MemoryCacheOptions());
         public RouteEntity Route { get; } = TestData.Route();
         public ConditionsAggregator Aggregator { get; }
@@ -35,12 +36,14 @@ public class ConditionsAggregatorTests
                 [
                     new SourceOptions { Name = "NWS", Enabled = true, Weight = 1.0, CacheTtlMinutes = 60 },
                     new SourceOptions { Name = "SNOTEL", Enabled = true, Weight = 1.0, CacheTtlMinutes = 60 },
+                    new SourceOptions { Name = "AirQuality", Enabled = true, Weight = 1.0, CacheTtlMinutes = 180 },
                 ],
             };
 
             Aggregator = new ConditionsAggregator(
                 new[] { Forecast },
                 new[] { Snowpack },
+                new[] { AirQuality },
                 new ForecastCacheRepository(DbFactory),
                 Microsoft.Extensions.Options.Options.Create(sourceOptions),
                 Microsoft.Extensions.Options.Options.Create(new WarmerOptions()),
@@ -57,6 +60,20 @@ public class ConditionsAggregatorTests
                 RouteId = Route.Id,
                 Source = "NWS",
                 PayloadJson = JsonSerializer.Serialize(TestData.Snapshot(), JsonOpts),
+                FetchedAtUtc = fetchedAtUtc,
+                ExpiresAtUtc = expiresAtUtc,
+            });
+            await db.SaveChangesAsync();
+        }
+
+        public async Task AddAirQualityRowAsync(string payloadJson, DateTime fetchedAtUtc, DateTime expiresAtUtc)
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            db.CachedForecasts.Add(new CachedForecastEntity
+            {
+                RouteId = Route.Id,
+                Source = "AirQuality",
+                PayloadJson = payloadJson,
                 FetchedAtUtc = fetchedAtUtc,
                 ExpiresAtUtc = expiresAtUtc,
             });
@@ -212,5 +229,73 @@ public class ConditionsAggregatorTests
         Assert.NotNull(conditions.Grade); // corrupt NWS degrades to "source absent"; SNOTEL still grades
         Assert.Equal(0, h.Forecast.FetchCount);
         Assert.Equal(0, h.Snowpack.FetchCount);
+    }
+
+    [Fact]
+    public async Task ReadThrough_fetchesAndCachesAirQuality()
+    {
+        var h = new Harness(nameof(ReadThrough_fetchesAndCachesAirQuality));
+        h.AirQuality.Result = new AirQualitySnapshot(42, 5.0);
+
+        var conditions = await h.Aggregator.GetConditionsAsync(h.Route, FetchMode.ReadThrough);
+
+        Assert.True(conditions.AirQuality is { UsAqi: 42 });
+        Assert.NotNull(conditions.Sources.AirQualityFetchedAt);
+
+        await using var db = await h.DbFactory.CreateDbContextAsync();
+        var row = db.CachedForecasts.SingleOrDefault(r => r.RouteId == h.Route.Id && r.Source == "AirQuality");
+        Assert.NotNull(row);
+    }
+
+    [Fact]
+    public async Task CacheOnly_readsAirQualityRow_withoutFetching()
+    {
+        var h = new Harness(nameof(CacheOnly_readsAirQualityRow_withoutFetching));
+        // Fresh forecast row so the route grades, plus a fresh AirQuality row.
+        await h.AddForecastRowAsync(
+            fetchedAtUtc: DateTime.UtcNow.AddMinutes(-10),
+            expiresAtUtc: DateTime.UtcNow.AddMinutes(50));
+        await h.AddAirQualityRowAsync(
+            """{"usAqi":80,"pm25":12.0}""",
+            fetchedAtUtc: DateTime.UtcNow.AddMinutes(-10),
+            expiresAtUtc: DateTime.UtcNow.AddMinutes(50));
+
+        var conditions = await h.Aggregator.GetConditionsAsync(h.Route, FetchMode.CacheOnly);
+
+        Assert.NotNull(conditions.AirQuality);
+        Assert.Equal(80, conditions.AirQuality!.UsAqi);
+        Assert.Equal(0, h.AirQuality.FetchCount);
+    }
+
+    [Fact]
+    public async Task StaleAirQuality_doesNotFlagRouteStale()
+    {
+        var h = new Harness(nameof(StaleAirQuality_doesNotFlagRouteStale));
+        // Fresh forecast keeps the route un-stale.
+        await h.AddForecastRowAsync(
+            fetchedAtUtc: DateTime.UtcNow.AddMinutes(-10),
+            expiresAtUtc: DateTime.UtcNow.AddMinutes(50));
+        // AirQuality past its TTL but well within the 24h serve-stale window.
+        await h.AddAirQualityRowAsync(
+            """{"usAqi":80,"pm25":12.0}""",
+            fetchedAtUtc: DateTime.UtcNow.AddHours(-2),
+            expiresAtUtc: DateTime.UtcNow.AddHours(-1));
+
+        var conditions = await h.Aggregator.GetConditionsAsync(h.Route, FetchMode.CacheOnly);
+
+        Assert.NotNull(conditions.AirQuality);
+        Assert.False(conditions.IsStale);
+    }
+
+    [Fact]
+    public async Task FailedAirQuality_yieldsNullAirQuality_gradeUnaffected()
+    {
+        var h = new Harness(nameof(FailedAirQuality_yieldsNullAirQuality_gradeUnaffected));
+        h.AirQuality.Result = null; // upstream AQI failed/unavailable
+
+        var conditions = await h.Aggregator.GetConditionsAsync(h.Route, FetchMode.ReadThrough);
+
+        Assert.Null(conditions.AirQuality);
+        Assert.NotNull(conditions.Grade);
     }
 }

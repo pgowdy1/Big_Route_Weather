@@ -88,6 +88,17 @@ RegisterOpenMeteoSource<OpenMeteoEcmwfSource>(builder.Services, "OpenMeteo-ECMWF
 RegisterOpenMeteoSource<OpenMeteoIconSource>(builder.Services,  "OpenMeteo-ICON",  forecastConfig);
 RegisterOpenMeteoSource<OpenMeteoHrrrSource>(builder.Services,  "OpenMeteo-HRRR",  forecastConfig);
 
+builder.Services.AddHttpClient<AirQualityClient>(c =>
+{
+    c.BaseAddress = new Uri("https://air-quality-api.open-meteo.com/");
+    c.DefaultRequestHeaders.Accept.ParseAdd("application/json");
+    c.Timeout = TimeSpan.FromSeconds(15);
+});
+if (forecastConfig.IsEnabled("AirQuality"))
+{
+    builder.Services.AddScoped<IAirQualitySource>(sp => sp.GetRequiredService<AirQualityClient>());
+}
+
 static void RegisterOpenMeteoSource<T>(IServiceCollection services, string name, ForecastSourcesOptions cfg)
     where T : OpenMeteoModelSource
 {

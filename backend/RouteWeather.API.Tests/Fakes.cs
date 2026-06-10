@@ -33,6 +33,19 @@ public sealed class FakeSnowpackSource : ISnowpackSource
     }
 }
 
+public sealed class FakeAirQualitySource : IAirQualitySource
+{
+    public string Name => "AirQuality";
+    public AirQualitySnapshot? Result { get; set; } = new(42, 5.0);
+    public int FetchCount { get; private set; }
+
+    public Task<AirQualitySnapshot?> FetchAsync(double lat, double lon, CancellationToken ct)
+    {
+        FetchCount++;
+        return Task.FromResult(Result);
+    }
+}
+
 public sealed class FakeConditionsAggregator : IConditionsAggregator
 {
     public Func<RouteEntity, Core.Models.RouteConditions> OnGet { get; set; } =
