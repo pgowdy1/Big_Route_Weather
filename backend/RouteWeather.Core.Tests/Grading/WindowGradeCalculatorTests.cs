@@ -111,7 +111,7 @@ public class WindowGradeCalculatorTests
         for (var i = 0; i < 12; i++)
         {
             hours.Add(new HourlyForecast(
-                DateTimeOffset.UtcNow.AddHours(i), 50, 5, 0, "Sunny",
+                DateTimeOffset.UnixEpoch.AddHours(i), 50, 5, 0, "Sunny",
                 GustMph: 10 + i,          // max 21
                 CapeJkg: 100 * i,         // max 1100 in slice
                 PrecipitationIn: 0.1));   // sum 1.2
@@ -131,7 +131,7 @@ public class WindowGradeCalculatorTests
     public void Aggregate_allNullNewFields_addsNoNewFactors()
     {
         var hours = Enumerable.Range(0, 12)
-            .Select(i => new HourlyForecast(DateTimeOffset.UtcNow.AddHours(i), 50, 5, 0, "Sunny"))
+            .Select(i => new HourlyForecast(DateTimeOffset.UnixEpoch.AddHours(i), 50, 5, 0, "Sunny"))
             .ToList();
         var weather = new WeatherSnapshot(5, 50, 0, hours);
 
