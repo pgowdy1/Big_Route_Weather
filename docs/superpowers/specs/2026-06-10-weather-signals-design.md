@@ -33,7 +33,9 @@ smoke, heat, and daylight rank highest.
 - Detail page shows cloud/visibility, air quality, daylight, and feels-like
   context without crowding cards.
 - Cards stay silent-by-default: one muted chip, only when smoke is actionable.
-- No new request volume on existing sources; one new lightweight source (AQI).
+- Net NWS call volume goes **down** (gridpoints swap + cached point lookups);
+  Open-Meteo stays inside the free tier with documented headroom at 300+
+  routes; one new lightweight source (AQI).
 
 ## Non-Goals
 
@@ -112,15 +114,38 @@ sources reporting the field. Spread floors: CAPE 200 J/kg, gusts 8 mph.
 
 ### 2. Data plumbing (RouteWeather.API / Core / Data)
 
-**Open-Meteo forecast call (extended, no new requests):** add hourly `cape`,
-`wind_gusts_10m`, `precipitation`, `cloud_cover`, `visibility`,
+**Open-Meteo forecast call (extended, no new HTTP requests):** add hourly
+`cape`, `wind_gusts_10m`, `precipitation`, `cloud_cover`, `visibility`,
 `apparent_temperature` in `OpenMeteoClient`. Models lacking a field (likely
 ECMWF for CAPE/gusts) return nulls, which per-source factor logic tolerates.
 `HourlyForecast` gains nullable `capeJkg`, `gustMph`, `precipitationIn`,
-`cloudCoverPct`, `visibilityMiles`, `apparentTempF`.
+`cloudCoverPct`, `visibilityMiles`, `apparentTempF`. Also pass the route's
+`SummitElevationFt` (as meters) via the `elevation` parameter so Open-Meteo's
+lapse-rate downscaling targets the summit, not the DEM cell mean — a real
+accuracy lever for summit temperature. Note: Open-Meteo meters quota by
+*variable count*, not HTTP requests (>10 variables per request counts
+fractionally as multiple calls), so this widening raises quota burn — see
+"Upstream call budget" below.
 
-**NWS:** parse `windGust` from hourly periods when present (intermittent in NWS
-data). No CAPE from NWS. No new calls.
+**NWS — swap derived forecast for raw gridpoints:** replace the
+`/gridpoints/{wfo}/{x},{y}/forecast/hourly` call with the raw
+`/gridpoints/{wfo}/{x},{y}` endpoint, which exposes `windGust`,
+`quantitativePrecipitation`, `skyCover`, `visibility`, and
+`apparentTemperature` — making gusts and precip amount **dual-sourced into
+consensus** (CAPE remains model-only by nature; NWS issues no CAPE). Exact
+field availability varies slightly by forecast office; verify during
+implementation. Two consequences:
+
+- **Points lookup becomes cached.** The lat/lon → (office, gridX, gridY)
+  mapping is static per route; persist it (route-keyed cache row) instead of
+  re-resolving every refresh. Re-resolve only on a 404 from the gridpoints
+  endpoint (NWS occasionally regrids). Net NWS calls per route-refresh drop
+  from 2 to 1.
+- **Conditions text changes source.** The raw endpoint has no `shortForecast`
+  prose; derive the hourly-table Conditions text and the snow-relevance check
+  from the gridpoint's structured `weather` layer (with Open-Meteo's
+  `weather_code` WMO mapping as fallback). Structured values beat the current
+  "text contains snow" matching anyway.
 
 **Air quality (new source):** `AirQualityClient` →
 `air-quality-api.open-meteo.com` for `us_aqi` + `pm2_5` at route coordinates.
@@ -134,6 +159,30 @@ algorithm) computes sunrise/sunset/daylight hours from `SummitLat/SummitLon` +
 date, expressed in the same local timezone the hourly forecast series already
 uses (Open-Meteo's `timezone` resolution for the route's coordinates).
 Unit-testable; immune to cache staleness.
+
+**Upstream call budget** (87 routes today; plan for 300+):
+
+- **NWS** publishes no daily cap — its limiter is a burst-rate firewall
+  (403 + Reference ID when tripped; keep the User-Agent header and treat
+  403/429 as source-missing, the existing failure path). Today:
+  87 routes × 2 calls/hr ≈ **4.2k/day**. After the gridpoints swap + cached
+  point lookups: ≈ **2.1k/day** — half of today. At 300 routes: ≈ 7.2k/day,
+  an average of 5 req/min, with warm-cycle bursts bounded by the existing
+  8-wide semaphore (~1–2 req/s worst case). Comfortable at both scales.
+- **Open-Meteo** free tier: 10,000 calls/day, 5,000/hr, 600/min, where a
+  request with >10 variables counts fractionally (15 vars = 1.5 calls). The
+  widened fetch (~8 vars × 4 models) makes each refresh cost roughly 3× a
+  plain request — measure the real multiplier during implementation. At the
+  current 60-min TTL and 87 routes that flirts with the daily cap, so this
+  feature includes the mitigation: **per-source TTLs matched to model update
+  cadence** — GFS/ECMWF/ICON publish 6-hourly (TTL 3h), HRRR hourly (TTL 1h).
+  That cuts global-model volume ~3× and restores headroom at 87 routes.
+- **At 300+ routes**, two further levers exist, deliberately out of scope
+  here: dedupe fetches by shared location — routes on the same summit share
+  coordinates, and nearby routes share NWS grid cells, so caching by
+  (coordinate, source) instead of (route, source) cuts volume by the
+  routes-per-summit factor; and Open-Meteo's paid tier as the fallback.
+  The AQI source is negligible either way (3h TTL → ~0.7k/day at 87 routes).
 
 **Contract changes:**
 - `RouteConditions` (detail): adds `airQuality` (AQI value, category,
@@ -185,6 +234,9 @@ factors surface via existing driver pills and grade caps; no other card change.
 - `SolarCalculator` vs known sunrise/sunset values (e.g., equinox, known lat).
 - Aggregator with fake `AirQualityClient`: success / failure / stale; verify
   `isStale` exemption.
+- NWS gridpoints parsing (including sparse `windGust` series and the
+  structured `weather` layer → conditions text); points-lookup cache hit path
+  and 404 → re-resolve path.
 - Consensus with partial-source field coverage (CAPE on subset of models).
 - Window alignment for new factors across 12/24/48h.
 
@@ -204,3 +256,5 @@ factors surface via existing driver pills and grade caps; no other card change.
 | Display placement | Detail sections + one actionable card chip | Cards-everywhere (violates silent-by-default); detail-only (smoke hidden) |
 | Precip amount | Upgrade existing factor, `min()` composition | Separate amount factor (two correlated rain factors) |
 | Display-only cut | Cloud/visibility, AQI, daylight/feels-like | Recent rain & drying (deferred) |
+| NWS integration | Swap derived hourly for raw gridpoints + cached point lookup (dual-sources gusts/QPF, halves NWS volume) | Third NWS call (+50% volume); derived-only (fields missing) |
+| Quota headroom | Per-source TTLs matched to model update cadence (in scope) | Location-dedup cache keying & paid tier (deferred to 300-route scale) |
