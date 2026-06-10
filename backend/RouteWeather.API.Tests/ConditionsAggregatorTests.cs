@@ -291,6 +291,7 @@ public class ConditionsAggregatorTests
     public async Task FailedAirQuality_yieldsNullAirQuality_gradeUnaffected()
     {
         var h = new Harness(nameof(FailedAirQuality_yieldsNullAirQuality_gradeUnaffected));
+        h.Forecast.OnFetch = () => TestData.Snapshot(); // explicit live forecast → grade does not rest on the fake's default
         h.AirQuality.Result = null; // upstream AQI failed/unavailable
 
         var conditions = await h.Aggregator.GetConditionsAsync(h.Route, FetchMode.ReadThrough);
