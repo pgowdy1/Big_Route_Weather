@@ -16,6 +16,21 @@ public class ConsensusCalculatorTests
     private static ConsensusInput Input(string name, double wind, double temp, int precip, double weight = 1.0, IReadOnlySet<string>? active = null) =>
         new(new SourceSnapshot(name, Snapshot(wind, temp, precip), DateTimeOffset.UtcNow, active ?? ForecastFactors.All), weight);
 
+    private static ConsensusInput InputWith(
+        string name, double wind, double temp, int precip,
+        double? gust = null, double? cape = null, double weight = 1.0)
+    {
+        var hours = new List<HourlyForecast>
+        {
+            new(DateTimeOffset.Parse("2026-06-10T12:00:00Z"), temp, wind, precip, "Sunny",
+                GustMph: gust, CapeJkg: cape),
+        };
+        var snap = new WeatherSnapshot(wind, temp, precip, hours,
+            MaxGustMph: gust, MaxCapeJkg: cape);
+        return new ConsensusInput(
+            new SourceSnapshot(name, snap, DateTimeOffset.UtcNow, ForecastFactors.All), weight);
+    }
+
     [Fact]
     public void Empty_input_returns_null_ensemble()
     {
@@ -162,5 +177,56 @@ public class ConsensusCalculatorTests
         var result = calc.Compute(inputs, sourcesAttempted: 5);
         Assert.Equal(2, result.Consensus!.SourcesReporting);
         Assert.Equal(5, result.Consensus.SourcesAttempted);
+    }
+
+    [Fact]
+    public void Blend_newHeadlines_usePresenceWeightedMean()
+    {
+        var calc = new ConsensusCalculator();
+        var result = calc.Compute(new[]
+        {
+            InputWith("A", 10, 50, 0, gust: 30, cape: 400),
+            InputWith("B", 10, 50, 0, gust: 40, cape: 800),
+            InputWith("C", 10, 50, 0, gust: null, cape: null), // contributes nothing to new fields
+        }, 3);
+
+        Assert.NotNull(result.Blended);
+        Assert.Equal(35, result.Blended!.MaxGustMph!.Value, 0);
+        Assert.Equal(600, result.Blended.MaxCapeJkg!.Value, 0);
+    }
+
+    [Fact]
+    public void Blend_allNullNewFields_staysNull()
+    {
+        var calc = new ConsensusCalculator();
+        var result = calc.Compute(new[]
+        {
+            InputWith("A", 10, 50, 0),
+            InputWith("B", 12, 50, 0),
+        }, 2);
+
+        Assert.Null(result.Blended!.MaxGustMph);
+        Assert.Null(result.Blended.MaxCapeJkg);
+        Assert.Null(result.Blended.PrecipAmountIn);
+    }
+
+    [Fact]
+    public void Cv_includesGustEntry_onlyWithTwoReporters()
+    {
+        var calc = new ConsensusCalculator();
+
+        var one = calc.Compute(new[]
+        {
+            InputWith("A", 10, 50, 0, gust: 50),
+            InputWith("B", 10, 50, 0),
+        }, 2);
+        Assert.False(one.Consensus!.CoefficientOfVariationByFactor.ContainsKey(ForecastFactors.Gust));
+
+        var two = calc.Compute(new[]
+        {
+            InputWith("A", 10, 50, 0, gust: 20),
+            InputWith("B", 10, 50, 0, gust: 60), // spread 40 > 8 mph floor
+        }, 2);
+        Assert.True(two.Consensus!.CoefficientOfVariationByFactor[ForecastFactors.Gust] > 0);
     }
 }
