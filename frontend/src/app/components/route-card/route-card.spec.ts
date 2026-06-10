@@ -38,6 +38,25 @@ describe('RouteCard', () => {
     const chip = (fixture.nativeElement as HTMLElement).querySelector('.range-chip');
     expect(chip?.textContent?.trim()).toBe('Cascade Range');
   });
+
+  it('shows a smoky-air chip when AQI is 151 or above', () => {
+    const fixture = TestBed.createComponent(RouteCard);
+    fixture.componentRef.setInput('route', { ...summary('foo'), airQualityUsAqi: 168 });
+    fixture.detectChanges();
+
+    const chip = (fixture.nativeElement as HTMLElement).querySelector('.aqi-chip');
+    expect(chip).toBeTruthy();
+    expect(chip!.textContent).toContain('168');
+  });
+
+  it('stays silent at AQI 150 and below, and when AQI is null', () => {
+    for (const aqi of [150, 42, null]) {
+      const fixture = TestBed.createComponent(RouteCard);
+      fixture.componentRef.setInput('route', { ...summary('foo'), airQualityUsAqi: aqi });
+      fixture.detectChanges();
+      expect((fixture.nativeElement as HTMLElement).querySelector('.aqi-chip')).toBeNull();
+    }
+  });
 });
 
 function summary(slug: string): RouteSummary {

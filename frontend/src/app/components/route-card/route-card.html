@@ -15,6 +15,9 @@
     @if (route().isStale) {
       <span class="stale-chip">Stale data</span>
     }
+    @if ((route().airQualityUsAqi ?? 0) >= 151) {
+      <span class="aqi-chip">Smoky air · AQI {{ route().airQualityUsAqi }}</span>
+    }
     @if (route().consensus) {
       <app-consensus-badge [consensus]="route().consensus" />
     }
