@@ -258,3 +258,43 @@ factors surface via existing driver pills and grade caps; no other card change.
 | Display-only cut | Cloud/visibility, AQI, daylight/feels-like | Recent rain & drying (deferred) |
 | NWS integration | Swap derived hourly for raw gridpoints + cached point lookup (dual-sources gusts/QPF, halves NWS volume) | Third NWS call (+50% volume); derived-only (fields missing) |
 | Quota headroom | Per-source TTLs matched to model update cadence (in scope) | Location-dedup cache keying & paid tier (deferred to 300-route scale) |
+
+## As-built deltas
+
+Where the implementation diverged from the design above.
+
+- **Per-source TTLs left unchanged.** The plan called for HRRR at a 1h TTL to
+  match its hourly cadence, but all four OpenMeteo models already sat at
+  `CacheTtlMinutes: 180` (NWS 60). HRRR was deliberately *not* lowered: the four
+  models share a single HTTP fetch (`FetchAllModelsAsync`), so the minimum TTL
+  across them — not each model's own — drives request frequency. Dropping HRRR
+  to 1h would have tripled call volume for no benefit to the slower models.
+- **`weather_code` is now a primary OpenMeteo variable, not just a fallback.**
+  OpenMeteo sources had been carrying empty `ShortForecast`, leaving a blank
+  Conditions column. The WMO map (`WmoWeatherText`) now fills conditions text and
+  feeds `SnowRelevance` for non-NWS sources; the blended baseline is HRRR at
+  weight 1.2.
+- **`IForecastSource.FetchAsync` takes a `ForecastLocation`** (RouteId, lat, lon,
+  elevation) rather than bare coordinates: NWS needs RouteId to key its persisted
+  gridpoint cache row, and OpenMeteo needs elevation for lapse-rate downscaling.
+- **Gridpoint mapping persists under the pseudo-source name `"NWS-Grid"`** in the
+  existing cache table (365-day expiry, re-resolved on a gridpoints 404) — no
+  schema migration required. Net NWS volume is 1 call per refresh instead of 2,
+  as planned.
+- **New-field consensus participation is presence-gated, not
+  `ActiveFactors`-gated.** A source contributes gust / CAPE / amount only when its
+  snapshot actually carries the value; consensus (CV) entries for Gusts and
+  Thunderstorm exist only when ≥2 sources report.
+- **Daylight is computed at read time in the controller** (`ComputeDaylight` in
+  `RoutesController`), not stored on `RouteConditions`. A cached row can be served
+  up to 24h stale, which would otherwise freeze sunrise/sunset into the past.
+  `DaylightInfo` lives in Core/Models and `SolarCalculator` in Core/Services.
+- **Aggregator fetch-arm duplication noted for follow-up.**
+  `FetchForecastAsync`, `FetchSnowpackAsync`, and `FetchAirQualityAsync` are three
+  siblings of the same cache-ladder. Extract a generic helper before adding a
+  fourth source family.
+- **Weight rebalance side effect on tests.** Three GradeCalculator tests that
+  asserted a "Capped at …" rationale became natural-grade assertions: under the
+  new weights those caps no longer bind, because the capping factor's own score
+  drag reaches the cap grade first. Binding-cap coverage moved to the CAPE and
+  gust tests.
