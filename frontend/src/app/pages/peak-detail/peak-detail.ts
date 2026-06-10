@@ -32,6 +32,28 @@ export class PeakDetail {
   notFound = signal(false);
   error = signal<string | null>(null);
   lastFetchedAt = signal<number | null>(null);
+  showAll48h = signal(false);
+
+  displayedForecast = computed(() => {
+    const all = this.detail()?.forecastNext48h ?? [];
+    return this.showAll48h() ? all : all.slice(0, 24);
+  });
+
+  skyNow = computed(() => {
+    const first = this.detail()?.forecastNext48h?.[0];
+    return first
+      ? { cloudCoverPct: first.cloudCoverPct, visibilityMiles: first.visibilityMiles, apparentTempF: first.apparentTempF }
+      : null;
+  });
+
+  aqiCategory(aqi: number): string {
+    if (aqi <= 50) return 'Good';
+    if (aqi <= 100) return 'Moderate';
+    if (aqi <= 150) return 'Unhealthy for sensitive groups';
+    if (aqi <= 200) return 'Unhealthy';
+    if (aqi <= 300) return 'Very unhealthy';
+    return 'Hazardous';
+  }
 
   windows = computed<WindowView[]>(() => {
     const w = this.detail()?.windowGrades;
@@ -76,6 +98,7 @@ export class PeakDetail {
     this.loading.set(true);
     this.notFound.set(false);
     this.error.set(null);
+    this.showAll48h.set(false);
     this.service.detail(slug).subscribe({
       next: d => {
         this.detail.set(d);
