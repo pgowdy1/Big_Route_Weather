@@ -78,8 +78,8 @@ export class PeakDetail {
     (this.detail()?.factors ?? []).filter(f => !f.isActive),
   );
 
-  activeWeightPct = computed<number>(() =>
-    Math.round(this.activeFactors().reduce((s, f) => s + f.weight, 0) * 100),
+  inactiveFactorNames = computed<string>(() =>
+    this.inactiveFactors().map(f => f.name).join(', '),
   );
 
   lastUpdatedLabel = computed<string | null>(() => {

@@ -298,3 +298,10 @@ Where the implementation diverged from the design above.
   new weights those caps no longer bind, because the capping factor's own score
   drag reaches the cap grade first. Binding-cap coverage moved to the CAPE and
   gust tests.
+- **"Factor breakdown: no UI work" was wrong for the summary note.** The
+  per-factor cards did flow through generically, but the one-line
+  `factors-note` carried snow-specific copy and an "Active weights total X%"
+  figure whose implied 100% denominator broke once Thunderstorm/Gusts could be
+  present-but-inactive (or absent entirely). Fixed post-merge-review: the note
+  now names the inactive factors and drops the percentage (the grade
+  renormalizes over active weights, so the raw sum described nothing real).

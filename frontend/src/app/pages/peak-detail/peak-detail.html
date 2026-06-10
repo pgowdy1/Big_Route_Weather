@@ -70,7 +70,7 @@
         <h3>Factor breakdown</h3>
         @if (inactiveFactors().length > 0) {
           <p class="factors-note">
-            Active weights total {{ activeWeightPct() }}% — snow factors excluded today.
+            {{ inactiveFactorNames() }} excluded today — the grade weighs active factors only.
           </p>
         }
         <ul class="factor-list">

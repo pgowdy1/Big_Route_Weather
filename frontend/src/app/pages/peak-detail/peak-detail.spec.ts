@@ -106,26 +106,29 @@ describe('PeakDetail', () => {
     expect(el.textContent ?? '').toContain('Not a factor today');
   });
 
-  it('shows weights note summing active weights when factors are inactive', async () => {
+  it('names every inactive factor in the note, with no weight percentage', async () => {
     const fixture = TestBed.createComponent(PeakDetail);
     fixture.componentRef.setInput('slug', 'longs-peak');
     fixture.detectChanges();
 
     const data = detail();
     data.factors = [
-      { name: 'Wind', score: 67, weight: 0.25, detail: '20 mph', isActive: true },
-      { name: 'Temperature', score: 100, weight: 0.15, detail: '32°F', isActive: true },
-      { name: 'Precipitation', score: 59, weight: 0.20, detail: '33% chance', isActive: true },
-      { name: 'Recent snow', score: 100, weight: 0.20, detail: '0.0"', isActive: true },
-      { name: 'Snowpack', score: 100, weight: 0.20, detail: 'SWE 0.1"', isActive: false },
+      { name: 'Wind', score: 67, weight: 0.20, detail: '20 mph', isActive: true },
+      { name: 'Temperature', score: 100, weight: 0.12, detail: '32°F', isActive: true },
+      { name: 'Precipitation', score: 59, weight: 0.18, detail: '33% chance', isActive: true },
+      { name: 'Thunderstorm', score: 100, weight: 0.20, detail: 'No meaningful storm energy in window', isActive: false },
+      { name: 'Gusts', score: 95, weight: 0.10, detail: 'Gusts close to sustained wind', isActive: false },
+      { name: 'Snowpack', score: 100, weight: 0.10, detail: 'SWE 0.1"', isActive: false },
     ];
     httpMock.expectOne('/api/routes/longs-peak').flush(data);
     await fixture.whenStable();
     fixture.detectChanges();
 
     const noteText = (fixture.nativeElement as HTMLElement).querySelector('.factors-note')?.textContent ?? '';
-    expect(noteText).toContain('80%');
-    expect(noteText).toContain('snow factors excluded today');
+    expect(noteText).toContain('Thunderstorm');
+    expect(noteText).toContain('Gusts');
+    expect(noteText).toContain('Snowpack');
+    expect(noteText).not.toContain('%');
   });
 
   it('shows the range name as a chip', async () => {
