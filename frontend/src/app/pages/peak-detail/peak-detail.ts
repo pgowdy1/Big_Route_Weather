@@ -46,13 +46,26 @@ export class PeakDetail {
       : null;
   });
 
+  // US EPA AQI bands; one table so the label and the color class can't disagree.
+  private static readonly AQI_BANDS = [
+    { max: 50, label: 'Good', cssClass: 'aqi-good' },
+    { max: 100, label: 'Moderate', cssClass: 'aqi-moderate' },
+    { max: 150, label: 'Unhealthy for sensitive groups', cssClass: 'aqi-usg' },
+    { max: 200, label: 'Unhealthy', cssClass: 'aqi-unhealthy' },
+    { max: 300, label: 'Very unhealthy', cssClass: 'aqi-very-unhealthy' },
+    { max: Infinity, label: 'Hazardous', cssClass: 'aqi-hazardous' },
+  ];
+
+  private static aqiBand(aqi: number) {
+    return PeakDetail.AQI_BANDS.find(b => aqi <= b.max)!;
+  }
+
   aqiCategory(aqi: number): string {
-    if (aqi <= 50) return 'Good';
-    if (aqi <= 100) return 'Moderate';
-    if (aqi <= 150) return 'Unhealthy for sensitive groups';
-    if (aqi <= 200) return 'Unhealthy';
-    if (aqi <= 300) return 'Very unhealthy';
-    return 'Hazardous';
+    return PeakDetail.aqiBand(aqi).label;
+  }
+
+  aqiClass(aqi: number): string {
+    return PeakDetail.aqiBand(aqi).cssClass;
   }
 
   windows = computed<WindowView[]>(() => {

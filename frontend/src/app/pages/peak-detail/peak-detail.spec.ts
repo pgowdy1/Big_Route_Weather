@@ -185,6 +185,31 @@ describe('PeakDetail', () => {
     expect(text).toContain('16.0');
   });
 
+  it('colors the AQI value by EPA band', async () => {
+    const cases: Array<[number, string]> = [
+      [42, 'aqi-good'],
+      [95, 'aqi-moderate'],
+      [168, 'aqi-unhealthy'],
+      [250, 'aqi-very-unhealthy'],
+    ];
+    for (const [usAqi, cssClass] of cases) {
+      const fixture = TestBed.createComponent(PeakDetail);
+      fixture.componentRef.setInput('slug', 'longs-peak');
+      fixture.detectChanges();
+
+      const data = detail();
+      data.airQuality = { usAqi, pm25: 10, fetchedAt: '2026-06-10T12:00:00Z' };
+      httpMock.expectOne('/api/routes/longs-peak').flush(data);
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      const value = (fixture.nativeElement as HTMLElement)
+        .querySelector(`[data-testid="sky-air"] .value.${cssClass}`);
+      expect(value, `AQI ${usAqi} should carry .${cssClass}`).not.toBeNull();
+      expect(value!.textContent).toContain(String(usAqi));
+    }
+  });
+
   it('shows unavailable in the AQI tile when airQuality is null', async () => {
     const fixture = TestBed.createComponent(PeakDetail);
     fixture.componentRef.setInput('slug', 'longs-peak');

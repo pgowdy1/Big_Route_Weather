@@ -140,7 +140,7 @@
         <div class="snowpack-tile">
           <span class="label">Air quality</span>
           @if (d.airQuality; as aq) {
-            <span class="value">{{ aq.usAqi }}</span>
+            <span [class]="'value ' + aqiClass(aq.usAqi)">{{ aq.usAqi }}</span>
             <span class="label">{{ aqiCategory(aq.usAqi) }}</span>
           } @else {
             <span class="value muted">unavailable</span>
