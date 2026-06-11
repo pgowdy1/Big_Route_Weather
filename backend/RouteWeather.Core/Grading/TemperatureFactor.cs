@@ -4,7 +4,7 @@ namespace RouteWeather.Core.Grading;
 
 public static class TemperatureFactor
 {
-    public const double Weight = 0.15;
+    public const double Weight = 0.12;
 
     public static int Score(double summitTempF)
     {

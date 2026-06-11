@@ -2,7 +2,7 @@ namespace RouteWeather.Core.Grading;
 
 public static class SnowpackFactor
 {
-    public const double Weight = 0.20;
+    public const double Weight = 0.10;
 
     public static int Score(double percentOfNormalSwe)
     {

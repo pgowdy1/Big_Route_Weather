@@ -42,6 +42,7 @@ describe('MapHome', () => {
       updatedAt: new Date().toISOString(),
       isStale: false,
       consensus: null,
+      airQualityUsAqi: null,
       ...overrides,
     };
   }

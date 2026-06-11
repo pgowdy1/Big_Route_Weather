@@ -4,7 +4,7 @@ namespace RouteWeather.Core.Grading;
 
 public static class RecentSnowFactor
 {
-    public const double Weight = 0.20;
+    public const double Weight = 0.10;
 
     public static int Score(double newSnowLast7DaysIn) =>
         ScoringMath.LinearBetween(newSnowLast7DaysIn, goodValue: 0, badValue: 4);

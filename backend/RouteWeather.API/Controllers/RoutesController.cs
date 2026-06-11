@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using RouteWeather.API.Services;
 using RouteWeather.Core.Models;
+using RouteWeather.Core.Services;
 using RouteWeather.Data.Entities;
 using RouteWeather.Data.Repositories;
 
@@ -81,6 +82,7 @@ public class RoutesController : ControllerBase
             updatedAt = c.UpdatedAt,
             isStale = c.IsStale,
             consensus = SerializeConsensus(c.Consensus),
+            airQualityUsAqi = c.AirQuality?.UsAqi,
         };
     }
 
@@ -116,6 +118,18 @@ public class RoutesController : ControllerBase
             snotel = new { fetchedAt = c.Sources.SnotelFetchedAt },
         },
         consensus = SerializeConsensus(c.Consensus),
+        airQuality = c.AirQuality is null ? null : new
+        {
+            usAqi = c.AirQuality.UsAqi,
+            pm25 = c.AirQuality.Pm25,
+            fetchedAt = c.Sources.AirQualityFetchedAt,
+        },
+        daylight = ComputeDaylight(c) is { } day ? new
+        {
+            sunriseUtc = day.SunriseUtc,
+            sunsetUtc = day.SunsetUtc,
+            daylightHours = day.DaylightHours,
+        } : null,
         perSourceForecast = c.PerSourceForecast?.Select(p => new
         {
             sourceName = p.SourceName,
@@ -123,8 +137,15 @@ public class RoutesController : ControllerBase
             tempF = p.TempF,
             precipitationProbabilityPct = p.PrecipitationProbabilityPct,
             fetchedAt = p.FetchedAt,
+            maxGustMph = p.MaxGustMph,
+            maxCapeJkg = p.MaxCapeJkg,
         }),
     };
+
+    // Computed at read time, never cached: a RouteConditions row can be served up to
+    // 24h stale, which would freeze sunrise/sunset into the past.
+    private static DaylightInfo? ComputeDaylight(RouteConditions c) =>
+        SolarCalculator.NextDaylight(c.Route.SummitLat, c.Route.SummitLon, DateTimeOffset.UtcNow);
 
     private static object? SerializeConsensus(ConsensusReport? r) => r is null ? null : new
     {

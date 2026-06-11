@@ -13,7 +13,7 @@ public sealed class FakeForecastSource : IForecastSource
     public int FetchCount;
     public Func<WeatherSnapshot?> OnFetch { get; set; } = () => TestData.Snapshot();
 
-    public Task<WeatherSnapshot?> FetchAsync(double lat, double lon, CancellationToken ct)
+    public Task<WeatherSnapshot?> FetchAsync(ForecastLocation location, CancellationToken ct)
     {
         FetchCount++;
         return Task.FromResult(OnFetch());
@@ -30,6 +30,19 @@ public sealed class FakeSnowpackSource : ISnowpackSource
     {
         FetchCount++;
         return Task.FromResult(OnFetch());
+    }
+}
+
+public sealed class FakeAirQualitySource : IAirQualitySource
+{
+    public string Name => "AirQuality";
+    public AirQualitySnapshot? Result { get; set; } = new(42, 5.0);
+    public int FetchCount { get; private set; }
+
+    public Task<AirQualitySnapshot?> FetchAsync(double lat, double lon, CancellationToken ct)
+    {
+        FetchCount++;
+        return Task.FromResult(Result);
     }
 }
 
