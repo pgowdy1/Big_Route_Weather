@@ -40,7 +40,7 @@ describe('PeakDetail', () => {
     expect(text).toContain('Next 48h');
   });
 
-  it('renders all forecast rows, not just 12', async () => {
+  it('renders the collapsed 24-row forecast by default, not just 12', async () => {
     const fixture = TestBed.createComponent(PeakDetail);
     fixture.componentRef.setInput('slug', 'longs-peak');
     fixture.detectChanges();
@@ -50,7 +50,7 @@ describe('PeakDetail', () => {
     fixture.detectChanges();
 
     const rows = (fixture.nativeElement as HTMLElement).querySelectorAll('.forecast tbody tr');
-    expect(rows.length).toBe(48);
+    expect(rows.length).toBe(24);
   });
 
   it('shows "Peak not found" on 404', async () => {
@@ -106,26 +106,29 @@ describe('PeakDetail', () => {
     expect(el.textContent ?? '').toContain('Not a factor today');
   });
 
-  it('shows weights note summing active weights when factors are inactive', async () => {
+  it('names every inactive factor in the note, with no weight percentage', async () => {
     const fixture = TestBed.createComponent(PeakDetail);
     fixture.componentRef.setInput('slug', 'longs-peak');
     fixture.detectChanges();
 
     const data = detail();
     data.factors = [
-      { name: 'Wind', score: 67, weight: 0.25, detail: '20 mph', isActive: true },
-      { name: 'Temperature', score: 100, weight: 0.15, detail: '32°F', isActive: true },
-      { name: 'Precipitation', score: 59, weight: 0.20, detail: '33% chance', isActive: true },
-      { name: 'Recent snow', score: 100, weight: 0.20, detail: '0.0"', isActive: true },
-      { name: 'Snowpack', score: 100, weight: 0.20, detail: 'SWE 0.1"', isActive: false },
+      { name: 'Wind', score: 67, weight: 0.20, detail: '20 mph', isActive: true },
+      { name: 'Temperature', score: 100, weight: 0.12, detail: '32°F', isActive: true },
+      { name: 'Precipitation', score: 59, weight: 0.18, detail: '33% chance', isActive: true },
+      { name: 'Thunderstorm', score: 100, weight: 0.20, detail: 'No meaningful storm energy in window', isActive: false },
+      { name: 'Gusts', score: 95, weight: 0.10, detail: 'Gusts close to sustained wind', isActive: false },
+      { name: 'Snowpack', score: 100, weight: 0.10, detail: 'SWE 0.1"', isActive: false },
     ];
     httpMock.expectOne('/api/routes/longs-peak').flush(data);
     await fixture.whenStable();
     fixture.detectChanges();
 
     const noteText = (fixture.nativeElement as HTMLElement).querySelector('.factors-note')?.textContent ?? '';
-    expect(noteText).toContain('80%');
-    expect(noteText).toContain('snow factors excluded today');
+    expect(noteText).toContain('Thunderstorm');
+    expect(noteText).toContain('Gusts');
+    expect(noteText).toContain('Snowpack');
+    expect(noteText).not.toContain('%');
   });
 
   it('shows the range name as a chip', async () => {
@@ -161,6 +164,135 @@ describe('PeakDetail', () => {
     const note = (fixture.nativeElement as HTMLElement).querySelector('.factors-note');
     expect(note).toBeNull();
   });
+
+  it('renders the Sky & Air section with AQI category and daylight', async () => {
+    const fixture = TestBed.createComponent(PeakDetail);
+    fixture.componentRef.setInput('slug', 'longs-peak');
+    fixture.detectChanges();
+
+    const data = detail();
+    data.airQuality = { usAqi: 95, pm25: 30, fetchedAt: '2026-06-10T12:00:00Z' };
+    data.daylight = { sunriseUtc: '2026-06-10T12:11:00Z', sunsetUtc: '2026-06-11T04:11:00Z', daylightHours: 16.0 };
+    httpMock.expectOne('/api/routes/longs-peak').flush(data);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const sky = (fixture.nativeElement as HTMLElement).querySelector('[data-testid="sky-air"]');
+    expect(sky).not.toBeNull();
+    const text = sky?.textContent ?? '';
+    expect(text).toContain('Moderate');
+    expect(text).toContain('95');
+    expect(text).toContain('16.0');
+  });
+
+  it('colors the AQI value by EPA band', async () => {
+    const cases: Array<[number, string]> = [
+      [42, 'aqi-good'],
+      [95, 'aqi-moderate'],
+      [168, 'aqi-unhealthy'],
+      [250, 'aqi-very-unhealthy'],
+    ];
+    for (const [usAqi, cssClass] of cases) {
+      const fixture = TestBed.createComponent(PeakDetail);
+      fixture.componentRef.setInput('slug', 'longs-peak');
+      fixture.detectChanges();
+
+      const data = detail();
+      data.airQuality = { usAqi, pm25: 10, fetchedAt: '2026-06-10T12:00:00Z' };
+      httpMock.expectOne('/api/routes/longs-peak').flush(data);
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      const value = (fixture.nativeElement as HTMLElement)
+        .querySelector(`[data-testid="sky-air"] .value.${cssClass}`);
+      expect(value, `AQI ${usAqi} should carry .${cssClass}`).not.toBeNull();
+      expect(value!.textContent).toContain(String(usAqi));
+    }
+  });
+
+  it('shows unavailable in the AQI tile when airQuality is null', async () => {
+    const fixture = TestBed.createComponent(PeakDetail);
+    fixture.componentRef.setInput('slug', 'longs-peak');
+    fixture.detectChanges();
+
+    const data = detail();
+    data.airQuality = null;
+    httpMock.expectOne('/api/routes/longs-peak').flush(data);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const sky = (fixture.nativeElement as HTMLElement).querySelector('[data-testid="sky-air"]');
+    expect(sky?.textContent ?? '').toContain('unavailable');
+  });
+
+  it('collapses the hourly table to 24 rows with a Show 48h toggle', async () => {
+    const fixture = TestBed.createComponent(PeakDetail);
+    fixture.componentRef.setInput('slug', 'longs-peak');
+    fixture.detectChanges();
+
+    httpMock.expectOne('/api/routes/longs-peak').flush(detail());
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelectorAll('.forecast tbody tr').length).toBe(24);
+
+    const toggle = el.querySelector('[data-testid="forecast-toggle"]') as HTMLButtonElement;
+    expect(toggle?.textContent ?? '').toContain('48');
+
+    toggle.click();
+    fixture.detectChanges();
+
+    expect(el.querySelectorAll('.forecast tbody tr').length).toBe(48);
+    expect(toggle.textContent ?? '').toContain('24');
+  });
+
+  it('renders Gust and Clouds columns with em-dash for nulls', async () => {
+    const fixture = TestBed.createComponent(PeakDetail);
+    fixture.componentRef.setInput('slug', 'longs-peak');
+    fixture.detectChanges();
+
+    const data = detail();
+    data.forecastNext48h![0].gustMph = 32;
+    data.forecastNext48h![0].cloudCoverPct = 80;
+    data.forecastNext48h![1].gustMph = null;
+    data.forecastNext48h![1].cloudCoverPct = null;
+    httpMock.expectOne('/api/routes/longs-peak').flush(data);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    const headerText = Array.from(el.querySelectorAll('.forecast thead th')).map(th => th.textContent ?? '');
+    expect(headerText).toContain('Gust');
+    expect(headerText).toContain('Clouds');
+
+    const rows = el.querySelectorAll('.forecast tbody tr');
+    expect(rows[0].textContent ?? '').toContain('32');
+    expect(rows[1].textContent ?? '').toContain('—');
+  });
+
+  it('renders per-source Max gust and CAPE columns', async () => {
+    const fixture = TestBed.createComponent(PeakDetail);
+    fixture.componentRef.setInput('slug', 'longs-peak');
+    fixture.detectChanges();
+
+    const data = detail();
+    data.perSourceForecast = [
+      { sourceName: 'HRRR', windMph: 20, tempF: 30, precipitationProbabilityPct: 40, maxGustMph: 42.5, maxCapeJkg: 850, fetchedAt: '2026-06-10T12:00:00Z' },
+      { sourceName: 'GFS', windMph: 18, tempF: 28, precipitationProbabilityPct: 35, maxGustMph: null, maxCapeJkg: null, fetchedAt: '2026-06-10T12:00:00Z' },
+    ];
+    httpMock.expectOne('/api/routes/longs-peak').flush(data);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    const headerText = Array.from(el.querySelectorAll('.per-source thead th')).map(th => th.textContent ?? '');
+    expect(headerText).toContain('Max gust');
+    expect(headerText).toContain('CAPE');
+
+    const rows = el.querySelectorAll('.per-source tbody tr');
+    expect(rows[1].textContent ?? '').toContain('—');
+  });
 });
 
 function detail(): RouteDetail {
@@ -170,6 +302,12 @@ function detail(): RouteDetail {
     windMph: 8,
     precipitationProbabilityPct: 10,
     shortForecast: 'Sunny',
+    gustMph: null,
+    capeJkg: null,
+    precipitationIn: null,
+    cloudCoverPct: null,
+    visibilityMiles: null,
+    apparentTempF: null,
   }));
   return {
     slug: 'longs-peak',
@@ -207,6 +345,9 @@ function detail(): RouteDetail {
       snotel: { fetchedAt: new Date().toISOString() },
     },
     consensus: null,
+    airQualityUsAqi: null,
     perSourceForecast: null,
+    airQuality: null,
+    daylight: null,
   };
 }

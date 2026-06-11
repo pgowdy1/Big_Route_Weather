@@ -70,7 +70,7 @@
         <h3>Factor breakdown</h3>
         @if (inactiveFactors().length > 0) {
           <p class="factors-note">
-            Active weights total {{ activeWeightPct() }}% — snow factors excluded today.
+            {{ inactiveFactorNames() }} excluded today — the grade weighs active factors only.
           </p>
         }
         <ul class="factor-list">
@@ -126,25 +126,69 @@
       </section>
     }
 
-    @if (d.forecastNext48h && d.forecastNext48h.length > 0) {
+    <section class="sky-air" [attr.data-testid]="'sky-air'">
+      <h3>Sky &amp; air</h3>
+      <div class="snowpack-grid">
+        <div class="snowpack-tile">
+          <span class="label">Clouds now</span>
+          <span class="value">{{ skyNow()?.cloudCoverPct !== null && skyNow()?.cloudCoverPct !== undefined ? skyNow()!.cloudCoverPct + '%' : '—' }}</span>
+        </div>
+        <div class="snowpack-tile">
+          <span class="label">Visibility</span>
+          <span class="value">{{ skyNow()?.visibilityMiles !== null && skyNow()?.visibilityMiles !== undefined ? (skyNow()!.visibilityMiles | number:'1.0-1') + ' mi' : '—' }}</span>
+        </div>
+        <div class="snowpack-tile">
+          <span class="label">Air quality</span>
+          @if (d.airQuality; as aq) {
+            <span [class]="'value ' + aqiClass(aq.usAqi)">{{ aq.usAqi }}</span>
+            <span class="label">{{ aqiCategory(aq.usAqi) }}</span>
+          } @else {
+            <span class="value muted">unavailable</span>
+          }
+        </div>
+        <div class="snowpack-tile">
+          <span class="label">Feels like</span>
+          <span class="value">{{ skyNow()?.apparentTempF !== null && skyNow()?.apparentTempF !== undefined ? (skyNow()!.apparentTempF | number:'1.0-0') + '°F' : '—' }}</span>
+        </div>
+        <div class="snowpack-tile">
+          <span class="label">Daylight</span>
+          @if (d.daylight; as day) {
+            <span class="value">{{ day.sunriseUtc | date:'h:mm a' }}–{{ day.sunsetUtc | date:'h:mm a' }}</span>
+            <span class="label">{{ day.daylightHours | number:'1.1-1' }} h</span>
+          } @else {
+            <span class="value muted">—</span>
+          }
+        </div>
+      </div>
+    </section>
+
+    @if (displayedForecast().length > 0) {
       <section class="forecast">
-        <h3>Hourly forecast — next {{ d.forecastNext48h.length }}h</h3>
+        <h3>Hourly forecast — next {{ displayedForecast().length }}h</h3>
         <table>
           <thead>
-            <tr><th>Time</th><th>°F</th><th>Wind</th><th>Precip</th><th>Conditions</th></tr>
+            <tr><th>Time</th><th>°F</th><th>Wind</th><th>Gust</th><th>Precip</th><th>Clouds</th><th>Conditions</th></tr>
           </thead>
           <tbody>
-            @for (h of d.forecastNext48h; track h.time) {
+            @for (h of displayedForecast(); track h.time) {
               <tr>
                 <td>{{ h.time | date:'EEE h a' }}</td>
                 <td>{{ h.tempF }}</td>
                 <td>{{ h.windMph }} mph</td>
+                <td>@if (h.gustMph !== null) { {{ h.gustMph }} mph } @else { — }</td>
                 <td>{{ h.precipitationProbabilityPct }}%</td>
+                <td>@if (h.cloudCoverPct !== null) { {{ h.cloudCoverPct }}% } @else { — }</td>
                 <td>{{ h.shortForecast }}</td>
               </tr>
             }
           </tbody>
         </table>
+        @if ((d.forecastNext48h?.length ?? 0) > 24) {
+          <button type="button" class="forecast-toggle" [attr.data-testid]="'forecast-toggle'"
+                  (click)="showAll48h.set(!showAll48h())">
+            {{ showAll48h() ? 'Show 24h' : 'Show 48h' }}
+          </button>
+        }
       </section>
     }
 
@@ -153,13 +197,14 @@
         <h3>Per-source forecast (next 48h headlines)</h3>
         <table>
           <thead>
-            <tr><th>Source</th><th>Max wind</th><th>Min °F</th><th>Max precip</th></tr>
+            <tr><th>Source</th><th>Max wind</th><th>Max gust</th><th>Min °F</th><th>Max precip</th><th>CAPE</th></tr>
           </thead>
           <tbody>
             @for (s of d.perSourceForecast; track s.sourceName) {
               <tr>
                 <td>{{ s.sourceName }}</td>
                 <td>{{ s.windMph | number:'1.0-1' }} mph</td>
+                <td>@if (s.maxGustMph !== null) { {{ s.maxGustMph | number:'1.0-1' }} mph } @else { — }</td>
                 <td>{{ s.tempF | number:'1.0-1' }}</td>
                 <td>
                   @if (s.precipitationProbabilityPct === null) {
@@ -168,6 +213,7 @@
                     {{ s.precipitationProbabilityPct }}%
                   }
                 </td>
+                <td>@if (s.maxCapeJkg !== null) { {{ s.maxCapeJkg | number:'1.0-0' }} } @else { — }</td>
               </tr>
             }
           </tbody>

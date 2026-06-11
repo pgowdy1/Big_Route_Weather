@@ -8,5 +8,5 @@ public interface IForecastSource
 
     IReadOnlySet<string> ActiveFactors { get; }
 
-    Task<WeatherSnapshot?> FetchAsync(double lat, double lon, CancellationToken ct);
+    Task<WeatherSnapshot?> FetchAsync(ForecastLocation location, CancellationToken ct);
 }

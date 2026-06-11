@@ -148,7 +148,8 @@
   }
 }
 
-.snowpack {
+// card shell + tiles shared by the Snowpack and Sky & Air sections
+.snowpack, .sky-air {
   background: #11202c;
   border: 1px solid #2c3e50;
   border-radius: 0.75rem;
@@ -197,6 +198,30 @@
     }
     th { color: #8aa0b4; font-weight: 500; }
   }
+}
+
+.forecast-toggle {
+  margin-top: 0.5rem;
+  background: none;
+  border: 1px solid #2c3e50;
+  border-radius: 4px;
+  padding: 0.25rem 0.75rem;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.sky-air .muted { opacity: 0.6; }
+
+// US EPA AQI bands, softened for the dark theme. Must out-rank the
+// .sky-air .snowpack-tile .value color, hence the four-class selectors.
+.sky-air .snowpack-tile {
+  .value.aqi-good { color: #81c784; }
+  .value.aqi-moderate { color: #ffd54f; }
+  .value.aqi-usg { color: #ffb74d; }
+  .value.aqi-unhealthy { color: #e57373; }
+  .value.aqi-very-unhealthy { color: #ba68c8; }
+  .value.aqi-hazardous { color: #c75b6d; }
 }
 
 .sources {

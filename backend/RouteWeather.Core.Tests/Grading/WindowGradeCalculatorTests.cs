@@ -103,4 +103,41 @@ public class WindowGradeCalculatorTests
         Assert.Null(grades.Next48h.Grade);
         Assert.Equal(0, grades.Next12h.HoursCovered);
     }
+
+    [Fact]
+    public void Aggregate_computesNewHeadlines_fromSlice()
+    {
+        var hours = new List<HourlyForecast>();
+        for (var i = 0; i < 12; i++)
+        {
+            hours.Add(new HourlyForecast(
+                DateTimeOffset.UnixEpoch.AddHours(i), 50, 5, 0, "Sunny",
+                GustMph: 10 + i,          // max 21
+                CapeJkg: 100 * i,         // max 1100 in slice
+                PrecipitationIn: 0.1));   // sum 1.2
+        }
+        var weather = new WeatherSnapshot(5, 50, 0, hours);
+
+        var grades = WindowGradeCalculator.Compute(weather, null);
+        var factors12 = grades.Next12h.Factors;
+
+        Assert.Contains(factors12, f => f.Name == "Thunderstorm" && f.IsActive);
+        Assert.Contains(factors12, f => f.Name == "Gusts" && !f.IsActive); // 21 < 25
+        var precip = Assert.Single(factors12, f => f.Name == "Precipitation");
+        Assert.Equal(0, precip.Score); // 1.2" >= 0.5" bad threshold for 12h
+    }
+
+    [Fact]
+    public void Aggregate_allNullNewFields_addsNoNewFactors()
+    {
+        var hours = Enumerable.Range(0, 12)
+            .Select(i => new HourlyForecast(DateTimeOffset.UnixEpoch.AddHours(i), 50, 5, 0, "Sunny"))
+            .ToList();
+        var weather = new WeatherSnapshot(5, 50, 0, hours);
+
+        var grades = WindowGradeCalculator.Compute(weather, null);
+
+        Assert.DoesNotContain(grades.Next12h.Factors, f => f.Name == "Thunderstorm");
+        Assert.DoesNotContain(grades.Next12h.Factors, f => f.Name == "Gusts");
+    }
 }

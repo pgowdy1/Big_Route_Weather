@@ -34,19 +34,19 @@ public class OpenMeteoClient
         _calls = calls;
     }
 
-    public Task<IReadOnlyDictionary<string, WeatherSnapshot>> FetchAllModelsAsync(double lat, double lon, CancellationToken ct = default)
+    public Task<IReadOnlyDictionary<string, WeatherSnapshot>> FetchAllModelsAsync(double lat, double lon, int summitElevationFt, CancellationToken ct = default)
     {
         var key = $"{lat:F4},{lon:F4}";
-        var lazy = _inflight.GetOrAdd(key, _ => new Lazy<Task<IReadOnlyDictionary<string, WeatherSnapshot>>>(() => FetchImpl(lat, lon, ct)));
+        var lazy = _inflight.GetOrAdd(key, _ => new Lazy<Task<IReadOnlyDictionary<string, WeatherSnapshot>>>(() => FetchImpl(lat, lon, summitElevationFt, ct)));
         var task = lazy.Value;
         task.ContinueWith(_ => _inflight.TryRemove(new KeyValuePair<string, Lazy<Task<IReadOnlyDictionary<string, WeatherSnapshot>>>>(key, lazy)), TaskScheduler.Default);
         return task;
     }
 
-    private async Task<IReadOnlyDictionary<string, WeatherSnapshot>> FetchImpl(double lat, double lon, CancellationToken ct)
+    private async Task<IReadOnlyDictionary<string, WeatherSnapshot>> FetchImpl(double lat, double lon, int summitElevationFt, CancellationToken ct)
     {
-        var primaryTask = FetchPrimaryAsync(lat, lon, ct);
-        var gfsProbTask = FetchGfsProbabilityAsync(lat, lon, ct);
+        var primaryTask = FetchPrimaryAsync(lat, lon, summitElevationFt, ct);
+        var gfsProbTask = FetchGfsProbabilityAsync(lat, lon, summitElevationFt, ct);
         await Task.WhenAll(primaryTask, gfsProbTask);
 
         var primary = primaryTask.Result;
@@ -68,10 +68,12 @@ public class OpenMeteoClient
         return result;
     }
 
-    private async Task<OpenMeteoHourly?> FetchPrimaryAsync(double lat, double lon, CancellationToken ct)
+    private async Task<OpenMeteoHourly?> FetchPrimaryAsync(double lat, double lon, int summitElevationFt, CancellationToken ct)
     {
         var modelsParam = string.Join(',', Models.Select(m => m.ModelKey));
-        var url = BuildUrl(lat, lon, "temperature_2m,precipitation,wind_speed_10m", modelsParam);
+        var url = BuildUrl(lat, lon, summitElevationFt,
+            "temperature_2m,precipitation,wind_speed_10m,wind_gusts_10m,cape,cloud_cover,visibility,apparent_temperature,weather_code",
+            modelsParam);
 
         try
         {
@@ -95,9 +97,9 @@ public class OpenMeteoClient
         }
     }
 
-    private async Task<GfsProbabilityResult?> FetchGfsProbabilityAsync(double lat, double lon, CancellationToken ct)
+    private async Task<GfsProbabilityResult?> FetchGfsProbabilityAsync(double lat, double lon, int summitElevationFt, CancellationToken ct)
     {
-        var url = BuildUrl(lat, lon, "precipitation_probability", GfsModelKey);
+        var url = BuildUrl(lat, lon, summitElevationFt, "precipitation_probability", GfsModelKey);
 
         try
         {
@@ -125,13 +127,14 @@ public class OpenMeteoClient
         }
     }
 
-    private static string BuildUrl(double lat, double lon, string hourly, string models) =>
+    private static string BuildUrl(double lat, double lon, int summitElevationFt, string hourly, string models) =>
         "v1/forecast" +
         $"?latitude={lat.ToString("F4", CultureInfo.InvariantCulture)}" +
         $"&longitude={lon.ToString("F4", CultureInfo.InvariantCulture)}" +
+        $"&elevation={(summitElevationFt * 0.3048).ToString("F0", CultureInfo.InvariantCulture)}" +
         $"&hourly={hourly}" +
         $"&models={models}" +
-        "&temperature_unit=fahrenheit&wind_speed_unit=mph" +
+        "&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch" +
         "&forecast_days=2&timezone=UTC";
 
     private static string Truncate(string s, int max) => s.Length <= max ? s : s.Substring(0, max) + "…";
@@ -149,6 +152,14 @@ public class OpenMeteoClient
         if (!hourly.Series.TryGetValue($"wind_speed_10m_{modelKey}", out var windSeries))
             windSeries = null;
 
+        hourly.Series.TryGetValue($"wind_gusts_10m_{modelKey}", out var gustSeries);
+        hourly.Series.TryGetValue($"cape_{modelKey}", out var capeSeries);
+        hourly.Series.TryGetValue($"precipitation_{modelKey}", out var precipSeries);
+        hourly.Series.TryGetValue($"cloud_cover_{modelKey}", out var cloudSeries);
+        hourly.Series.TryGetValue($"visibility_{modelKey}", out var visSeries);
+        hourly.Series.TryGetValue($"apparent_temperature_{modelKey}", out var apparentSeries);
+        hourly.Series.TryGetValue($"weather_code_{modelKey}", out var codeSeries);
+
         var count = Math.Min(48, Math.Min(times.Count, tempSeries.Count));
         if (count == 0) return null;
 
@@ -158,23 +169,41 @@ public class OpenMeteoClient
             var t = tempSeries[i];
             if (!t.HasValue) continue;
             var w = windSeries is not null && i < windSeries.Count ? (windSeries[i] ?? 0.0) : 0.0;
+            var code = At(codeSeries, i);
+            var visMeters = At(visSeries, i);
 
             hourly48.Add(new HourlyForecast(
                 Time: times[i],
                 TempF: t.Value,
                 WindMph: w,
                 PrecipitationProbabilityPct: 0,
-                ShortForecast: string.Empty));
+                ShortForecast: code is null ? string.Empty : WmoWeatherText.For((int)code.Value),
+                GustMph: At(gustSeries, i),
+                CapeJkg: At(capeSeries, i),
+                PrecipitationIn: At(precipSeries, i),
+                CloudCoverPct: At(cloudSeries, i) is double c ? (int)Math.Round(c) : null,
+                VisibilityMiles: visMeters is null ? null : Math.Round(visMeters.Value / 1609.34, 1),
+                ApparentTempF: At(apparentSeries, i)));
         }
 
         if (hourly48.Count == 0) return null;
+
+        var gusts = hourly48.Where(h => h.GustMph.HasValue).Select(h => h.GustMph!.Value).ToList();
+        var capes = hourly48.Where(h => h.CapeJkg.HasValue).Select(h => h.CapeJkg!.Value).ToList();
+        var amounts = hourly48.Where(h => h.PrecipitationIn.HasValue).Select(h => h.PrecipitationIn!.Value).ToList();
 
         return new WeatherSnapshot(
             WindMph: hourly48.Max(h => h.WindMph),
             TempF: hourly48.Min(h => h.TempF),
             PrecipitationProbabilityPct: 0,
-            Next48Hours: hourly48);
+            Next48Hours: hourly48,
+            MaxGustMph: gusts.Count == 0 ? null : gusts.Max(),
+            MaxCapeJkg: capes.Count == 0 ? null : capes.Max(),
+            PrecipAmountIn: amounts.Count == 0 ? null : amounts.Sum());
     }
+
+    private static double? At(List<double?>? series, int i) =>
+        series is not null && i < series.Count ? series[i] : null;
 
     private static WeatherSnapshot OverlayGfsProbability(WeatherSnapshot snapshot, GfsProbabilityResult? prob)
     {

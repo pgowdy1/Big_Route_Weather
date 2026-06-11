@@ -32,6 +32,41 @@ export class PeakDetail {
   notFound = signal(false);
   error = signal<string | null>(null);
   lastFetchedAt = signal<number | null>(null);
+  showAll48h = signal(false);
+
+  displayedForecast = computed(() => {
+    const all = this.detail()?.forecastNext48h ?? [];
+    return this.showAll48h() ? all : all.slice(0, 24);
+  });
+
+  skyNow = computed(() => {
+    const first = this.detail()?.forecastNext48h?.[0];
+    return first
+      ? { cloudCoverPct: first.cloudCoverPct, visibilityMiles: first.visibilityMiles, apparentTempF: first.apparentTempF }
+      : null;
+  });
+
+  // US EPA AQI bands; one table so the label and the color class can't disagree.
+  private static readonly AQI_BANDS = [
+    { max: 50, label: 'Good', cssClass: 'aqi-good' },
+    { max: 100, label: 'Moderate', cssClass: 'aqi-moderate' },
+    { max: 150, label: 'Unhealthy for sensitive groups', cssClass: 'aqi-usg' },
+    { max: 200, label: 'Unhealthy', cssClass: 'aqi-unhealthy' },
+    { max: 300, label: 'Very unhealthy', cssClass: 'aqi-very-unhealthy' },
+    { max: Infinity, label: 'Hazardous', cssClass: 'aqi-hazardous' },
+  ];
+
+  private static aqiBand(aqi: number) {
+    return PeakDetail.AQI_BANDS.find(b => aqi <= b.max)!;
+  }
+
+  aqiCategory(aqi: number): string {
+    return PeakDetail.aqiBand(aqi).label;
+  }
+
+  aqiClass(aqi: number): string {
+    return PeakDetail.aqiBand(aqi).cssClass;
+  }
 
   windows = computed<WindowView[]>(() => {
     const w = this.detail()?.windowGrades;
@@ -56,8 +91,8 @@ export class PeakDetail {
     (this.detail()?.factors ?? []).filter(f => !f.isActive),
   );
 
-  activeWeightPct = computed<number>(() =>
-    Math.round(this.activeFactors().reduce((s, f) => s + f.weight, 0) * 100),
+  inactiveFactorNames = computed<string>(() =>
+    this.inactiveFactors().map(f => f.name).join(', '),
   );
 
   lastUpdatedLabel = computed<string | null>(() => {
@@ -76,6 +111,7 @@ export class PeakDetail {
     this.loading.set(true);
     this.notFound.set(false);
     this.error.set(null);
+    this.showAll48h.set(false);
     this.service.detail(slug).subscribe({
       next: d => {
         this.detail.set(d);

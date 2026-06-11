@@ -20,6 +20,8 @@ export interface PerSourceForecast {
   windMph: number;
   tempF: number;
   precipitationProbabilityPct: number | null;
+  maxGustMph: number | null;
+  maxCapeJkg: number | null;
   fetchedAt: string;
 }
 
@@ -47,6 +49,7 @@ export interface RouteSummary {
   updatedAt: string;
   isStale: boolean;
   consensus: Consensus | null;
+  airQualityUsAqi: number | null;
 }
 
 export interface FactorScore {
@@ -63,6 +66,12 @@ export interface HourlyForecast {
   windMph: number;
   precipitationProbabilityPct: number;
   shortForecast: string;
+  gustMph: number | null;
+  capeJkg: number | null;
+  precipitationIn: number | null;
+  cloudCoverPct: number | null;
+  visibilityMiles: number | null;
+  apparentTempF: number | null;
 }
 
 export interface DailyDepthPoint {
@@ -103,6 +112,18 @@ export interface DetailSources {
   snotel: SourceFreshness;
 }
 
+export interface AirQuality {
+  usAqi: number;
+  pm25: number;
+  fetchedAt: string | null;
+}
+
+export interface Daylight {
+  sunriseUtc: string;
+  sunsetUtc: string;
+  daylightHours: number;
+}
+
 export interface RouteDetail extends RouteSummary {
   factors: FactorScore[];
   rationale: string;
@@ -111,4 +132,6 @@ export interface RouteDetail extends RouteSummary {
   windowGrades: WindowGrades | null;
   sources: DetailSources;
   perSourceForecast: PerSourceForecast[] | null;
+  airQuality: AirQuality | null;
+  daylight: Daylight | null;
 }

@@ -26,8 +26,9 @@ public class ForecastCacheRepository
             .ToListAsync(ct);
     }
 
-    /// All last-known rows in one query (87 routes × 6 sources ≈ 522 rows),
-    /// so a cold GET /api/routes costs 1 query instead of 522.
+    /// All last-known rows in one query (87 routes × ≈ 7 rows per route incl. the
+    /// NWS-Grid mapping row ≈ 609 rows), so a cold GET /api/routes costs 1 query
+    /// instead of one per route.
     public async Task<List<CachedForecastEntity>> GetAllLatestAsync(CancellationToken ct = default)
     {
         await using var db = await _dbFactory.CreateDbContextAsync(ct);

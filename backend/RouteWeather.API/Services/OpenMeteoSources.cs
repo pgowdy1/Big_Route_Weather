@@ -12,9 +12,9 @@ public abstract class OpenMeteoModelSource : IForecastSource
     public abstract string Name { get; }
     public abstract IReadOnlySet<string> ActiveFactors { get; }
 
-    public async Task<WeatherSnapshot?> FetchAsync(double lat, double lon, CancellationToken ct)
+    public async Task<WeatherSnapshot?> FetchAsync(ForecastLocation location, CancellationToken ct)
     {
-        var all = await _client.FetchAllModelsAsync(lat, lon, ct);
+        var all = await _client.FetchAllModelsAsync(location.Lat, location.Lon, location.SummitElevationFt, ct);
         return all.TryGetValue(Name, out var snap) ? snap : null;
     }
 }

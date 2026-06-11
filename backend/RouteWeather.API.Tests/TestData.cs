@@ -42,7 +42,12 @@ public static class TestData
             .ToList());
 
     /// Minimal RouteConditions for controller tests (grade present, no weather detail).
-    public static RouteConditions Conditions(RouteEntity r, bool isStale) => new(
+    public static RouteConditions Conditions(
+        RouteEntity r,
+        bool isStale,
+        AirQualitySnapshot? airQuality = null,
+        DateTimeOffset? airQualityFetchedAt = null,
+        IReadOnlyList<PerSourceForecast>? perSourceForecast = null) => new(
         new RouteWeather.Core.Models.Route(
             r.Slug, r.Mountain, r.RouteName, r.SummitElevationFt,
             r.SummitLat, r.SummitLon, r.ClassDifficulty, r.SnotelStationTriplet),
@@ -56,9 +61,10 @@ public static class TestData
         null,
         null,
         null,
-        new SourceFreshness(null, null),
+        new SourceFreshness(null, null, airQualityFetchedAt),
         null,
-        null);
+        perSourceForecast,
+        airQuality);
 
     public static async Task SeedRoutesAsync(TestDbContextFactory factory, params RouteEntity[] routes)
     {

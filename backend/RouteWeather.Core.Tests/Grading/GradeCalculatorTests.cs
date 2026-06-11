@@ -78,31 +78,43 @@ public class GradeCalculatorTests
         PerfectSnowpack() with { NewSnowLast7DaysIn = 0.1 };
 
     [Fact]
-    public void Wind_above_20_caps_grade_at_B_even_when_otherwise_perfect()
+    public void Wind_above_20_holds_grade_at_B_even_when_otherwise_perfect()
     {
+        // Under rebalanced weights wind 21 (score 63, wt 0.20) drags an otherwise
+        // perfect winter profile to a natural 89 -> B, so the >20 B-cap is redundant
+        // (cap only binds when natural is strictly better) and no "Capped" prefix shows.
         var windy = new WeatherSnapshot(WindMph: 21, TempF: 45, PrecipitationProbabilityPct: 0, Next48Hours: Array.Empty<HourlyForecast>());
         var result = GradeCalculator.Compute(windy, WinterSnowpackWithTraceRecent());
         Assert.Equal(Grade.B, result.Grade);
-        Assert.Contains("Capped at B", result.Rationale);
+        Assert.Equal(89, result.OverallScore);
+        Assert.DoesNotContain("Capped", result.Rationale);
         Assert.Contains("21 mph", result.Rationale);
     }
 
     [Fact]
-    public void Precip_above_30_caps_grade_at_B_even_when_otherwise_perfect()
+    public void Precip_above_30_holds_grade_at_B_even_when_otherwise_perfect()
     {
+        // 35% precip (score 56, wt 0.18) yields a natural 88 -> B; the >30 B-cap is
+        // redundant with the natural grade, so no "Capped" prefix shows.
         var wet = new WeatherSnapshot(WindMph: 5, TempF: 45, PrecipitationProbabilityPct: 35, Next48Hours: Array.Empty<HourlyForecast>());
         var result = GradeCalculator.Compute(wet, WinterSnowpackWithTraceRecent());
         Assert.Equal(Grade.B, result.Grade);
-        Assert.Contains("Capped at B", result.Rationale);
+        Assert.Equal(88, result.OverallScore);
+        Assert.DoesNotContain("Capped", result.Rationale);
     }
 
     [Fact]
-    public void Worst_cap_wins_when_multiple_factors_trigger()
+    public void Worst_cap_aligns_with_natural_grade_when_multiple_factors_trigger()
     {
+        // Wind 22 (B-cap) + precip 80 (score 0, D-cap). Natural weighted mean is 63 -> D,
+        // which already matches the worst (D) cap, so the cap is redundant and the
+        // rationale is the natural-D form. Precipitation is the worst factor.
         var bad = new WeatherSnapshot(WindMph: 22, TempF: 45, PrecipitationProbabilityPct: 80, Next48Hours: Array.Empty<HourlyForecast>());
         var result = GradeCalculator.Compute(bad, WinterSnowpackWithTraceRecent());
         Assert.Equal(Grade.D, result.Grade);
-        Assert.Contains("Capped at D", result.Rationale);
+        Assert.Equal(63, result.OverallScore);
+        Assert.DoesNotContain("Capped", result.Rationale);
+        Assert.Contains("Precipitation", result.Rationale);
     }
 
     [Fact]
@@ -232,5 +244,79 @@ public class GradeCalculatorTests
 
         Assert.True(result.Factors.Single(f => f.Name == "Recent snow").IsActive);
         Assert.True(result.Factors.Single(f => f.Name == "Snowpack").IsActive);
+    }
+
+    private static WeatherSnapshot Weather(
+        double wind = 5, double temp = 50, int precip = 0,
+        double? gust = null, double? cape = null, double? amountIn = null)
+    {
+        var hours = Enumerable.Range(0, 24)
+            .Select(i => new HourlyForecast(
+                DateTimeOffset.UtcNow.AddHours(i), temp, wind, precip, "Sunny"))
+            .ToList();
+        return new WeatherSnapshot(wind, temp, precip, hours,
+            MaxGustMph: gust, MaxCapeJkg: cape, PrecipAmountIn: amountIn);
+    }
+
+    [Fact]
+    public void NoCapeData_addsNoThunderstormFactor()
+    {
+        var result = GradeCalculator.Compute(Weather(), null);
+        Assert.DoesNotContain(result.Factors, f => f.Name == "Thunderstorm");
+    }
+
+    [Fact]
+    public void LowCape_thunderstormFactorPresentButInactive()
+    {
+        var result = GradeCalculator.Compute(Weather(cape: 100), null);
+        var f = Assert.Single(result.Factors, x => x.Name == "Thunderstorm");
+        Assert.False(f.IsActive);
+    }
+
+    [Fact]
+    public void HighCape_capsGradeAndLeadsDrivers()
+    {
+        var result = GradeCalculator.Compute(Weather(cape: 2200), null);
+        Assert.Equal(Grade.D, result.Grade);
+        Assert.Equal("Storm risk", result.Drivers[0].Label);
+        Assert.Equal("negative", result.Drivers[0].Severity);
+    }
+
+    [Fact]
+    public void SmallGust_gustFactorPresentButInactive()
+    {
+        var result = GradeCalculator.Compute(Weather(gust: 15), null);
+        var f = Assert.Single(result.Factors, x => x.Name == "Gusts");
+        Assert.False(f.IsActive);
+    }
+
+    [Fact]
+    public void StrongGust_activeAndCaps()
+    {
+        var result = GradeCalculator.Compute(Weather(gust: 60), null);
+        var f = Assert.Single(result.Factors, x => x.Name == "Gusts");
+        Assert.True(f.IsActive);
+        Assert.Equal(Grade.D, result.Grade);
+    }
+
+    [Fact]
+    public void PrecipAmount_dragsPrecipitationScore()
+    {
+        // 20% prob alone -> 75; with 1.0" in a 24h window -> amountScore 0 -> min 0.
+        var result = GradeCalculator.Compute(Weather(precip: 20, amountIn: 1.0), null);
+        var f = Assert.Single(result.Factors, x => x.Name == "Precipitation");
+        Assert.Equal(0, f.Score);
+    }
+
+    [Fact]
+    public void Weights_matchRebalancedValues()
+    {
+        Assert.Equal(0.20, WindFactor.Weight);
+        Assert.Equal(0.12, TemperatureFactor.Weight);
+        Assert.Equal(0.18, PrecipitationFactor.Weight);
+        Assert.Equal(0.20, ThunderstormFactor.Weight);
+        Assert.Equal(0.10, GustFactor.Weight);
+        Assert.Equal(0.10, RecentSnowFactor.Weight);
+        Assert.Equal(0.10, SnowpackFactor.Weight);
     }
 }

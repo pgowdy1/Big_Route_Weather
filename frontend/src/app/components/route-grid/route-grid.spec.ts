@@ -169,6 +169,7 @@ function summary(slug: string, mountain = 'Test Mountain', overrides: Partial<Ro
     updatedAt: new Date().toISOString(),
     isStale: false,
     consensus: null,
+    airQualityUsAqi: null,
     ...overrides,
   };
 }
