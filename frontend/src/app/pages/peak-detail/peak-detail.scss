@@ -213,14 +213,15 @@
 
 .sky-air .muted { opacity: 0.6; }
 
-// US EPA AQI bands, softened for the dark theme
-.sky-air {
-  .aqi-good { color: #81c784; }
-  .aqi-moderate { color: #ffd54f; }
-  .aqi-usg { color: #ffb74d; }
-  .aqi-unhealthy { color: #e57373; }
-  .aqi-very-unhealthy { color: #ba68c8; }
-  .aqi-hazardous { color: #c75b6d; }
+// US EPA AQI bands, softened for the dark theme. Must out-rank the
+// .sky-air .snowpack-tile .value color, hence the four-class selectors.
+.sky-air .snowpack-tile {
+  .value.aqi-good { color: #81c784; }
+  .value.aqi-moderate { color: #ffd54f; }
+  .value.aqi-usg { color: #ffb74d; }
+  .value.aqi-unhealthy { color: #e57373; }
+  .value.aqi-very-unhealthy { color: #ba68c8; }
+  .value.aqi-hazardous { color: #c75b6d; }
 }
 
 .sources {
