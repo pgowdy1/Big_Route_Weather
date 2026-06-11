@@ -11,5 +11,6 @@ public class WarmerOptionsTests
         Assert.True(opts.Enabled);
         Assert.Equal(10, opts.IntervalMinutes);
         Assert.Equal(24, opts.ServeStaleMaxHours);
+        Assert.Equal(3, opts.MaxConcurrentRoutes);
     }
 }
