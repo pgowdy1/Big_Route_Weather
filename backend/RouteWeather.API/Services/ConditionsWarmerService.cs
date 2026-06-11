@@ -9,8 +9,6 @@ namespace RouteWeather.API.Services;
 /// do/while makes cycles non-reentrant — a slow cycle delays the next tick.
 public class ConditionsWarmerService : BackgroundService
 {
-    private const int MaxConcurrentFetches = 8;
-
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly WarmerOptions _options;
     private readonly ILogger<ConditionsWarmerService> _logger;
@@ -72,7 +70,10 @@ public class ConditionsWarmerService : BackgroundService
         var routes = await scope.ServiceProvider.GetRequiredService<RouteRepository>().GetAllAsync(ct);
         var aggregator = scope.ServiceProvider.GetRequiredService<IConditionsAggregator>();
 
-        using var gate = new SemaphoreSlim(MaxConcurrentFetches, MaxConcurrentFetches);
+        // Low fan-out by design: warm cycles run on a single shared CPU in prod, and
+        // a wide post-deploy cold cycle starves the thread pool (outage 2026-06-11).
+        var maxConcurrent = Math.Max(1, _options.MaxConcurrentRoutes);
+        using var gate = new SemaphoreSlim(maxConcurrent, maxConcurrent);
         var tasks = routes.Select(async route =>
         {
             await gate.WaitAsync(ct);
