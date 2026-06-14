@@ -23,4 +23,6 @@ primary_region = "dfw"
 [[vm]]
   cpu_kind = "shared"
   cpus = 1
-  memory_mb = 256
+  # 256MB starved the thread pool once the warm cycle started parsing raw NWS
+  # gridpoints + widened OpenMeteo payloads (outage 2026-06-11); scaled live.
+  memory_mb = 512

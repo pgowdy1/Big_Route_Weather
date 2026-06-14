@@ -7,8 +7,9 @@
       <p>Today's conditions grade for big objectives.</p>
     </div>
     <nav class="hero-nav">
-      <a routerLink="/all" class="about-link">All peaks</a>
-      <a routerLink="/about" class="about-link">About</a>
+      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="about-link">Map</a>
+      <a routerLink="/all" routerLinkActive="active" class="about-link">All peaks</a>
+      <a routerLink="/about" routerLinkActive="active" class="about-link">About</a>
     </nav>
   </header>
   <router-outlet />
