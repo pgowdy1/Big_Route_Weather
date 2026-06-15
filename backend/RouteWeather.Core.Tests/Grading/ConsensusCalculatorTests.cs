@@ -285,7 +285,7 @@ public class ConsensusCalculatorTests
             PrecipInput("OpenMeteo-HRRR",  popPct: 0,  amountIn: 0.0,  reportsPop: false, weight: 1.2),
         };
         var result = calc.Compute(inputs, sourcesAttempted: 5);
-        Assert.Equal(14, result.Blended!.PrecipitationProbabilityPct);
+        Assert.Equal(14, result.Blended!.PrecipitationProbabilityPct); // 0.15*1.75 + 0.55*1.0 = 0.8125; /5.95*100 -> 13.66
         Assert.Null(PrecipitationFactor.Cap(result.Blended.PrecipitationProbabilityPct).Cap);
     }
 
@@ -303,7 +303,7 @@ public class ConsensusCalculatorTests
             PrecipInput("OpenMeteo-HRRR",  popPct: 0,  amountIn: 0.1,  reportsPop: false, weight: 1.2),
         };
         var result = calc.Compute(inputs, sourcesAttempted: 5);
-        Assert.Equal(77, result.Blended!.PrecipitationProbabilityPct);
+        Assert.Equal(77, result.Blended!.PrecipitationProbabilityPct); // 0.875+0.5+1.0+1.0+1.2 = 4.575; /5.95*100 -> 76.9
         Assert.Equal(Grade.D, PrecipitationFactor.Cap(result.Blended.PrecipitationProbabilityPct).Cap);
     }
 

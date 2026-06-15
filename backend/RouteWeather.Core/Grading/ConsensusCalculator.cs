@@ -63,6 +63,9 @@ public class ConsensusCalculator
         return new WeatherSnapshot(
             WindMph: Math.Round(wind),
             TempF: Math.Round(temp),
+            // Headline PoP = worst hour of the blended consensus series. The weighted-mean
+            // branch is a fallback only for the degenerate empty-hours case (test fixtures);
+            // production snapshots always carry an hourly series.
             PrecipitationProbabilityPct: blendedHours.Count == 0
                 ? (int)Math.Round(WeightedMean(precipInputs, s => s.PrecipitationProbabilityPct))
                 : blendedHours.Max(h => h.PrecipitationProbabilityPct),
