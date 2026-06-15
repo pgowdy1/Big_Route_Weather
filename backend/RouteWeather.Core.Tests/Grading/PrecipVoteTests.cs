@@ -23,6 +23,8 @@ public class PrecipVoteTests
     [InlineData(0.0275, 0.5)]  // midpoint of 0.005..0.05
     [InlineData(0.05, 1.0)]    // at the certain ceiling
     [InlineData(0.1, 1.0)]     // above the ceiling
+    [InlineData(double.NaN, 0.0)]   // garbage QPF reads as dry, never NaN
+    [InlineData(-0.01, 0.0)]        // negative QPF reads as dry
     public void Ramp_maps_qpf_to_vote(double qpf, double expected)
     {
         Assert.Equal(expected, PrecipVote.Ramp(qpf), 3);
