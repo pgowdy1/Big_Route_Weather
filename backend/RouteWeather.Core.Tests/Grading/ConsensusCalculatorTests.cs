@@ -253,4 +253,142 @@ public class ConsensusCalculatorTests
         Assert.Equal(1.75, withOverride.EffectivePrecipWeight);
         Assert.Equal(1.2, withoutOverride.EffectivePrecipWeight);
     }
+
+    // Single-hour source at a fixed time. reportsPop=true => NWS/GFS-style (votes via PoP);
+    // reportsPop=false => amount-only model (votes via QPF ramp).
+    private static ConsensusInput PrecipInput(
+        string name, int popPct, double? amountIn, bool reportsPop,
+        double weight = 1.0, double? precipVoteWeight = null)
+    {
+        var time = DateTimeOffset.Parse("2026-06-15T20:00:00Z");
+        var active = reportsPop ? ForecastFactors.All : ForecastFactors.WindAndTemperatureOnly;
+        var hour = new HourlyForecast(time, TempF: 50, WindMph: 10,
+            PrecipitationProbabilityPct: popPct, ShortForecast: "", PrecipitationIn: amountIn);
+        var snap = new WeatherSnapshot(WindMph: 10, TempF: 50,
+            PrecipitationProbabilityPct: popPct, Next48Hours: new[] { hour }, PrecipAmountIn: amountIn);
+        return new ConsensusInput(new SourceSnapshot(name, snap, DateTimeOffset.UtcNow, active),
+            weight, precipVoteWeight);
+    }
+
+    [Fact]
+    public void Lone_model_precip_spike_is_discounted_toward_consensus()
+    {
+        // GFS over-forecasts (55%), NWS calm (15%), the other three models dry.
+        // Old behavior: mean(NWS, GFS) = 35% -> caps grade at B. New: diluted to 14%.
+        var calc = new ConsensusCalculator();
+        var inputs = new[]
+        {
+            PrecipInput("NWS",             popPct: 15, amountIn: null, reportsPop: true,  precipVoteWeight: 1.75),
+            PrecipInput("OpenMeteo-GFS",   popPct: 55, amountIn: 0.0,  reportsPop: true),
+            PrecipInput("OpenMeteo-ECMWF", popPct: 0,  amountIn: 0.0,  reportsPop: false),
+            PrecipInput("OpenMeteo-ICON",  popPct: 0,  amountIn: 0.0,  reportsPop: false),
+            PrecipInput("OpenMeteo-HRRR",  popPct: 0,  amountIn: 0.0,  reportsPop: false, weight: 1.2),
+        };
+        var result = calc.Compute(inputs, sourcesAttempted: 5);
+        Assert.Equal(14, result.Blended!.PrecipitationProbabilityPct);
+        Assert.Null(PrecipitationFactor.Cap(result.Blended.PrecipitationProbabilityPct).Cap);
+    }
+
+    [Fact]
+    public void Corroborated_storm_drives_consensus_up_and_caps_the_grade()
+    {
+        // All five wet: NWS 50% & GFS 50% PoP, three models at 0.1" (ramp -> 1.0).
+        var calc = new ConsensusCalculator();
+        var inputs = new[]
+        {
+            PrecipInput("NWS",             popPct: 50, amountIn: null, reportsPop: true,  precipVoteWeight: 1.75),
+            PrecipInput("OpenMeteo-GFS",   popPct: 50, amountIn: 0.1,  reportsPop: true),
+            PrecipInput("OpenMeteo-ECMWF", popPct: 0,  amountIn: 0.1,  reportsPop: false),
+            PrecipInput("OpenMeteo-ICON",  popPct: 0,  amountIn: 0.1,  reportsPop: false),
+            PrecipInput("OpenMeteo-HRRR",  popPct: 0,  amountIn: 0.1,  reportsPop: false, weight: 1.2),
+        };
+        var result = calc.Compute(inputs, sourcesAttempted: 5);
+        Assert.Equal(77, result.Blended!.PrecipitationProbabilityPct);
+        Assert.Equal(Grade.D, PrecipitationFactor.Cap(result.Blended.PrecipitationProbabilityPct).Cap);
+    }
+
+    [Fact]
+    public void Lone_nws_pop_with_dry_models_is_discounted()
+    {
+        var calc = new ConsensusCalculator();
+        var inputs = new[]
+        {
+            PrecipInput("NWS",             popPct: 40, amountIn: null, reportsPop: true,  precipVoteWeight: 1.75),
+            PrecipInput("OpenMeteo-GFS",   popPct: 0,  amountIn: 0.0,  reportsPop: true),
+            PrecipInput("OpenMeteo-ECMWF", popPct: 0,  amountIn: 0.0,  reportsPop: false),
+            PrecipInput("OpenMeteo-ICON",  popPct: 0,  amountIn: 0.0,  reportsPop: false),
+            PrecipInput("OpenMeteo-HRRR",  popPct: 0,  amountIn: 0.0,  reportsPop: false, weight: 1.2),
+        };
+        var result = calc.Compute(inputs, sourcesAttempted: 5);
+        Assert.Equal(12, result.Blended!.PrecipitationProbabilityPct); // 0.40*1.75/5.95 -> 11.76
+        Assert.Null(PrecipitationFactor.Cap(result.Blended.PrecipitationProbabilityPct).Cap);
+    }
+
+    [Fact]
+    public void Single_available_source_is_used_at_face_value()
+    {
+        // No corroboration possible -> do not discount our only data.
+        var calc = new ConsensusCalculator();
+        var inputs = new[]
+        {
+            PrecipInput("NWS", popPct: 40, amountIn: null, reportsPop: true, precipVoteWeight: 1.75),
+        };
+        var result = calc.Compute(inputs, sourcesAttempted: 5);
+        Assert.Equal(40, result.Blended!.PrecipitationProbabilityPct);
+    }
+
+    [Fact]
+    public void Mild_day_grades_clear_no_precip_cap()
+    {
+        // NWS 10%, GFS 5%, every model dry -> low consensus, no cap.
+        var calc = new ConsensusCalculator();
+        var inputs = new[]
+        {
+            PrecipInput("NWS",             popPct: 10, amountIn: null, reportsPop: true,  precipVoteWeight: 1.75),
+            PrecipInput("OpenMeteo-GFS",   popPct: 5,  amountIn: 0.0,  reportsPop: true),
+            PrecipInput("OpenMeteo-ECMWF", popPct: 0,  amountIn: 0.0,  reportsPop: false),
+            PrecipInput("OpenMeteo-ICON",  popPct: 0,  amountIn: 0.0,  reportsPop: false),
+            PrecipInput("OpenMeteo-HRRR",  popPct: 0,  amountIn: 0.0,  reportsPop: false, weight: 1.2),
+        };
+        var result = calc.Compute(inputs, sourcesAttempted: 5);
+        Assert.Equal(4, result.Blended!.PrecipitationProbabilityPct); // 0.10*1.75 + 0.05 = 0.225 -> 0.225*100/5.95
+        Assert.Null(PrecipitationFactor.Cap(result.Blended.PrecipitationProbabilityPct).Cap);
+    }
+
+    [Fact]
+    public void Nws_vote_weight_amplifies_lone_nws_signal()
+    {
+        // NWS 50%, all models dry. Heavier NWS vote raises the consensus.
+        var calc = new ConsensusCalculator();
+        ConsensusInput[] Build(double nwsPrecipWeight) => new[]
+        {
+            PrecipInput("NWS",             popPct: 50, amountIn: null, reportsPop: true,  precipVoteWeight: nwsPrecipWeight),
+            PrecipInput("OpenMeteo-GFS",   popPct: 0,  amountIn: 0.0,  reportsPop: true),
+            PrecipInput("OpenMeteo-ECMWF", popPct: 0,  amountIn: 0.0,  reportsPop: false),
+            PrecipInput("OpenMeteo-ICON",  popPct: 0,  amountIn: 0.0,  reportsPop: false),
+            PrecipInput("OpenMeteo-HRRR",  popPct: 0,  amountIn: 0.0,  reportsPop: false, weight: 1.2),
+        };
+        var atOne = calc.Compute(Build(1.0), 5).Blended!.PrecipitationProbabilityPct;
+        var atSeventyFive = calc.Compute(Build(1.75), 5).Blended!.PrecipitationProbabilityPct;
+        Assert.Equal(10, atOne);          // 0.5*1.0/5.2  -> 9.6
+        Assert.Equal(15, atSeventyFive);  // 0.5*1.75/5.95 -> 14.7
+    }
+
+    [Fact]
+    public void Nws_vote_weight_damps_when_nws_disagrees_with_wet_models()
+    {
+        // NWS dry, four models wet. Heavier NWS vote pulls the consensus DOWN.
+        var calc = new ConsensusCalculator();
+        ConsensusInput[] Build(double nwsPrecipWeight) => new[]
+        {
+            PrecipInput("NWS",             popPct: 0,   amountIn: null, reportsPop: true,  precipVoteWeight: nwsPrecipWeight),
+            PrecipInput("OpenMeteo-GFS",   popPct: 100, amountIn: 0.1,  reportsPop: true),
+            PrecipInput("OpenMeteo-ECMWF", popPct: 0,   amountIn: 0.1,  reportsPop: false),
+            PrecipInput("OpenMeteo-ICON",  popPct: 0,   amountIn: 0.1,  reportsPop: false),
+            PrecipInput("OpenMeteo-HRRR",  popPct: 0,   amountIn: 0.1,  reportsPop: false, weight: 1.2),
+        };
+        var atOne = calc.Compute(Build(1.0), 5).Blended!.PrecipitationProbabilityPct;
+        var atSeventyFive = calc.Compute(Build(1.75), 5).Blended!.PrecipitationProbabilityPct;
+        Assert.True(atSeventyFive < atOne, $"expected heavier NWS to lower consensus: {atSeventyFive} vs {atOne}");
+    }
 }
