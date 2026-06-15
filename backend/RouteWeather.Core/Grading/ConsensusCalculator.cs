@@ -3,7 +3,11 @@ using RouteWeather.Core.Sources;
 
 namespace RouteWeather.Core.Grading;
 
-public record ConsensusInput(SourceSnapshot Source, double Weight);
+public record ConsensusInput(SourceSnapshot Source, double Weight, double? PrecipVoteWeight = null)
+{
+    // Precip voting uses a source-specific weight (NWS is upweighted); falls back to Weight.
+    public double EffectivePrecipWeight => PrecipVoteWeight ?? Weight;
+}
 
 public record EnsembleResult(WeatherSnapshot? Blended, ConsensusReport? Consensus);
 

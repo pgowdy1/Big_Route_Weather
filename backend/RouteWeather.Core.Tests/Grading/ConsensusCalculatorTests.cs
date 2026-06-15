@@ -241,4 +241,16 @@ public class ConsensusCalculatorTests
         }, 2);
         Assert.Equal(0, result.Consensus!.CoefficientOfVariationByFactor[ForecastFactors.Cape]);
     }
+
+    [Fact]
+    public void EffectivePrecipWeight_overridesWeight_whenSet_elseFallsBack()
+    {
+        var src = new SourceSnapshot("NWS", Snapshot(10, 30, 20), DateTimeOffset.UtcNow, ForecastFactors.All);
+
+        var withOverride = new ConsensusInput(src, Weight: 1.0, PrecipVoteWeight: 1.75);
+        var withoutOverride = new ConsensusInput(src, Weight: 1.2);
+
+        Assert.Equal(1.75, withOverride.EffectivePrecipWeight);
+        Assert.Equal(1.2, withoutOverride.EffectivePrecipWeight);
+    }
 }
