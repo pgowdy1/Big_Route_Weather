@@ -212,7 +212,8 @@ public class ConditionsAggregator : IConditionsAggregator
         var consensusInputs = liveForecasts
             .Select(r => new ConsensusInput(
                 new SourceSnapshot(r.SourceName, r.Snapshot!, r.FetchedAt ?? DateTimeOffset.UtcNow, r.ActiveFactors),
-                _options.WeightFor(r.SourceName)))
+                _options.WeightFor(r.SourceName),
+                _options.PrecipVoteWeightFor(r.SourceName)))
             .ToList();
 
         var ensemble = _consensus.Compute(consensusInputs, _forecastSources.Count);

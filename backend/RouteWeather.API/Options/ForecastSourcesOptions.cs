@@ -12,6 +12,8 @@ public class ForecastSourcesOptions
 
     public double WeightFor(string name) => For(name)?.Weight ?? 1.0;
 
+    public double PrecipVoteWeightFor(string name) => For(name)?.PrecipVoteWeight ?? WeightFor(name);
+
     public TimeSpan TtlFor(string name)
     {
         var minutes = For(name)?.CacheTtlMinutes ?? 60;
@@ -24,6 +26,7 @@ public class SourceOptions
     public string Name { get; set; } = string.Empty;
     public bool Enabled { get; set; } = true;
     public double Weight { get; set; } = 1.0;
+    public double? PrecipVoteWeight { get; set; }
     public int CacheTtlMinutes { get; set; } = 60;
 }
 
