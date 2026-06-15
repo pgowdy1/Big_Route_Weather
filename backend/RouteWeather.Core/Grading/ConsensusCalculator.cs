@@ -3,7 +3,11 @@ using RouteWeather.Core.Sources;
 
 namespace RouteWeather.Core.Grading;
 
-public record ConsensusInput(SourceSnapshot Source, double Weight);
+public record ConsensusInput(SourceSnapshot Source, double Weight, double? PrecipVoteWeight = null)
+{
+    // Precip voting uses a source-specific weight (NWS is upweighted); falls back to Weight.
+    public double EffectivePrecipWeight => PrecipVoteWeight ?? Weight;
+}
 
 public record EnsembleResult(WeatherSnapshot? Blended, ConsensusReport? Consensus);
 
@@ -46,7 +50,6 @@ public class ConsensusCalculator
 
         var wind = WeightedMean(windInputs, s => s.WindMph);
         var temp = WeightedMean(tempInputs, s => s.TempF);
-        var precip = WeightedMean(precipInputs, s => s.PrecipitationProbabilityPct);
 
         var baseline = inputs.OrderByDescending(i => i.Weight).First().Source.Snapshot;
         var blendedHours = BlendHourly(inputs, baseline.Next48Hours);
@@ -60,7 +63,12 @@ public class ConsensusCalculator
         return new WeatherSnapshot(
             WindMph: Math.Round(wind),
             TempF: Math.Round(temp),
-            PrecipitationProbabilityPct: (int)Math.Round(precip),
+            // Headline PoP = worst hour of the blended consensus series. The weighted-mean
+            // branch is a fallback only for the degenerate empty-hours case (test fixtures);
+            // production snapshots always carry an hourly series.
+            PrecipitationProbabilityPct: blendedHours.Count == 0
+                ? (int)Math.Round(WeightedMean(precipInputs, s => s.PrecipitationProbabilityPct))
+                : blendedHours.Max(h => h.PrecipitationProbabilityPct),
             Next48Hours: blendedHours,
             MaxGustMph: blendedGusts.Count == 0 ? null : blendedGusts.Max(),
             MaxCapeJkg: blendedCapes.Count == 0 ? null : blendedCapes.Max(),
@@ -84,7 +92,6 @@ public class ConsensusCalculator
     {
         var windInputs = Active(inputs, ForecastFactors.Wind);
         var tempInputs = Active(inputs, ForecastFactors.Temperature);
-        var precipInputs = Active(inputs, ForecastFactors.Precipitation);
 
         var result = new List<HourlyForecast>(baseline.Count);
         for (var i = 0; i < baseline.Count; i++)
@@ -92,7 +99,7 @@ public class ConsensusCalculator
             var hour = baseline[i].Time;
             var temp = HourlyMean(tempInputs, hour, h => h.TempF, baseline[i].TempF);
             var wind = HourlyMean(windInputs, hour, h => h.WindMph, baseline[i].WindMph);
-            var precip = HourlyMean(precipInputs, hour, h => h.PrecipitationProbabilityPct, baseline[i].PrecipitationProbabilityPct);
+            var precip = HourlyPrecipConsensus(inputs, hour, baseline[i].PrecipitationProbabilityPct);
 
             // New fields blend by value presence across ALL inputs (not ActiveFactors-gated):
             // a source that doesn't report a field contributes nothing to that field's mean.
@@ -135,6 +142,31 @@ public class ConsensusCalculator
             weight += input.Weight;
         }
         return weight <= 0 ? fallback : sum / weight;
+    }
+
+    // Confidence-weighted precip consensus for one hour. Every source votes (PoP
+    // sources via probability, amount-only models via a QPF ramp), weighted by
+    // EffectivePrecipWeight. Sources with no precip signal this hour abstain, so an
+    // uncorroborated single-model spike is diluted toward the multi-source agreement.
+    // Returns 0..100; falls back to the heaviest source's PoP only if nobody votes.
+    private static double HourlyPrecipConsensus(
+        IReadOnlyList<ConsensusInput> inputs,
+        DateTimeOffset target,
+        double fallback)
+    {
+        var sum = 0.0;
+        var weight = 0.0;
+        foreach (var input in inputs)
+        {
+            var match = FindNearestHour(input.Source.Snapshot.Next48Hours, target);
+            if (match is null) continue;
+            var vote = PrecipVote.For(input.Source, match);
+            if (vote is null) continue;
+            var w = input.EffectivePrecipWeight;
+            sum += vote.Value * w;
+            weight += w;
+        }
+        return weight <= 0 ? fallback : sum * 100.0 / weight;
     }
 
     private static double? HourlyMeanNullable(
