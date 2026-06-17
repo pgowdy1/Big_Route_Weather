@@ -322,13 +322,11 @@ export class MapHome implements OnDestroy {
       marker.bindPopup(popupHtml(route), { className: 'peak-popup' });
       this.markerBySlug.set(route.slug, marker);
 
-      if (route.rangeSlug === 'colorado-14ers') {
-        cluster.addLayer(marker);
-        usedCluster = true;
-      } else {
-        marker.addTo(this.map);
-        this.markerLayers.push(marker);
-      }
+      // Every range clusters at low zoom and separates at zoom >= 8
+      // (disableClusteringAtZoom), so dense ranges (Sierra, Cascades, Colorado)
+      // stay readable without per-range special-casing.
+      cluster.addLayer(marker);
+      usedCluster = true;
     }
 
     if (usedCluster) {
