@@ -17,7 +17,7 @@ public static class RouteSeeder
         }
 
         // Routes already exist (the migration backfilled them to colorado-14ers). Add any peaks
-        // from the catalog that aren't yet in the DB (the new 29). Existing CO 14ers stay tagged
+        // from the catalog that aren't yet in the DB. Existing CO 14ers stay tagged
         // to colorado-14ers by the migration.
         var existing = await db.Routes.Select(r => r.Slug).ToListAsync(ct);
         var existingSet = existing.ToHashSet();
