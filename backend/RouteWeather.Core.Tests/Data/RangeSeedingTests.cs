@@ -8,18 +8,29 @@ namespace RouteWeather.Core.Tests.Data;
 public class RangeSeedingTests
 {
     [Fact]
-    public async Task Seeds_all_six_ranges_and_eighty_seven_routes()
+    public async Task Seeds_all_six_ranges_with_expected_route_counts()
     {
         await using var db = NewContext();
         await RouteSeeder.SeedAsync(db);
 
         Assert.Equal(6, await db.Ranges.CountAsync());
-        Assert.Equal(87, await db.Routes.CountAsync());
+        Assert.Equal(124, await db.Routes.CountAsync());
 
-        var coloradoId = await db.Ranges.Where(r => r.Slug == "colorado-14ers").Select(r => r.Id).SingleAsync();
-        Assert.Equal(58, await db.Routes.CountAsync(r => r.RangeId == coloradoId));
+        async Task<int> CountIn(string slug)
+        {
+            var id = await db.Ranges.Where(r => r.Slug == slug).Select(r => r.Id).SingleAsync();
+            return await db.Routes.CountAsync(r => r.RangeId == id);
+        }
+
+        Assert.Equal(58, await CountIn("colorado-14ers"));
+        Assert.Equal(25, await CountIn("cascades"));
+        Assert.Equal(20, await CountIn("sierra-nevada"));
+        Assert.Equal(11, await CountIn("wasatch"));
 
         Assert.All(await db.Routes.ToListAsync(), r => Assert.NotEqual(0, r.RangeId));
+
+        var slugs = await db.Routes.Select(r => r.Slug).ToListAsync();
+        Assert.Equal(slugs.Count, slugs.Distinct().Count()); // no duplicate slugs
     }
 
     [Fact]
@@ -51,7 +62,7 @@ public class RangeSeedingTests
         await RouteSeeder.SeedAsync(db);
 
         Assert.Equal(6, await db.Ranges.CountAsync());
-        Assert.Equal(87, await db.Routes.CountAsync());
+        Assert.Equal(124, await db.Routes.CountAsync());
     }
 
     [Fact]
