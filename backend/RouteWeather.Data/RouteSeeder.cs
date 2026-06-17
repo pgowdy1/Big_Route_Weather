@@ -51,14 +51,14 @@ public static class RouteSeeder
             Slug = "cascades", Name = "Cascade Range", Color = "#5fa8d8",
             Description = "Volcanic peaks of the Pacific Northwest.",
             DisplayOrder = 1,
-            PerimeterGeoJson = "{\"type\":\"Polygon\",\"coordinates\":[[[-122.5,49.1],[-120.8,49.1],[-120.8,41.1],[-122.5,41.1],[-122.5,49.1]]]}",
+            PerimeterGeoJson = "{\"type\":\"Polygon\",\"coordinates\":[[[-122.7,49.1],[-120.3,49.1],[-120.3,40.2],[-122.7,40.2],[-122.7,49.1]]]}",
         },
         new RangeEntity
         {
             Slug = "sierra-nevada", Name = "Sierra Nevada", Color = "#d8a85f",
             Description = "The high granite range of eastern California.",
             DisplayOrder = 2,
-            PerimeterGeoJson = "{\"type\":\"Polygon\",\"coordinates\":[[[-118.8,37.4],[-117.9,37.4],[-117.9,36.2],[-118.8,36.2],[-118.8,37.4]]]}",
+            PerimeterGeoJson = "{\"type\":\"Polygon\",\"coordinates\":[[[-119.6,38.3],[-117.9,38.3],[-117.9,36.1],[-119.6,36.1],[-119.6,38.3]]]}",
         },
         new RangeEntity
         {
