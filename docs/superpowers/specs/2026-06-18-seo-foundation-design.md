@@ -60,8 +60,15 @@ Convert the SPA to **build-time prerendering (SSG)** so every route emits a stat
 
 6. **`/diagnostics` exclusion** — `noindex` meta (via `SeoService`), `Disallow` in robots, and excluded from the sitemap. (Render mode is irrelevant to indexing once `noindex` is set.)
 
-7. **On-page semantics & internal linking** — audit `peak-detail`, `map-home`, `route-grid`, `about`
-   - One descriptive `<h1>` per page (peak: `"<Mountain> Weather & Climbing Conditions"`), sensible heading order, descriptive link text, image `alt`. `/all` remains the hub linking every peak; peak pages link to their range's peers via the existing nav. Render the **indexable identity content** (name, elevation, route, range, a short descriptive paragraph) from the manifest at prerender — independent of the live API.
+7. **Substantive prerendered content + semantics (anti-thin-content)** — audit `peak-detail`, `map-home`, `route-grid`, `about`
+   - **Each prerendered peak page must be substantive on its own** — not a templated one-liner + spinner — so crawlers and non-JS scrapers index a real, peak-specific page rather than a thin/near-duplicate doorway. Templated *structure* is fine and standard (cf. weather.com / PeakBagger ranking at scale); the line is real per-page *data* vs. empty boilerplate, and the unique per-peak forecast keeps us on the right side of it. Bake the following into the static HTML from the manifest (no API needed):
+     - One descriptive `<h1>`: `"<Mountain> Weather & Climbing Conditions"`.
+     - A **data-rich intro paragraph** templated from the peak's fields (mountain, elevation in ft + m, range, standard route, YDS class, summit coordinates).
+     - A **key-facts block**: elevation, summit lat/lon, range, standard route + class.
+     - A short **"what this forecast covers"** section (wind, temperature, precipitation, snowpack, daylight, air quality) — genuinely useful shared copy that also captures long-tail phrasing (written once, not per-peak prose).
+     - **Internal links to the other peaks in the same range** (built from the manifest), strengthening the link graph and topical relevance.
+   - The **live forecast + route grade** sections hydrate client-side (loading placeholders in the static HTML) — real-time value layered on top of the substantive static base, not a substitute for it.
+   - General semantics: sensible heading order, descriptive link text, image `alt`; `/all` remains the crawl hub linking every peak.
 
 ### Data flow
 
@@ -111,7 +118,7 @@ Prerendering runs in Node, so browser-only code must not execute during render:
   - manifest: 124 entries, unique slugs, all required fields non-empty.
 - **Backend (`dotnet test`):** `ManifestParityTests` reads `frontend/src/app/seo/peaks.manifest.json` (resolved by walking up from the test base dir to the repo root) and asserts its slug set **and** `mountain`/`summitElevationFt` per slug equal the `RouteSeeder` catalog — so a future peak PR that forgets the manifest fails CI.
 - **Sitemap:** unit test on the generator → 127 URLs, includes home/all/about + all peaks, excludes `/diagnostics`, all absolute under the canonical base.
-- **Prerender smoke (Phase B):** post-build verify script asserts the build output contains `peak/mount-whitney/index.html` and that it includes the expected `<title>` and `<h1>` text (proves content is actually in the static HTML).
+- **Prerender smoke (Phase B):** post-build verify script asserts the build output contains `peak/mount-whitney/index.html` and that the static HTML includes the expected `<title>`, `<h1>`, **and the peak-specific facts (route name, elevation, range)** — proving each page ships substantive, non-thin content without JS, not just a title + spinner.
 - **Regression:** existing `dotnet test` (Core 193, API 53) and `npm test` stay green; update `map-home`/`peak-detail` specs for the SSR-safety guards.
 
 ## Verification commands
