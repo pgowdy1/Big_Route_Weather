@@ -4,10 +4,12 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
+    "prebuild": "node scripts/generate-sitemap.mjs",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "seo:manifest": "node scripts/generate-peaks-manifest.mjs"
+    "seo:manifest": "node scripts/generate-peaks-manifest.mjs",
+    "seo:sitemap": "node scripts/generate-sitemap.mjs"
   },
   "prettier": {
     "printWidth": 100,
