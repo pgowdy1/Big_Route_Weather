@@ -38,6 +38,7 @@ describe('SeoService', () => {
     expect(doc.head.querySelectorAll('link[rel="canonical"]').length).toBe(1);
     expect(doc.head.querySelector('link[rel="canonical"]')?.getAttribute('href'))
       .toBe(`${SITE_URL}/b`);
+    expect(doc.head.querySelectorAll('meta[property="og:title"]').length).toBe(1);
   });
 
   it('replaces (not stacks) its JSON-LD between navigations', () => {
@@ -47,5 +48,22 @@ describe('SeoService', () => {
     const scripts = doc.head.querySelectorAll('script[type="application/ld+json"][data-seo]');
     expect(scripts.length).toBe(1);
     expect(scripts[0].textContent).toContain('Mountain');
+  });
+
+  it('escapes "<" so a JSON-LD value cannot break out of the script tag', () => {
+    svc.setMeta({
+      title: 'A',
+      description: 'D',
+      path: '/a',
+      jsonLd: [{ '@type': 'Article', description: 'evil </script><!-- value' }],
+    });
+
+    const scripts = doc.head.querySelectorAll('script[type="application/ld+json"][data-seo]');
+    expect(scripts.length).toBe(1);
+    const text = scripts[0].textContent ?? '';
+    expect(text).not.toContain('<');
+    expect(text).toContain('\\u003c/script>');
+    // Still valid JSON that round-trips the original value.
+    expect(JSON.parse(text).description).toBe('evil </script><!-- value');
   });
 });

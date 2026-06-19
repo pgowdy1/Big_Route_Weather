@@ -57,7 +57,7 @@ export class SeoService {
       const script = this.doc.createElement('script');
       script.setAttribute('type', 'application/ld+json');
       script.setAttribute('data-seo', '');
-      script.textContent = JSON.stringify(obj);
+      script.textContent = JSON.stringify(obj).replace(/</g, '\\u003c');
       this.doc.head.appendChild(script);
     }
   }
