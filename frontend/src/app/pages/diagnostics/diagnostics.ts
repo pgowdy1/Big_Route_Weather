@@ -1,6 +1,8 @@
 import { HttpClient } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { SeoService } from '../../seo/seo.service';
+import { diagnosticsMeta } from '../../seo/route-meta';
 
 interface DailyCallDto {
   dateUtc: string;
@@ -24,6 +26,11 @@ interface DailyCallsResponse {
 })
 export class Diagnostics implements OnInit {
   private http = inject(HttpClient);
+  private seo = inject(SeoService);
+
+  constructor() {
+    this.seo.setMeta(diagnosticsMeta());
+  }
 
   entries = signal<DailyCallDto[]>([]);
   asOfUtc = signal<string | null>(null);

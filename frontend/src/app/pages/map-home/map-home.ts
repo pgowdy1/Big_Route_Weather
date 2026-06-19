@@ -5,6 +5,8 @@ import { RoutesService } from '../../services/routes-service';
 import { RangesService } from '../../services/ranges-service';
 import { RoutePosition, RouteSummary } from '../../models/route-conditions';
 import { RangeMeta } from '../../models/range';
+import { SeoService } from '../../seo/seo.service';
+import { homeMeta } from '../../seo/route-meta';
 
 type MapError = { kind: 'routes' | 'leaflet'; message: string };
 
@@ -19,6 +21,7 @@ export class MapHome implements OnDestroy {
   private rangesSvc = inject(RangesService);
   private router = inject(Router);
   private destroyRef = inject(DestroyRef);
+  private seo = inject(SeoService);
 
   mapContainer = viewChild<ElementRef<HTMLDivElement>>('mapEl');
 
@@ -71,6 +74,7 @@ export class MapHome implements OnDestroy {
   }
 
   constructor() {
+    this.seo.setMeta(homeMeta());
     this.fetchRanges();
     this.fetchPositions();
     this.fetchRoutes();
