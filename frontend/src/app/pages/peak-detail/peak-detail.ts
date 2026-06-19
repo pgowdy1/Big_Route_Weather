@@ -7,6 +7,9 @@ import { ConsensusBadge } from '../../components/consensus-badge/consensus-badge
 import { Sparkline, SparklinePoint } from '../../components/sparkline/sparkline';
 import { RoutesService } from '../../services/routes-service';
 import { FactorScore, RouteDetail, WindowGrade } from '../../models/route-conditions';
+import { SeoService } from '../../seo/seo.service';
+import { peakMeta } from '../../seo/route-meta';
+import { getPeakBySlug, getPeaksInRange } from '../../seo/peaks-catalog';
 
 interface WindowView {
   key: 'next12h' | 'next24h' | 'next48h';
@@ -24,8 +27,17 @@ interface WindowView {
 })
 export class PeakDetail {
   private service = inject(RoutesService);
+  private seo = inject(SeoService);
 
   slug = input.required<string>();
+
+  // Static identity from the committed manifest — available at prerender and in
+  // the browser, so the page has real, peak-specific content without the API.
+  peak = computed(() => getPeakBySlug(this.slug()) ?? null);
+  rangePeers = computed(() => {
+    const p = this.peak();
+    return p ? getPeaksInRange(p.rangeSlug, p.slug) : [];
+  });
 
   detail = signal<RouteDetail | null>(null);
   loading = signal(true);
@@ -103,6 +115,8 @@ export class PeakDetail {
   constructor() {
     effect(() => {
       const slug = this.slug();
+      const p = getPeakBySlug(slug);
+      if (p) untracked(() => this.seo.setMeta(peakMeta(p)));
       untracked(() => this.load(slug));
     });
   }

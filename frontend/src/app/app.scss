@@ -13,13 +13,18 @@
   gap: 1rem;
   flex-wrap: wrap;
 
-  h1 {
+  h1,
+  .brand {
     margin: 0;
     font-size: 2.25rem;
     background: linear-gradient(120deg, #80cbc4, #c5e1a5);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
+  }
+  .brand {
+    display: inline-block;
+    font-weight: 700;
   }
   p {
     margin: 0.35rem 0 0;

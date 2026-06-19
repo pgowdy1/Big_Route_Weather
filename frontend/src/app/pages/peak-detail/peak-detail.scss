@@ -25,15 +25,40 @@
     &.error { color: #ef9a9a; font-style: normal; }
   }
 
+  .identity {
+    h1 { margin: 0; font-size: 1.9rem; line-height: 1.15; }
+    .lede { margin: 0.5rem 0 0; color: #cfd8dc; font-size: 0.95rem; max-width: 60ch; }
+    .covers { margin: 0.75rem 0 0; color: #92a4b5; font-size: 0.85rem; max-width: 70ch; }
+
+    .facts {
+      margin: 0.85rem 0 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.4rem 1rem;
+
+      div { display: flex; gap: 0.4rem; font-size: 0.8rem; }
+      dt { color: #8aa0b4; }
+      dd { margin: 0; color: #e8eef3; }
+    }
+
+    .range-peers {
+      margin-top: 0.85rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+
+      .range-peers-label { color: #8aa0b4; }
+      a { color: #80cbc4; text-decoration: none; &:hover { color: #c5e1a5; } }
+    }
+  }
+
   .head {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: flex-start;
     gap: 1rem;
-
-    h2 { margin: 0; font-size: 1.6rem; }
-    .route-name { margin: 0.25rem 0 0; color: #92a4b5; }
-    .coords { margin: 0.25rem 0 0; color: #6b7e90; font-size: 0.8rem; }
   }
 
   .stale-chip {

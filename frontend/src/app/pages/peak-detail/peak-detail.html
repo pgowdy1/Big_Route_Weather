@@ -5,6 +5,35 @@
     <a routerLink="/all">All peaks</a>
   </p>
 
+  @if (peak(); as p) {
+    <header class="identity">
+      <h1>{{ p.mountain }} Weather &amp; Climbing Conditions</h1>
+      <p class="lede">
+        Live weather forecast, summit conditions, and a climbing-route grade for
+        {{ p.mountain }} ({{ p.summitElevationFt | number }}&nbsp;ft, Class {{ p.classDifficulty }})
+        via the {{ p.routeName }} in the {{ p.rangeName }}.
+      </p>
+      <dl class="facts">
+        <div><dt>Elevation</dt><dd>{{ p.summitElevationFt | number }} ft</dd></div>
+        <div><dt>Standard route</dt><dd>{{ p.routeName }} (Class {{ p.classDifficulty }})</dd></div>
+        <div><dt>Range</dt><dd>{{ p.rangeName }}</dd></div>
+        <div><dt>Summit</dt><dd>{{ p.summitLat | number:'1.4-4' }}, {{ p.summitLon | number:'1.4-4' }}</dd></div>
+      </dl>
+      <p class="covers">
+        This forecast covers wind, temperature, precipitation, snowpack, daylight, and air quality —
+        the conditions that decide a safe summit window for climbers, mountaineers, and hikers.
+      </p>
+      @if (rangePeers().length > 0) {
+        <nav class="range-peers" aria-label="Other peaks in the {{ p.rangeName }}">
+          <span class="range-peers-label">More in the {{ p.rangeName }}:</span>
+          @for (peer of rangePeers(); track peer.slug) {
+            <a [routerLink]="['/peak', peer.slug]">{{ peer.mountain }}</a>
+          }
+        </nav>
+      }
+    </header>
+  }
+
   @if (loading()) {
     <p class="status">Loading…</p>
   } @else if (notFound()) {
@@ -13,15 +42,6 @@
     <p class="status error">{{ error() }}</p>
   } @else if (detail(); as d) {
     <header class="head">
-      <div class="title">
-        <h2>{{ d.mountain }}</h2>
-        <p class="route-name">
-          {{ d.routeName }} · Class {{ d.classDifficulty }} · {{ d.summitElevationFt | number }}'
-        </p>
-        <p class="coords">
-          Summit: {{ d.summitLat | number:'1.4-4' }}, {{ d.summitLon | number:'1.4-4' }}
-        </p>
-      </div>
       <div class="head-meta">
         @if (d.rangeName) {
           <span class="range-chip">{{ d.rangeName }}</span>

@@ -12,10 +12,12 @@ describe('App', () => {
     }).compileComponents();
   });
 
-  it('renders the hero heading', async () => {
+  it('renders the hero brand (non-heading, so routed pages own their h1)', async () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('Big Route Weather');
+    expect(compiled.querySelector('.hero .brand')?.textContent).toContain('Big Route Weather');
+    // The brand must not be the page <h1>; per-page pages now own their <h1>.
+    expect(compiled.querySelector('.hero h1')).toBeNull();
   });
 });
