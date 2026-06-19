@@ -14,4 +14,8 @@ assert.ok(urls.every(u => u.startsWith('https://bigrouteweather.com')));
 const xml = buildSitemapXml(urls);
 assert.ok(xml.includes('<loc>https://bigrouteweather.com/peak/mount-rainier</loc>'));
 assert.ok(xml.startsWith('<?xml'));
+
+const escaped = buildSitemapXml(['https://bigrouteweather.com/peak/a&b']);
+assert.ok(escaped.includes('<loc>https://bigrouteweather.com/peak/a&amp;b</loc>'));
+
 console.log('sitemap test OK');

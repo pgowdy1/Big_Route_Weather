@@ -7,6 +7,7 @@
     "prebuild": "node scripts/generate-sitemap.mjs",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
+    "pretest": "node scripts/generate-sitemap.test.mjs",
     "test": "ng test",
     "seo:manifest": "node scripts/generate-peaks-manifest.mjs",
     "seo:sitemap": "node scripts/generate-sitemap.mjs"
