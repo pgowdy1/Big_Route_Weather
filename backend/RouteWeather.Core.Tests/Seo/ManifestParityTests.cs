@@ -16,6 +16,7 @@ public class ManifestParityTests
     public async Task Manifest_matches_the_seeder_catalog()
     {
         var manifest = LoadManifest();
+        Assert.NotNull(manifest);
 
         await using var db = NewContext();
         await RouteSeeder.SeedAsync(db);
@@ -26,18 +27,29 @@ public class ManifestParityTests
         var seededSlugs = seeded.Select(r => r.Slug).OrderBy(s => s).ToArray();
         Assert.Equal(seededSlugs, manifestSlugs);
 
-        // Same key fields per slug (catches a stale regenerate).
+        // Same key fields per slug (catches a stale regenerate). Collect every
+        // mismatch and name the slug + field so a failure pinpoints the culprit
+        // among 124 peaks instead of a bare Expected/Actual.
         var bySlug = manifest.ToDictionary(p => p.Slug);
+        var mismatches = new List<string>();
         foreach (var r in seeded)
         {
             var p = bySlug[r.Slug];
-            Assert.Equal(r.Mountain, p.Mountain);
-            Assert.Equal(r.RouteName, p.RouteName);
-            Assert.Equal(r.SummitElevationFt, p.SummitElevationFt);
-            Assert.Equal(r.ClassDifficulty, p.ClassDifficulty);
-            Assert.Equal(r.Range!.Slug, p.RangeSlug);
-            Assert.Equal(r.Range!.Name, p.RangeName);
+            void Check(string field, object? seededVal, object? manifestVal)
+            {
+                if (!Equals(seededVal, manifestVal))
+                    mismatches.Add($"{r.Slug}.{field}: seeder='{seededVal}' manifest='{manifestVal}'");
+            }
+            Check("Mountain", r.Mountain, p.Mountain);
+            Check("RouteName", r.RouteName, p.RouteName);
+            Check("SummitElevationFt", r.SummitElevationFt, p.SummitElevationFt);
+            Check("ClassDifficulty", r.ClassDifficulty, p.ClassDifficulty);
+            Check("RangeSlug", r.Range!.Slug, p.RangeSlug);
+            Check("RangeName", r.Range!.Name, p.RangeName);
+            Check("SummitLat", r.SummitLat, p.SummitLat);
+            Check("SummitLon", r.SummitLon, p.SummitLon);
         }
+        Assert.True(mismatches.Count == 0, $"Manifest/seeder field mismatches:\n{string.Join("\n", mismatches)}");
     }
 
     private static List<PeakSeo> LoadManifest()
