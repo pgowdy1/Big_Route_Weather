@@ -271,6 +271,19 @@ describe('PeakDetail', () => {
     expect(rows[1].textContent ?? '').toContain('—');
   });
 
+  it('renders the manifest identity block (h1 + facts) before the detail loads', () => {
+    const fixture = TestBed.createComponent(PeakDetail);
+    fixture.componentRef.setInput('slug', 'mount-whitney');
+    fixture.detectChanges();
+
+    const h1 = fixture.nativeElement.querySelector('h1');
+    expect(h1.textContent).toContain('Mount Whitney');
+    expect(fixture.nativeElement.querySelector('.identity .facts')).not.toBeNull();
+
+    // The component still fires the detail request (gated to browser in Phase B).
+    httpMock.expectOne('/api/routes/mount-whitney').flush({} as any);
+  });
+
   it('renders per-source Max gust and CAPE columns', async () => {
     const fixture = TestBed.createComponent(PeakDetail);
     fixture.componentRef.setInput('slug', 'longs-peak');

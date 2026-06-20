@@ -1,5 +1,7 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { SeoService } from '../../seo/seo.service';
+import { aboutMeta } from '../../seo/route-meta';
 
 @Component({
   selector: 'app-about',
@@ -8,4 +10,8 @@ import { RouterLink } from '@angular/router';
   templateUrl: './about.html',
   styleUrl: './about.scss',
 })
-export class About {}
+export class About {
+  constructor() {
+    inject(SeoService).setMeta(aboutMeta());
+  }
+}
