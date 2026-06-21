@@ -14,6 +14,11 @@ type MapError = { kind: 'routes' | 'leaflet'; message: string };
 @Component({
   selector: 'app-map-home',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  // The map page imperatively mutates the DOM via Leaflet, so skip hydration for
+  // the whole component (ngSkipHydration must be on a component host, not a plain
+  // element — see NG0504). Angular re-renders MapHome client-side instead of
+  // trying to match the prerendered DOM.
+  host: { ngSkipHydration: 'true' },
   templateUrl: './map-home.html',
   styleUrl: './map-home.scss',
 })
