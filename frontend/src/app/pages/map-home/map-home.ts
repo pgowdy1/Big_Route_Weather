@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, OnDestroy, afterNextRender, computed, inject, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, OnDestroy, PLATFORM_ID, afterNextRender, computed, inject, signal, viewChild } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { RoutesService } from '../../services/routes-service';
@@ -22,6 +23,7 @@ export class MapHome implements OnDestroy {
   private router = inject(Router);
   private destroyRef = inject(DestroyRef);
   private seo = inject(SeoService);
+  private platformId = inject(PLATFORM_ID);
 
   mapContainer = viewChild<ElementRef<HTMLDivElement>>('mapEl');
 
@@ -75,9 +77,11 @@ export class MapHome implements OnDestroy {
 
   constructor() {
     this.seo.setMeta(homeMeta());
-    this.fetchRanges();
-    this.fetchPositions();
-    this.fetchRoutes();
+    if (isPlatformBrowser(this.platformId)) {
+      this.fetchRanges();
+      this.fetchPositions();
+      this.fetchRoutes();
+    }
     afterNextRender(() => this.initMap());
   }
 

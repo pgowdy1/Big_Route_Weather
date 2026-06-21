@@ -1,5 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { ChangeDetectionStrategy, Component, PLATFORM_ID, computed, effect, inject, input, signal, untracked } from '@angular/core';
+import { DatePipe, DecimalPipe, isPlatformBrowser } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { GradeBadge } from '../../components/grade-badge/grade-badge';
@@ -28,6 +28,7 @@ interface WindowView {
 export class PeakDetail {
   private service = inject(RoutesService);
   private seo = inject(SeoService);
+  private platformId = inject(PLATFORM_ID);
 
   slug = input.required<string>();
 
@@ -128,7 +129,9 @@ export class PeakDetail {
       const slug = this.slug();
       const p = getPeakBySlug(slug);
       if (p) untracked(() => this.seo.setMeta(peakMeta(p)));
-      untracked(() => this.load(slug));
+      if (isPlatformBrowser(this.platformId)) {
+        untracked(() => this.load(slug));
+      }
     });
   }
 
