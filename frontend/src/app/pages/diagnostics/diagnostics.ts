@@ -1,5 +1,6 @@
 import { HttpClient } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, PLATFORM_ID, computed, inject, signal } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { SeoService } from '../../seo/seo.service';
 import { diagnosticsMeta } from '../../seo/route-meta';
@@ -27,6 +28,7 @@ interface DailyCallsResponse {
 export class Diagnostics implements OnInit {
   private http = inject(HttpClient);
   private seo = inject(SeoService);
+  private platformId = inject(PLATFORM_ID);
 
   constructor() {
     this.seo.setMeta(diagnosticsMeta());
@@ -64,7 +66,9 @@ export class Diagnostics implements OnInit {
   });
 
   ngOnInit() {
-    this.load();
+    if (isPlatformBrowser(this.platformId)) {
+      this.load();
+    }
   }
 
   load() {

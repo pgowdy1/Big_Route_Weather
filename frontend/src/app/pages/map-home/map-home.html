@@ -29,7 +29,7 @@
       </ul>
     }
   </div>
-  <div #mapEl class="map-container"></div>
+  <div #mapEl ngSkipHydration class="map-container"></div>
   @if (error(); as err) {
     <div class="map-error-overlay" role="alert" aria-live="assertive">
       <div class="map-error-card">
