@@ -224,10 +224,12 @@
       </section>
     }
 
-    <footer class="sources">
-      <span>NWS: {{ (d.sources.nws.fetchedAt | date:'short') ?? 'unavailable' }}</span>
-      <span>SNOTEL: {{ (d.sources.snotel.fetchedAt | date:'short') ?? 'unavailable' }}</span>
-    </footer>
+    @if (d.sources; as s) {
+      <footer class="sources">
+        <span>NWS: {{ (s.nws.fetchedAt | date:'short') ?? 'unavailable' }}</span>
+        <span>SNOTEL: {{ (s.snotel.fetchedAt | date:'short') ?? 'unavailable' }}</span>
+      </footer>
+    }
   }
 
   @if (peak(); as p) {

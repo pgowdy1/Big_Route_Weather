@@ -323,6 +323,23 @@ describe('PeakDetail', () => {
     const rows = el.querySelectorAll('.per-source tbody tr');
     expect(rows[1].textContent ?? '').toContain('—');
   });
+
+  it('clears stale detail when navigating to a new slug', async () => {
+    const fixture = TestBed.createComponent(PeakDetail);
+    fixture.componentRef.setInput('slug', 'longs-peak');
+    fixture.detectChanges();
+    httpMock.expectOne('/api/routes/longs-peak').flush(detail());
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).querySelector('.window-strip')).not.toBeNull();
+
+    // Navigate to a new peak — the old strip must disappear until the new data loads.
+    fixture.componentRef.setInput('slug', 'mount-whitney');
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).querySelector('.window-strip')).toBeNull();
+
+    httpMock.expectOne('/api/routes/mount-whitney').flush(detail());
+  });
 });
 
 function detail(): RouteDetail {

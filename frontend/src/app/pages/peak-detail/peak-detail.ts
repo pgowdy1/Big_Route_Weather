@@ -131,6 +131,7 @@ export class PeakDetail {
 
   private load(slug: string) {
     this.loading.set(true);
+    this.detail.set(null);
     this.notFound.set(false);
     this.error.set(null);
     this.showAll48h.set(false);

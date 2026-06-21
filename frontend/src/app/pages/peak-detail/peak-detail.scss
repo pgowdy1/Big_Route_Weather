@@ -38,8 +38,9 @@
 
     .hero-grade { flex: 0 0 auto; --grade-badge-size: 5.25rem; --grade-badge-font: 2.9rem; }
     .grade-skeleton {
-      display: block; width: 5.25rem; height: 5.25rem; border-radius: 0.75rem;
-      background: #1a2632; border: 1px solid #2c3e50;
+      display: block;
+      width: var(--grade-badge-size); height: var(--grade-badge-size);
+      border-radius: 0.75rem; background: #1a2632; border: 1px solid #2c3e50;
     }
     .hero-body { min-width: 0; }
 
@@ -50,11 +51,11 @@
     .facts b { color: #cfd8dc; font-weight: 600; }
     .facts .dot { margin: 0 0.5rem; color: #41566b; }
 
-    .hero-win { margin: 0.7rem 0 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: #8aa0b4; }
-    .hero-win .q { font-weight: 700; }
-    .hero-win.muted { text-transform: none; letter-spacing: 0; font-style: italic; color: #92a4b5; }
-    .q.grade-a { color: #81c784; } .q.grade-b { color: #aed581; }
-    .q.grade-c { color: #ffd54f; } .q.grade-d { color: #ffb74d; } .q.grade-f { color: #ef9a9a; }
+    .hero-win { margin: 0.7rem 0 0; font-size: 0.8rem; text-transform: uppercase; color: #8aa0b4; }
+    .hero-win.muted { text-transform: none; font-style: italic; color: #92a4b5; }
+    .q { font-weight: 700; }
+    .grade-a { color: #81c784; } .grade-b { color: #aed581; }
+    .grade-c { color: #ffd54f; } .grade-d { color: #ffb74d; } .grade-f { color: #ef9a9a; }
 
     .rationale { margin: 0.45rem 0 0; color: #cfd8dc; font-size: 0.95rem; line-height: 1.4; }
     .drivers { list-style: none; padding: 0; margin: 0.6rem 0 0; display: flex; flex-wrap: wrap; gap: 0.3rem; }
