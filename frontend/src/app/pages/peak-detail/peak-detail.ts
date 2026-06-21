@@ -98,6 +98,9 @@ export class PeakDetail {
     ];
   });
 
+  // The strip shows the windows OTHER than the 24h hero (12h + 48h).
+  secondaryWindows = computed<WindowView[]>(() => this.windows().filter(w => w.key !== 'next24h'));
+
   sparklinePoints = computed<SparklinePoint[]>(() => {
     const series = this.detail()?.snowpack?.dailyDepthIn ?? [];
     return series.map(p => ({ label: p.date, value: p.depthIn }));

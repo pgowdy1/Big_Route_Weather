@@ -22,7 +22,7 @@ describe('PeakDetail', () => {
 
   afterEach(() => httpMock.verify());
 
-  it('makes the 24h grade the hero and shows all three windows in the strip', async () => {
+  it('makes the 24h grade the hero and shows the 12h + 48h breakdown in the strip', async () => {
     const fixture = TestBed.createComponent(PeakDetail);
     fixture.componentRef.setInput('slug', 'longs-peak');
     fixture.detectChanges();
@@ -36,12 +36,14 @@ describe('PeakDetail', () => {
     expect(el.querySelector('.hero app-grade-badge')).not.toBeNull();
     expect(el.querySelector('.hero .rationale')?.textContent).toContain('24h is solid.');
     expect(el.textContent ?? '').toContain('Good');
-    // Strip = all three windows.
-    expect(el.querySelectorAll('.window-strip app-grade-badge').length).toBe(3);
-    const text = el.textContent ?? '';
-    expect(text).toContain('Next 12h');
-    expect(text).toContain('Next 24h');
-    expect(text).toContain('Next 48h');
+    // Strip = the OTHER two windows (12h + 48h), each with its rationale; the 24h is not repeated there.
+    const strip = el.querySelector('.window-strip')!;
+    expect(strip.querySelectorAll('app-grade-badge').length).toBe(2);
+    expect(strip.textContent).toContain('Next 12h');
+    expect(strip.textContent).toContain('Next 48h');
+    expect(strip.textContent).not.toContain('Next 24h');
+    expect(strip.textContent).toContain('12h is great.');
+    expect(strip.textContent).toContain('48h has issues.');
   });
 
   it('renders the collapsed 24-row forecast by default, not just 12', async () => {

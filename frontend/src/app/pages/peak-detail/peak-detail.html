@@ -52,18 +52,28 @@
   }
 
   @if (detail(); as d) {
-    @if (windows().length > 0) {
+    @if (secondaryWindows().length > 0) {
       <section class="window-strip">
-        @for (w of windows(); track w.key) {
-          <div class="ws">
-            <app-grade-badge [grade]="w.data.grade" />
-            <div class="ws-meta">
-              <span class="ws-label">{{ w.label }}</span>
-              @if (w.data.hoursCovered < w.target) {
-                <span class="ws-partial">partial — {{ w.data.hoursCovered }}h</span>
-              }
+        @for (w of secondaryWindows(); track w.key) {
+          <article class="ws">
+            <div class="ws-head">
+              <app-grade-badge [grade]="w.data.grade" />
+              <div class="ws-meta">
+                <span class="ws-label">{{ w.label }}</span>
+                @if (w.data.hoursCovered < w.target) {
+                  <span class="ws-partial">partial — {{ w.data.hoursCovered }}h</span>
+                }
+              </div>
             </div>
-          </div>
+            <p class="ws-rationale">{{ w.data.rationale }}</p>
+            @if (w.data.drivers.length > 0) {
+              <ul class="drivers">
+                @for (driver of w.data.drivers; track driver.label) {
+                  <li [class]="'pill pill-' + driver.severity">{{ driver.label }}</li>
+                }
+              </ul>
+            }
+          </article>
         }
       </section>
     }

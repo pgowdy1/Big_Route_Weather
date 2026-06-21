@@ -66,13 +66,17 @@
   .window-strip {
     display: flex; gap: 0.6rem;
     .ws {
-      flex: 1; display: flex; align-items: center; gap: 0.55rem;
-      background: #11202c; border: 1px solid #2c3e50; border-radius: 0.6rem; padding: 0.55rem 0.65rem;
+      flex: 1; min-width: 0;
+      background: #11202c; border: 1px solid #2c3e50; border-radius: 0.6rem; padding: 0.6rem 0.7rem;
+      display: flex; flex-direction: column; gap: 0.4rem;
       --grade-badge-size: 1.9rem; --grade-badge-font: 0.95rem; --grade-badge-radius: 0.45rem;
     }
+    .ws-head { display: flex; align-items: center; gap: 0.5rem; }
     .ws-meta { display: flex; flex-direction: column; gap: 0.1rem; }
     .ws-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: #8aa0b4; }
     .ws-partial { font-size: 0.66rem; color: #ffd54f; }
+    .ws-rationale { margin: 0; font-size: 0.78rem; color: #b6c2cf; line-height: 1.35; }
+    .drivers { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 0.3rem; }
   }
 
   .range-link {
