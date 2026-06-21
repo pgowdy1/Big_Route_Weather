@@ -23,9 +23,9 @@ describe('SeoService', () => {
     expect(doc.title).toBe('T');
     expect(meta('meta[name="description"]')).toBe('D');
     expect(doc.head.querySelector('link[rel="canonical"]')?.getAttribute('href'))
-      .toBe(`${SITE_URL}/peak/mount-whitney`);
+      .toBe(`${SITE_URL}/peak/mount-whitney/`);
     expect(meta('meta[property="og:title"]')).toBe('T');
-    expect(meta('meta[property="og:url"]')).toBe(`${SITE_URL}/peak/mount-whitney`);
+    expect(meta('meta[property="og:url"]')).toBe(`${SITE_URL}/peak/mount-whitney/`);
     expect(meta('meta[name="twitter:card"]')).toBe('summary_large_image');
     expect(meta('meta[name="robots"]')).toBe('index, follow');
   });
@@ -37,7 +37,7 @@ describe('SeoService', () => {
     expect(meta('meta[name="robots"]')).toBe('noindex, follow');
     expect(doc.head.querySelectorAll('link[rel="canonical"]').length).toBe(1);
     expect(doc.head.querySelector('link[rel="canonical"]')?.getAttribute('href'))
-      .toBe(`${SITE_URL}/b`);
+      .toBe(`${SITE_URL}/b/`);
     expect(doc.head.querySelectorAll('meta[property="og:title"]').length).toBe(1);
   });
 

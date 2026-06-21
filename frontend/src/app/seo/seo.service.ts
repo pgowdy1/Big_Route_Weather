@@ -64,6 +64,10 @@ export class SeoService {
 }
 
 function absoluteUrl(path: string): string {
-  const clean = path.startsWith('/') ? path : `/${path}`;
-  return clean === '/' ? `${SITE_URL}/` : SITE_URL + clean;
+  // Cloudflare Pages serves prerendered routes at the trailing-slash URL (the
+  // no-slash form 308-redirects), so canonical/OG URLs use the trailing slash to
+  // match the actual 200 URL. Root stays "/".
+  let clean = path.startsWith('/') ? path : `/${path}`;
+  if (clean !== '/' && !clean.endsWith('/')) clean += '/';
+  return SITE_URL + clean;
 }
