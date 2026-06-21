@@ -22,7 +22,7 @@ describe('PeakDetail', () => {
 
   afterEach(() => httpMock.verify());
 
-  it('loads detail for the slug and shows three window grades', async () => {
+  it('makes the 24h grade the hero and shows all three windows in the strip', async () => {
     const fixture = TestBed.createComponent(PeakDetail);
     fixture.componentRef.setInput('slug', 'longs-peak');
     fixture.detectChanges();
@@ -31,10 +31,14 @@ describe('PeakDetail', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    const badges = (fixture.nativeElement as HTMLElement).querySelectorAll('.window app-grade-badge');
-    expect(badges.length).toBe(3);
-
-    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    const el = fixture.nativeElement as HTMLElement;
+    // Hero = the 24h grade, its rationale, and the quality word for grade B ("Good").
+    expect(el.querySelector('.hero app-grade-badge')).not.toBeNull();
+    expect(el.querySelector('.hero .rationale')?.textContent).toContain('24h is solid.');
+    expect(el.textContent ?? '').toContain('Good');
+    // Strip = all three windows.
+    expect(el.querySelectorAll('.window-strip app-grade-badge').length).toBe(3);
+    const text = el.textContent ?? '';
     expect(text).toContain('Next 12h');
     expect(text).toContain('Next 24h');
     expect(text).toContain('Next 48h');
@@ -131,20 +135,17 @@ describe('PeakDetail', () => {
     expect(noteText).not.toContain('%');
   });
 
-  it('shows the range name as a chip', async () => {
+  it('shows the range in the facts kicker', async () => {
     const fixture = TestBed.createComponent(PeakDetail);
     fixture.componentRef.setInput('slug', 'longs-peak');
     fixture.detectChanges();
 
-    const data = detail();
-    data.rangeSlug = 'cascade-range';
-    data.rangeName = 'Cascade Range';
-    httpMock.expectOne('/api/routes/longs-peak').flush(data);
+    httpMock.expectOne('/api/routes/longs-peak').flush(detail());
     await fixture.whenStable();
     fixture.detectChanges();
 
-    const chip = (fixture.nativeElement as HTMLElement).querySelector('.range-chip');
-    expect(chip?.textContent?.trim()).toBe('Cascade Range');
+    const facts = (fixture.nativeElement as HTMLElement).querySelector('.hero .facts');
+    expect(facts?.textContent).toContain('Colorado 14ers');
   });
 
   it('hides the weights note when all factors are active', async () => {
@@ -271,17 +272,33 @@ describe('PeakDetail', () => {
     expect(rows[1].textContent ?? '').toContain('—');
   });
 
-  it('renders the manifest identity block (h1 + facts) before the detail loads', () => {
+  it('renders the hero identity (h1 + facts) before detail loads, with no boilerplate', () => {
     const fixture = TestBed.createComponent(PeakDetail);
     fixture.componentRef.setInput('slug', 'mount-whitney');
     fixture.detectChanges();
 
-    const h1 = fixture.nativeElement.querySelector('h1');
-    expect(h1.textContent).toContain('Mount Whitney');
-    expect(fixture.nativeElement.querySelector('.identity .facts')).not.toBeNull();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('h1')?.textContent).toContain('Mount Whitney');
+    expect(el.querySelector('.hero .facts')).not.toBeNull();
+    // A6 boilerplate is gone.
+    expect(el.querySelector('.lede')).toBeNull();
+    expect(el.querySelector('.covers')).toBeNull();
+    expect(el.querySelector('.range-peers')).toBeNull();
 
-    // The component still fires the detail request (gated to browser in Phase B).
-    httpMock.expectOne('/api/routes/mount-whitney').flush({} as any);
+    httpMock.expectOne('/api/routes/mount-whitney').flush({} as RouteDetail);
+  });
+
+  it('shows a single "All <range> peaks" link, not a peer wall', () => {
+    const fixture = TestBed.createComponent(PeakDetail);
+    fixture.componentRef.setInput('slug', 'mount-whitney');
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    const links = el.querySelectorAll('.range-link a');
+    expect(links.length).toBe(1);
+    expect(links[0].textContent).toContain('Sierra Nevada'); // Whitney's manifest range
+
+    httpMock.expectOne('/api/routes/mount-whitney').flush({} as RouteDetail);
   });
 
   it('renders per-source Max gust and CAPE columns', async () => {
