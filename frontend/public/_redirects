@@ -1,1 +1,5 @@
+# Prerendered routes (/, /all, /about, /peak/<slug>, ...) are emitted as static
+# files and served directly by Pages. This is only the SPA fallback for paths
+# with no prerendered file. Verify on the deploy preview that a peak URL serves
+# its prerendered HTML (view-source shows the baked <title>/<h1>), not this shell.
 /*  /index.html  200
