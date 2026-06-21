@@ -10,7 +10,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 export function buildSitemapUrls(peaks) {
   const staticPaths = ['/', '/all', '/about']; // NOT /diagnostics (noindexed)
   const peakPaths = peaks.map(p => `/peak/${p.slug}`);
-  return [...staticPaths, ...peakPaths].map(p => (p === '/' ? `${SITE_URL}/` : SITE_URL + p));
+  return [...staticPaths, ...peakPaths].map(p => (p === '/' ? `${SITE_URL}/` : `${SITE_URL}${p}/`));
 }
 
 function escapeXml(s) {
