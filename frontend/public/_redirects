@@ -1,5 +1,7 @@
 # Prerendered routes (/, /all, /about, /peak/<slug>, ...) are emitted as static
-# files and served directly by Pages. This is only the SPA fallback for paths
-# with no prerendered file. Verify on the deploy preview that a peak URL serves
-# its prerendered HTML (view-source shows the baked <title>/<h1>), not this shell.
+# files; Pages serves a matching static asset before consulting this splat, so
+# prerendered pages are NOT shadowed. The splat only fires for paths with no
+# prerendered file — it serves the prerendered home page, which then client-routes
+# (unknown URLs fall through Angular's ** route to home).
+# Verify on the deploy preview: view-source of a peak URL shows its baked <title>/<h1>.
 /*  /index.html  200
