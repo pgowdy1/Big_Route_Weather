@@ -337,6 +337,7 @@ describe('PeakDetail', () => {
     fixture.componentRef.setInput('slug', 'mount-whitney');
     fixture.detectChanges();
     expect((fixture.nativeElement as HTMLElement).querySelector('.window-strip')).toBeNull();
+    expect((fixture.nativeElement as HTMLElement).querySelector('.hero-meta .updated')).toBeNull();
 
     httpMock.expectOne('/api/routes/mount-whitney').flush(detail());
   });
