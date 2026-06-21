@@ -13,17 +13,23 @@
   gap: 1rem;
   flex-wrap: wrap;
 
-  h1 {
+  .brand {
     margin: 0;
     font-size: 2.25rem;
-    background: linear-gradient(120deg, #80cbc4, #c5e1a5);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    display: inline-block;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: #eef3f7;
+
+    .accent { color: #5fa8d8; }
   }
   p {
-    margin: 0.35rem 0 0;
-    color: #92a4b5;
+    margin: 0.45rem 0 0;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: #9fb2c4;
   }
 
   .hero-nav {

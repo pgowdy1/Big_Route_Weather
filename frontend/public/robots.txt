@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /diagnostics
+
+Sitemap: https://bigrouteweather.com/sitemap.xml

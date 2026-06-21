@@ -2,11 +2,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 3rem;
-  height: 3rem;
-  border-radius: 0.75rem;
+  width: var(--grade-badge-size, 3rem);
+  height: var(--grade-badge-size, 3rem);
+  border-radius: var(--grade-badge-radius, 0.75rem);
   font-weight: 700;
-  font-size: 1.5rem;
+  font-size: var(--grade-badge-font, 1.5rem);
   color: #fff;
   font-family: 'Inter', system-ui, sans-serif;
 }

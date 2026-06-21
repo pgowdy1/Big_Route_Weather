@@ -10,10 +10,11 @@ describe('About', () => {
     }).compileComponents();
   });
 
-  it('renders the page heading', () => {
+  it('renders the page <h1> title and the "Why I made this" section heading', () => {
     const fixture = TestBed.createComponent(About);
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('h1')?.textContent).toContain('About Big Route Weather');
     expect(compiled.querySelector('h2')?.textContent).toContain('Why I made this');
   });
 

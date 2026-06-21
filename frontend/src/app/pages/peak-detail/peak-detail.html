@@ -5,54 +5,67 @@
     <a routerLink="/all">All peaks</a>
   </p>
 
-  @if (loading()) {
-    <p class="status">Loading…</p>
-  } @else if (notFound()) {
-    <p class="status error">Peak not found.</p>
-  } @else if (error()) {
-    <p class="status error">{{ error() }}</p>
-  } @else if (detail(); as d) {
-    <header class="head">
-      <div class="title">
-        <h2>{{ d.mountain }}</h2>
-        <p class="route-name">
-          {{ d.routeName }} · Class {{ d.classDifficulty }} · {{ d.summitElevationFt | number }}'
-        </p>
-        <p class="coords">
-          Summit: {{ d.summitLat | number:'1.4-4' }}, {{ d.summitLon | number:'1.4-4' }}
-        </p>
+  @if (peak(); as p) {
+    <header class="hero">
+      <div class="hero-grade">
+        @if (heroWindow(); as w) {
+          <app-grade-badge [grade]="w.grade" />
+        } @else {
+          <span class="grade-skeleton" aria-hidden="true"></span>
+        }
       </div>
-      <div class="head-meta">
-        @if (d.rangeName) {
-          <span class="range-chip">{{ d.rangeName }}</span>
+      <div class="hero-body">
+        <h1>{{ p.mountain }} <span class="h1-tail">Weather &amp; Climbing Conditions</span></h1>
+        <p class="facts">
+          <b>{{ p.summitElevationFt | number }} ft</b><span class="dot">·</span>{{ p.routeName }}<span class="dot">·</span>Class {{ p.classDifficulty }}<span class="dot">·</span>{{ p.rangeName }}
+        </p>
+        @if (heroWindow(); as w) {
+          <p class="hero-win">Next 24h · <span [class]="'q grade-' + (w.grade ? w.grade.toLowerCase() : 'x')">{{ gradeWord(w.grade) }}</span></p>
+          <p class="rationale">{{ w.rationale }}</p>
+          @if (w.drivers.length > 0) {
+            <ul class="drivers">
+              @for (driver of w.drivers; track driver.label) {
+                <li [class]="'pill pill-' + driver.severity">{{ driver.label }}</li>
+              }
+            </ul>
+          }
+        } @else if (loading()) {
+          <p class="hero-win muted">Loading conditions…</p>
         }
-        @if (d.isStale) {
-          <span class="stale-chip">Stale data</span>
-        }
-        @if (d.consensus) {
-          <app-consensus-badge [consensus]="d.consensus" />
-        }
-        @if (lastUpdatedLabel(); as label) {
-          <span class="updated">Updated {{ label }}</span>
-        }
+        <p class="hero-meta">
+          @if (detail()?.isStale) { <span class="stale-chip">Stale data</span> }
+          @if (detail()?.consensus; as c) { <app-consensus-badge [consensus]="c" /> }
+          @if (lastUpdatedLabel(); as label) { <span class="updated">Updated {{ label }}</span> }
+        </p>
       </div>
     </header>
-    @if (error()) {
-      <p class="status error inline">{{ error() }}</p>
-    }
+  }
 
-    @if (windows().length > 0) {
-      <section class="windows">
-        @for (w of windows(); track w.key) {
-          <article class="window">
-            <header>
-              <span class="window-label">{{ w.label }}</span>
-              @if (w.data.hoursCovered < w.target) {
-                <span class="partial">partial — {{ w.data.hoursCovered }}h</span>
-              }
-            </header>
-            <app-grade-badge [grade]="w.data.grade" />
-            <p class="rationale">{{ w.data.rationale }}</p>
+  @if (notFound()) {
+    @if (peak()) {
+      <p class="status error">Conditions are unavailable for this peak right now.</p>
+    } @else {
+      <p class="status error">Peak not found.</p>
+    }
+  } @else if (error()) {
+    <p class="status error">{{ error() }}</p>
+  }
+
+  @if (detail(); as d) {
+    @if (secondaryWindows().length > 0) {
+      <section class="window-strip">
+        @for (w of secondaryWindows(); track w.key) {
+          <article class="ws">
+            <div class="ws-head">
+              <app-grade-badge [grade]="w.data.grade" />
+              <div class="ws-meta">
+                <span class="ws-label">{{ w.label }}</span>
+                @if (w.data.hoursCovered < w.target) {
+                  <span class="ws-partial">partial — {{ w.data.hoursCovered }}h</span>
+                }
+              </div>
+            </div>
+            <p class="ws-rationale">{{ w.data.rationale }}</p>
             @if (w.data.drivers.length > 0) {
               <ul class="drivers">
                 @for (driver of w.data.drivers; track driver.label) {
@@ -221,9 +234,17 @@
       </section>
     }
 
-    <footer class="sources">
-      <span>NWS: {{ (d.sources.nws.fetchedAt | date:'short') ?? 'unavailable' }}</span>
-      <span>SNOTEL: {{ (d.sources.snotel.fetchedAt | date:'short') ?? 'unavailable' }}</span>
-    </footer>
+    @if (d.sources; as s) {
+      <footer class="sources">
+        <span>NWS: {{ (s.nws.fetchedAt | date:'short') ?? 'unavailable' }}</span>
+        <span>SNOTEL: {{ (s.snotel.fetchedAt | date:'short') ?? 'unavailable' }}</span>
+      </footer>
+    }
+  }
+
+  @if (peak(); as p) {
+    <nav class="range-link" aria-label="More peaks">
+      <a [routerLink]="['/all']">All {{ p.rangeName }} peaks →</a>
+    </nav>
   }
 </section>

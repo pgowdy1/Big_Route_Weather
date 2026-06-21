@@ -4,9 +4,14 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
+    "prebuild": "node scripts/generate-sitemap.mjs",
     "build": "ng build",
+    "postbuild": "node scripts/verify-prerender.mjs",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "pretest": "node scripts/generate-sitemap.test.mjs",
+    "test": "ng test",
+    "seo:manifest": "node scripts/generate-peaks-manifest.mjs",
+    "seo:sitemap": "node scripts/generate-sitemap.mjs"
   },
   "prettier": {
     "printWidth": 100,
@@ -29,6 +34,7 @@
     "@angular/forms": "^21.1.0",
     "@angular/platform-browser": "^21.1.0",
     "@angular/router": "^21.1.0",
+    "@fontsource/inter": "^5.2.8",
     "chart.js": "^4.5.1",
     "leaflet": "^1.9.4",
     "leaflet.markercluster": "^1.5.3",
@@ -39,6 +45,8 @@
     "@angular/build": "^21.1.4",
     "@angular/cli": "^21.1.4",
     "@angular/compiler-cli": "^21.1.0",
+    "@angular/platform-server": "^21.2.15",
+    "@angular/ssr": "^21.2.15",
     "@types/geojson": "^7946.0.16",
     "@types/leaflet": "^1.9.21",
     "@types/leaflet.markercluster": "^1.5.6",

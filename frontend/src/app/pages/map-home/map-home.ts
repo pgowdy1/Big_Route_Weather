@@ -1,16 +1,24 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, OnDestroy, afterNextRender, computed, inject, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, OnDestroy, PLATFORM_ID, afterNextRender, computed, inject, signal, viewChild } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { RoutesService } from '../../services/routes-service';
 import { RangesService } from '../../services/ranges-service';
 import { RoutePosition, RouteSummary } from '../../models/route-conditions';
 import { RangeMeta } from '../../models/range';
+import { SeoService } from '../../seo/seo.service';
+import { homeMeta } from '../../seo/route-meta';
 
 type MapError = { kind: 'routes' | 'leaflet'; message: string };
 
 @Component({
   selector: 'app-map-home',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  // The map page imperatively mutates the DOM via Leaflet, so skip hydration for
+  // the whole component (ngSkipHydration must be on a component host, not a plain
+  // element — see NG0504). Angular re-renders MapHome client-side instead of
+  // trying to match the prerendered DOM.
+  host: { ngSkipHydration: 'true' },
   templateUrl: './map-home.html',
   styleUrl: './map-home.scss',
 })
@@ -19,6 +27,8 @@ export class MapHome implements OnDestroy {
   private rangesSvc = inject(RangesService);
   private router = inject(Router);
   private destroyRef = inject(DestroyRef);
+  private seo = inject(SeoService);
+  private platformId = inject(PLATFORM_ID);
 
   mapContainer = viewChild<ElementRef<HTMLDivElement>>('mapEl');
 
@@ -71,9 +81,12 @@ export class MapHome implements OnDestroy {
   }
 
   constructor() {
-    this.fetchRanges();
-    this.fetchPositions();
-    this.fetchRoutes();
+    this.seo.setMeta(homeMeta());
+    if (isPlatformBrowser(this.platformId)) {
+      this.fetchRanges();
+      this.fetchPositions();
+      this.fetchRoutes();
+    }
     afterNextRender(() => this.initMap());
   }
 

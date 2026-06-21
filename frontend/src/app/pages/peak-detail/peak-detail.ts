@@ -1,12 +1,15 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { ChangeDetectionStrategy, Component, PLATFORM_ID, computed, effect, inject, input, signal, untracked } from '@angular/core';
+import { DatePipe, DecimalPipe, isPlatformBrowser } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { GradeBadge } from '../../components/grade-badge/grade-badge';
 import { ConsensusBadge } from '../../components/consensus-badge/consensus-badge';
 import { Sparkline, SparklinePoint } from '../../components/sparkline/sparkline';
 import { RoutesService } from '../../services/routes-service';
-import { FactorScore, RouteDetail, WindowGrade } from '../../models/route-conditions';
+import { FactorScore, Grade, RouteDetail, WindowGrade } from '../../models/route-conditions';
+import { SeoService } from '../../seo/seo.service';
+import { peakMeta } from '../../seo/route-meta';
+import { getPeakBySlug } from '../../seo/peaks-catalog';
 
 interface WindowView {
   key: 'next12h' | 'next24h' | 'next48h';
@@ -24,8 +27,15 @@ interface WindowView {
 })
 export class PeakDetail {
   private service = inject(RoutesService);
+  private seo = inject(SeoService);
+  private platformId = inject(PLATFORM_ID);
 
   slug = input.required<string>();
+
+  // Static identity from the committed manifest — available at prerender and in
+  // the browser, so the page has real, peak-specific content without the API.
+  peak = computed(() => getPeakBySlug(this.slug()) ?? null);
+  heroWindow = computed<WindowGrade | null>(() => this.detail()?.windowGrades?.next24h ?? null);
 
   detail = signal<RouteDetail | null>(null);
   loading = signal(true);
@@ -68,6 +78,17 @@ export class PeakDetail {
     return PeakDetail.aqiBand(aqi).cssClass;
   }
 
+  gradeWord(grade: Grade | null): string {
+    switch (grade) {
+      case 'A': return 'Excellent';
+      case 'B': return 'Good';
+      case 'C': return 'Fair';
+      case 'D': return 'Poor';
+      case 'F': return 'Avoid';
+      default: return 'Pending';
+    }
+  }
+
   windows = computed<WindowView[]>(() => {
     const w = this.detail()?.windowGrades;
     if (!w) return [];
@@ -77,6 +98,9 @@ export class PeakDetail {
       { key: 'next48h', label: 'Next 48h', target: 48, data: w.next48h },
     ];
   });
+
+  // The strip shows the windows OTHER than the 24h hero (12h + 48h).
+  secondaryWindows = computed<WindowView[]>(() => this.windows().filter(w => w.key !== 'next24h'));
 
   sparklinePoints = computed<SparklinePoint[]>(() => {
     const series = this.detail()?.snowpack?.dailyDepthIn ?? [];
@@ -103,12 +127,18 @@ export class PeakDetail {
   constructor() {
     effect(() => {
       const slug = this.slug();
-      untracked(() => this.load(slug));
+      const p = getPeakBySlug(slug);
+      if (p) untracked(() => this.seo.setMeta(peakMeta(p)));
+      if (isPlatformBrowser(this.platformId)) {
+        untracked(() => this.load(slug));
+      }
     });
   }
 
   private load(slug: string) {
     this.loading.set(true);
+    this.detail.set(null);
+    this.lastFetchedAt.set(null);
     this.notFound.set(false);
     this.error.set(null);
     this.showAll48h.set(false);

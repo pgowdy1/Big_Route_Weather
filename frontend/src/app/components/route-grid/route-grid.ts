@@ -1,7 +1,10 @@
-import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, PLATFORM_ID, computed, inject, OnInit, signal } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { RoutesService } from '../../services/routes-service';
 import { RouteSummary } from '../../models/route-conditions';
 import { RouteCard } from '../route-card/route-card';
+import { SeoService } from '../../seo/seo.service';
+import { allPeaksMeta } from '../../seo/route-meta';
 
 interface RangeGroup {
   slug: string;
@@ -18,6 +21,8 @@ interface RangeGroup {
 })
 export class RouteGrid implements OnInit {
   private service = inject(RoutesService);
+  private seo = inject(SeoService);
+  private platformId = inject(PLATFORM_ID);
 
   routes = signal<RouteSummary[]>([]);
   loading = signal(false);
@@ -50,7 +55,10 @@ export class RouteGrid implements OnInit {
   });
 
   ngOnInit() {
-    this.load();
+    this.seo.setMeta(allPeaksMeta());
+    if (isPlatformBrowser(this.platformId)) {
+      this.load();
+    }
   }
 
   load() {
