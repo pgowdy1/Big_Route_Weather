@@ -6,10 +6,10 @@ import { GradeBadge } from '../../components/grade-badge/grade-badge';
 import { ConsensusBadge } from '../../components/consensus-badge/consensus-badge';
 import { Sparkline, SparklinePoint } from '../../components/sparkline/sparkline';
 import { RoutesService } from '../../services/routes-service';
-import { FactorScore, RouteDetail, WindowGrade } from '../../models/route-conditions';
+import { FactorScore, Grade, RouteDetail, WindowGrade } from '../../models/route-conditions';
 import { SeoService } from '../../seo/seo.service';
 import { peakMeta } from '../../seo/route-meta';
-import { getPeakBySlug, getPeaksInRange } from '../../seo/peaks-catalog';
+import { getPeakBySlug } from '../../seo/peaks-catalog';
 
 interface WindowView {
   key: 'next12h' | 'next24h' | 'next48h';
@@ -34,10 +34,7 @@ export class PeakDetail {
   // Static identity from the committed manifest — available at prerender and in
   // the browser, so the page has real, peak-specific content without the API.
   peak = computed(() => getPeakBySlug(this.slug()) ?? null);
-  rangePeers = computed(() => {
-    const p = this.peak();
-    return p ? getPeaksInRange(p.rangeSlug, p.slug) : [];
-  });
+  heroWindow = computed<WindowGrade | null>(() => this.detail()?.windowGrades?.next24h ?? null);
 
   detail = signal<RouteDetail | null>(null);
   loading = signal(true);
@@ -78,6 +75,17 @@ export class PeakDetail {
 
   aqiClass(aqi: number): string {
     return PeakDetail.aqiBand(aqi).cssClass;
+  }
+
+  gradeWord(grade: Grade | null): string {
+    switch (grade) {
+      case 'A': return 'Excellent';
+      case 'B': return 'Good';
+      case 'C': return 'Fair';
+      case 'D': return 'Poor';
+      case 'F': return 'Avoid';
+      default: return 'Pending';
+    }
   }
 
   windows = computed<WindowView[]>(() => {
