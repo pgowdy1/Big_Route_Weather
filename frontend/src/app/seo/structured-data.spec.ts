@@ -19,7 +19,7 @@ describe('structured-data', () => {
     const m = mountainJsonLd(peak) as any;
     expect(m['@type']).toBe('Mountain');
     expect(m.name).toBe('Mount Whitney');
-    expect(m.url).toBe(`${SITE_URL}/peak/mount-whitney`);
+    expect(m.url).toBe(`${SITE_URL}/peak/mount-whitney/`);
     expect(m.geo.latitude).toBe(36.5786);
     expect(m.elevation.value).toBe(14505);
   });
@@ -28,6 +28,6 @@ describe('structured-data', () => {
     const b = breadcrumbJsonLd(peak) as any;
     expect(b['@type']).toBe('BreadcrumbList');
     expect(b.itemListElement.map((i: any) => i.name)).toEqual(['Home', 'All peaks', 'Mount Whitney']);
-    expect(b.itemListElement[2].item).toBe(`${SITE_URL}/peak/mount-whitney`);
+    expect(b.itemListElement[2].item).toBe(`${SITE_URL}/peak/mount-whitney/`);
   });
 });
