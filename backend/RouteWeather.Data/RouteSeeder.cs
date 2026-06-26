@@ -5,6 +5,18 @@ namespace RouteWeather.Data;
 
 public static class RouteSeeder
 {
+    // Single source of truth for which peaks carry a glacier that commonly-climbed
+    // routes cross. Applied in BuildRoutes and reconciled onto existing rows.
+    private static readonly HashSet<string> GlaciatedSlugs = new()
+    {
+        "mount-rainier", "mount-hood", "mount-adams", "mount-baker", "mount-shasta",
+        "glacier-peak", "mount-shuksan", "mount-stuart", "forbidden-peak", "dragontail-peak",
+        "eldorado-peak", "sahale-peak", "bonanza-peak", "goode-mountain", "sloan-peak",
+        "silver-star-mountain", "north-sister", "mount-jefferson", "north-palisade", "mount-sill",
+        "middle-palisade", "mount-lyell", "mount-ritter", "banner-peak", "mount-darwin",
+        "mount-conness", "gannett-peak", "mount-helen", "mount-sacagawea",
+    };
+
     public static async Task SeedAsync(RouteWeatherContext db, CancellationToken ct = default)
     {
         var ranges = await EnsureRangesAsync(db, ct);
@@ -13,6 +25,7 @@ public static class RouteSeeder
         {
             db.Routes.AddRange(BuildRoutes(ranges));
             await db.SaveChangesAsync(ct);
+            await ReconcileGlaciatedAsync(db, ct);
             return;
         }
 
@@ -22,10 +35,33 @@ public static class RouteSeeder
         var existing = await db.Routes.Select(r => r.Slug).ToListAsync(ct);
         var existingSet = existing.ToHashSet();
         var toAdd = BuildRoutes(ranges).Where(r => !existingSet.Contains(r.Slug)).ToList();
-        if (toAdd.Count == 0) return;
 
-        db.Routes.AddRange(toAdd);
-        await db.SaveChangesAsync(ct);
+        if (toAdd.Count > 0)
+        {
+            db.Routes.AddRange(toAdd);
+            await db.SaveChangesAsync(ct);
+        }
+
+        await ReconcileGlaciatedAsync(db, ct);
+    }
+
+    // The add-only path above never updates rows that already exist, so an
+    // already-populated DB (dev/prod) would keep the migration default (false).
+    // Bring every existing row's IsGlaciated in line with GlaciatedSlugs.
+    private static async Task ReconcileGlaciatedAsync(RouteWeatherContext db, CancellationToken ct)
+    {
+        var rows = await db.Routes.ToListAsync(ct);
+        var changed = false;
+        foreach (var row in rows)
+        {
+            var shouldBe = GlaciatedSlugs.Contains(row.Slug);
+            if (row.IsGlaciated != shouldBe)
+            {
+                row.IsGlaciated = shouldBe;
+                changed = true;
+            }
+        }
+        if (changed) await db.SaveChangesAsync(ct);
     }
 
     private static async Task<Dictionary<string, int>> EnsureRangesAsync(RouteWeatherContext db, CancellationToken ct)
@@ -99,12 +135,18 @@ public static class RouteSeeder
         int sa = rangeIds["sawtooth"];
         int wa = rangeIds["wasatch"];
 
-        return Cascades(ca)
+        var routes = Cascades(ca)
             .Concat(Sierras(si))
             .Concat(WindRiver(wr))
             .Concat(Sawtooth(sa))
             .Concat(Wasatch(wa))
-            .Concat(Colorado14ers(co));
+            .Concat(Colorado14ers(co))
+            .ToList();
+
+        foreach (var r in routes)
+            r.IsGlaciated = GlaciatedSlugs.Contains(r.Slug);
+
+        return routes;
     }
 
     private static IEnumerable<RouteEntity> Cascades(int rangeId) => new[]
