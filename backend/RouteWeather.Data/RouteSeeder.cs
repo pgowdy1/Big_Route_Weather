@@ -25,8 +25,7 @@ public static class RouteSeeder
         {
             db.Routes.AddRange(BuildRoutes(ranges));
             await db.SaveChangesAsync(ct);
-            await ReconcileGlaciatedAsync(db, ct);
-            return;
+            return;   // BuildRoutes already set IsGlaciated; no reconcile needed here
         }
 
         // Routes already exist (the migration backfilled them to colorado-14ers). Add any peaks
