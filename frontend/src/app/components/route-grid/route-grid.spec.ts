@@ -159,6 +159,7 @@ function summary(slug: string, mountain = 'Test Mountain', overrides: Partial<Ro
     routeName: 'Standard',
     summitElevationFt: 14000,
     classDifficulty: '3',
+    isGlaciated: false,
     rangeSlug: 'colorado-14ers',
     rangeName: 'Colorado 14ers',
     summitLat: 39.0,

@@ -365,6 +365,7 @@ function detail(): RouteDetail {
     routeName: 'Keyhole',
     summitElevationFt: 14259,
     classDifficulty: '3',
+    isGlaciated: false,
     rangeSlug: 'colorado-14ers',
     rangeName: 'Colorado 14ers',
     grade: 'B',

@@ -4,7 +4,7 @@ import { PeakSeo } from './peak-seo';
 const peak: PeakSeo = {
   slug: 'mount-rainier', mountain: 'Mount Rainier', routeName: 'Disappointment Cleaver',
   summitElevationFt: 14411, classDifficulty: '4', rangeName: 'Cascade Range',
-  rangeSlug: 'cascades', summitLat: 46.8523, summitLon: -121.7603,
+  rangeSlug: 'cascades', summitLat: 46.8523, summitLon: -121.7603, isGlaciated: false,
 };
 
 describe('route-meta', () => {

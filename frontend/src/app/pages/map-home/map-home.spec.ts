@@ -32,6 +32,7 @@ describe('MapHome', () => {
       routeName: 'SW Ridge',
       summitElevationFt: 12000,
       classDifficulty: '2',
+      isGlaciated: false,
       rangeSlug: 'r',
       rangeName: 'R',
       summitLat: 40,
