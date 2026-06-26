@@ -5,7 +5,7 @@ import { SITE_URL } from './seo.constants';
 const peak: PeakSeo = {
   slug: 'mount-whitney', mountain: 'Mount Whitney', routeName: "Mountaineer's Route",
   summitElevationFt: 14505, classDifficulty: '3', rangeName: 'Sierra Nevada',
-  rangeSlug: 'sierra-nevada', summitLat: 36.5786, summitLon: -118.292,
+  rangeSlug: 'sierra-nevada', summitLat: 36.5786, summitLon: -118.292, isGlaciated: false,
 };
 
 describe('structured-data', () => {

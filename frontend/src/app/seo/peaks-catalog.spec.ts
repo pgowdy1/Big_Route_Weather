@@ -14,6 +14,7 @@ describe('peaks-catalog', () => {
       expect(p.summitElevationFt).toBeGreaterThan(0);
       expect(Number.isFinite(p.summitLat)).toBe(true);
       expect(Number.isFinite(p.summitLon)).toBe(true);
+      expect(typeof p.isGlaciated).toBe('boolean');
     }
   });
 

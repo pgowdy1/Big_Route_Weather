@@ -8,4 +8,5 @@ export interface PeakSeo {
   rangeSlug: string;
   summitLat: number;
   summitLon: number;
+  isGlaciated: boolean;
 }

@@ -10,7 +10,7 @@ public class ManifestParityTests
     private sealed record PeakSeo(
         string Slug, string Mountain, string RouteName, int SummitElevationFt,
         string ClassDifficulty, string RangeName, string RangeSlug,
-        double SummitLat, double SummitLon);
+        double SummitLat, double SummitLon, bool IsGlaciated);
 
     [Fact]
     public async Task Manifest_matches_the_seeder_catalog()
@@ -48,6 +48,7 @@ public class ManifestParityTests
             Check("RangeName", r.Range!.Name, p.RangeName);
             Check("SummitLat", r.SummitLat, p.SummitLat);
             Check("SummitLon", r.SummitLon, p.SummitLon);
+            Check("IsGlaciated", r.IsGlaciated, p.IsGlaciated);
         }
         Assert.True(mismatches.Count == 0, $"Manifest/seeder field mismatches:\n{string.Join("\n", mismatches)}");
     }

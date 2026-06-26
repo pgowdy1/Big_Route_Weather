@@ -22,6 +22,8 @@ public class RouteEntity
     [MaxLength(20)]
     public string ClassDifficulty { get; set; } = string.Empty;
 
+    public bool IsGlaciated { get; set; }
+
     [MaxLength(40)]
     public string SnotelStationTriplet { get; set; } = string.Empty;
 

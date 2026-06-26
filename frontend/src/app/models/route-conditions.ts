@@ -39,6 +39,7 @@ export interface RouteSummary {
   routeName: string;
   summitElevationFt: number;
   classDifficulty: string;
+  isGlaciated: boolean;
   rangeSlug: string;
   rangeName: string;
   summitLat: number;
