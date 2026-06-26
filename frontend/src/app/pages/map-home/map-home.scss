@@ -122,6 +122,7 @@
 }
 
 .peak-marker {
+  position: relative;
   animation: peak-fade-in 220ms ease-out;
 }
 @keyframes peak-fade-in {
@@ -141,4 +142,21 @@
     bottom: 12px;
     left: 12px;
   }
+}
+
+.peak-marker .glacier-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  font-size: 0.7rem;
+  line-height: 1;
+  color: #d6ecf7;
+  text-shadow: 0 0 2px #0b1620, 0 0 2px #0b1620;
+  pointer-events: none;
+}
+
+.popup-glacier {
+  margin-top: 0.25rem;
+  font-size: 0.72rem;
+  color: #bcd9ea;
 }

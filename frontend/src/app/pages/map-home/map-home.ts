@@ -317,7 +317,7 @@ export class MapHome implements OnDestroy {
       const spec = markerIconSpec(route);
       const icon = L.divIcon({
         className: spec.className,
-        html: `<span class="dot ${spec.dotClass}"></span>`,
+        html: `<span class="dot ${spec.dotClass}"></span>${route.isGlaciated ? '<span class="glacier-badge" aria-hidden="true">❄</span>' : ''}`,
         iconSize: [28, 28],
         iconAnchor: [14, 14],
       });
@@ -387,7 +387,7 @@ export function markerIconSpec(route: Pick<RouteSummary, 'grade'>): MarkerIconSp
   return { className: 'peak-marker', dotClass: `grade-${route.grade.toLowerCase()}`, interactive: true };
 }
 
-function popupHtml(route: RouteSummary): string {
+export function popupHtml(route: RouteSummary): string {
   const grade = route.grade ?? '?';
   const drivers = (route.drivers ?? []).slice(0, 2)
     .map(d => `<div class="popup-driver popup-driver-${d.severity}">${escapeHtml(d.label)}</div>`)
@@ -395,6 +395,7 @@ function popupHtml(route: RouteSummary): string {
   return `
     <div class="popup-name">${escapeHtml(route.mountain)}</div>
     <div class="popup-sub">${route.summitElevationFt.toLocaleString()} ft &middot; Class ${escapeHtml(route.classDifficulty)}</div>
+    ${route.isGlaciated ? '<div class="popup-glacier">❄ Glaciated — extreme hazard; see full forecast</div>' : ''}
     <div class="popup-grade grade-${grade.toLowerCase()}">${grade}</div>
     ${drivers}
     <a class="popup-cta" data-peak="${escapeHtml(route.slug)}" href="/peak/${escapeHtml(route.slug)}">View full forecast &rarr;</a>
