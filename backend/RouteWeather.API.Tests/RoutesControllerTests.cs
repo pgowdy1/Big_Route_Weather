@@ -166,4 +166,39 @@ public class RoutesControllerTests
         Assert.Equal(JsonValueKind.Null, sources[1].GetProperty("maxGustMph").ValueKind);
         Assert.Equal(JsonValueKind.Null, sources[1].GetProperty("maxCapeJkg").ValueKind);
     }
+
+    [Fact]
+    public async Task GetAll_summaryIncludesIsGlaciated()
+    {
+        var dbFactory = new TestDbContextFactory(nameof(GetAll_summaryIncludesIsGlaciated));
+        var ice = TestData.Route(id: 1, slug: "mt-ice", mountain: "Mt Ice");
+        ice.IsGlaciated = true;
+        var rock = TestData.Route(id: 2, slug: "mt-rock", mountain: "Mt Rock");
+        await TestData.SeedRoutesAsync(dbFactory, ice, rock);
+        var controller = Build(dbFactory, new FakeConditionsAggregator());
+
+        var summaries = Json(await controller.GetAll(CancellationToken.None));
+
+        var iced = summaries.EnumerateArray().Single(s => s.GetProperty("slug").GetString() == "mt-ice");
+        Assert.True(iced.GetProperty("isGlaciated").GetBoolean());
+        var rocked = summaries.EnumerateArray().Single(s => s.GetProperty("slug").GetString() == "mt-rock");
+        Assert.False(rocked.GetProperty("isGlaciated").GetBoolean());
+    }
+
+    [Fact]
+    public async Task GetBySlug_detailIncludesIsGlaciated()
+    {
+        var dbFactory = new TestDbContextFactory(nameof(GetBySlug_detailIncludesIsGlaciated));
+        var ice = TestData.Route(id: 1, slug: "mt-test", mountain: "Mt Test");
+        ice.IsGlaciated = true;
+        var rock = TestData.Route(id: 2, slug: "mt-rock", mountain: "Mt Rock");
+        await TestData.SeedRoutesAsync(dbFactory, ice, rock);
+        var controller = Build(dbFactory, new FakeConditionsAggregator());
+
+        var detail = Json(await controller.GetBySlug("mt-test", CancellationToken.None));
+        Assert.True(detail.GetProperty("isGlaciated").GetBoolean());
+
+        var rockDetail = Json(await controller.GetBySlug("mt-rock", CancellationToken.None));
+        Assert.False(rockDetail.GetProperty("isGlaciated").GetBoolean());
+    }
 }

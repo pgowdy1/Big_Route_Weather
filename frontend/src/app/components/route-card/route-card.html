@@ -12,6 +12,9 @@
     @if (route().rangeName) {
       <span class="range-chip">{{ route().rangeName }}</span>
     }
+    @if (route().isGlaciated) {
+      <span class="glacier-chip" aria-label="Glaciated peak">❄ Glaciated</span>
+    }
     @if (route().isStale) {
       <span class="stale-chip">Stale data</span>
     }

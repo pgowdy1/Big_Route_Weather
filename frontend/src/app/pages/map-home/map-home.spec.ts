@@ -3,7 +3,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
 import { vi } from 'vitest';
-import { MapHome, markerIconSpec } from './map-home';
+import { MapHome, markerIconSpec, popupHtml } from './map-home';
 import { RouteSummary } from '../../models/route-conditions';
 
 describe('MapHome', () => {
@@ -32,6 +32,7 @@ describe('MapHome', () => {
       routeName: 'SW Ridge',
       summitElevationFt: 12000,
       classDifficulty: '2',
+      isGlaciated: false,
       rangeSlug: 'r',
       rangeName: 'R',
       summitLat: 40,
@@ -299,5 +300,25 @@ describe('markerIconSpec', () => {
     expect(spec.className).toBe('peak-marker peak-marker-ghost');
     expect(spec.dotClass).toBe('grade-ghost');
     expect(spec.interactive).toBe(false);
+  });
+});
+
+describe('popupHtml', () => {
+  function summary(overrides: Partial<RouteSummary> = {}): RouteSummary {
+    return {
+      slug: 'mt-x', mountain: 'Mt X', routeName: 'SW Ridge', summitElevationFt: 12000,
+      classDifficulty: '2', isGlaciated: false, rangeSlug: 'r', rangeName: 'R',
+      summitLat: 40, summitLon: -105, grade: 'A', overallScore: 92, drivers: [],
+      updatedAt: new Date().toISOString(), isStale: false, consensus: null, airQualityUsAqi: null,
+      ...overrides,
+    };
+  }
+
+  it('adds a glaciated note when the route is glaciated', () => {
+    expect(popupHtml(summary({ isGlaciated: true }))).toContain('Glaciated');
+  });
+
+  it('omits the glaciated note otherwise', () => {
+    expect(popupHtml(summary({ isGlaciated: false }))).not.toContain('Glaciated');
   });
 });
