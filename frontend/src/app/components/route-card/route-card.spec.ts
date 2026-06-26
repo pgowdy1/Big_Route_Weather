@@ -57,6 +57,24 @@ describe('RouteCard', () => {
       expect((fixture.nativeElement as HTMLElement).querySelector('.aqi-chip')).toBeNull();
     }
   });
+
+  it('shows a muted glacier chip when the peak is glaciated', () => {
+    const fixture = TestBed.createComponent(RouteCard);
+    fixture.componentRef.setInput('route', { ...summary('mount-baker'), isGlaciated: true });
+    fixture.detectChanges();
+
+    const chip = (fixture.nativeElement as HTMLElement).querySelector('.glacier-chip');
+    expect(chip).toBeTruthy();
+    expect(chip!.textContent ?? '').toContain('Glaciated');
+  });
+
+  it('stays silent when the peak is not glaciated', () => {
+    const fixture = TestBed.createComponent(RouteCard);
+    fixture.componentRef.setInput('route', { ...summary('pikes-peak'), isGlaciated: false });
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement as HTMLElement).querySelector('.glacier-chip')).toBeNull();
+  });
 });
 
 function summary(slug: string): RouteSummary {
