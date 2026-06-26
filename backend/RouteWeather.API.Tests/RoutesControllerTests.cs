@@ -189,13 +189,16 @@ public class RoutesControllerTests
     public async Task GetBySlug_detailIncludesIsGlaciated()
     {
         var dbFactory = new TestDbContextFactory(nameof(GetBySlug_detailIncludesIsGlaciated));
-        var ice = TestData.Route(slug: "mt-test", mountain: "Mt Test");
+        var ice = TestData.Route(id: 1, slug: "mt-test", mountain: "Mt Test");
         ice.IsGlaciated = true;
-        await TestData.SeedRoutesAsync(dbFactory, ice);
+        var rock = TestData.Route(id: 2, slug: "mt-rock", mountain: "Mt Rock");
+        await TestData.SeedRoutesAsync(dbFactory, ice, rock);
         var controller = Build(dbFactory, new FakeConditionsAggregator());
 
         var detail = Json(await controller.GetBySlug("mt-test", CancellationToken.None));
-
         Assert.True(detail.GetProperty("isGlaciated").GetBoolean());
+
+        var rockDetail = Json(await controller.GetBySlug("mt-rock", CancellationToken.None));
+        Assert.False(rockDetail.GetProperty("isGlaciated").GetBoolean());
     }
 }
