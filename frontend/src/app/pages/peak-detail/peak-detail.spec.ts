@@ -343,6 +343,28 @@ describe('PeakDetail', () => {
 
     httpMock.expectOne('/api/routes/mount-whitney').flush(detail());
   });
+
+  it('shows the glaciated warning banner for a glaciated peak', () => {
+    const fixture = TestBed.createComponent(PeakDetail);
+    fixture.componentRef.setInput('slug', 'mount-rainier'); // glaciated in the manifest
+    fixture.detectChanges();
+
+    const banner = (fixture.nativeElement as HTMLElement).querySelector('.glacier-warning');
+    expect(banner).not.toBeNull();
+    expect(banner!.textContent ?? '').toContain('Glaciated peak');
+
+    httpMock.expectOne('/api/routes/mount-rainier').flush({} as RouteDetail);
+  });
+
+  it('shows no glaciated warning for a non-glaciated peak', () => {
+    const fixture = TestBed.createComponent(PeakDetail);
+    fixture.componentRef.setInput('slug', 'pikes-peak'); // not glaciated
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement as HTMLElement).querySelector('.glacier-warning')).toBeNull();
+
+    httpMock.expectOne('/api/routes/pikes-peak').flush({} as RouteDetail);
+  });
 });
 
 function detail(): RouteDetail {

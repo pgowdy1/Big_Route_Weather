@@ -214,3 +214,23 @@
   .peak-detail .hero { flex-direction: column; }
   .peak-detail .window-strip { flex-wrap: wrap; }
 }
+
+.glacier-warning {
+  margin: 1rem 0 0;
+  padding: 1rem 1.25rem;
+  border: 1px solid #c62828;
+  border-left: 4px solid #ef5350;
+  border-radius: 0.75rem;
+  background: #2a1414;
+  color: #ffd9d9;
+
+  .gw-title {
+    margin: 0 0 0.5rem;
+    font-size: 1.05rem;
+    line-height: 1.3;
+    color: #ff8a80;
+  }
+
+  p { margin: 0.4rem 0 0; font-size: 0.9rem; line-height: 1.5; }
+  strong { color: #fff; }
+}

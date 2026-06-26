@@ -39,6 +39,13 @@
         </p>
       </div>
     </header>
+    @if (p.isGlaciated) {
+      <aside class="glacier-warning" role="note">
+        <h2 class="gw-title"><span aria-hidden="true">⚠️</span> Glaciated peak — hazards this grade does <strong>not</strong> measure</h2>
+        <p>This grade reflects <strong>weather only.</strong> It does <strong>not</strong> account for glacier and snow/ice hazards: <strong>crevasses, falling séracs, heat-driven rockfall</strong> as snow and ice melt out, and <strong>changing route conditions</strong> (ice or rock newly exposed). Real conditions can be far more dangerous than the forecast suggests.</p>
+        <p><strong>Glacier travel is serious mountaineering.</strong> Attempt these routes only with roped-team travel, crevasse-rescue skills, and adequate glacier experience.</p>
+      </aside>
+    }
   }
 
   @if (notFound()) {
