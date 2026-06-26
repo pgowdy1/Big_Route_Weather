@@ -7,7 +7,7 @@ import { dirname, join } from 'node:path';
 
 const API_BASE = process.env.API_BASE ?? 'http://localhost:5150';
 const FIELDS = ['slug', 'mountain', 'routeName', 'summitElevationFt',
-  'classDifficulty', 'rangeName', 'rangeSlug', 'summitLat', 'summitLon'];
+  'classDifficulty', 'rangeName', 'rangeSlug', 'summitLat', 'summitLon', 'isGlaciated'];
 
 const res = await fetch(`${API_BASE}/api/routes`);
 if (!res.ok) throw new Error(`GET /api/routes failed: ${res.status} ${res.statusText}`);
