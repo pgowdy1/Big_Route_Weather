@@ -319,4 +319,44 @@ public class GradeCalculatorTests
         Assert.Equal(0.10, RecentSnowFactor.Weight);
         Assert.Equal(0.10, SnowpackFactor.Weight);
     }
+
+    [Fact]
+    public void GoodAqi_addsNoAirQualityFactor()
+    {
+        var result = GradeCalculator.Compute(Weather(), null, new AirQualitySnapshot(80, 10));
+        Assert.DoesNotContain(result.Factors, f => f.Name == "Air quality");
+    }
+
+    [Fact]
+    public void UnhealthyForSensitiveAqi_addsActiveDrag_withoutCap()
+    {
+        var result = GradeCalculator.Compute(Weather(), null, new AirQualitySnapshot(120, 30));
+        var f = Assert.Single(result.Factors, x => x.Name == "Air quality");
+        Assert.True(f.IsActive);
+        Assert.DoesNotContain("Capped", result.Rationale);
+    }
+
+    [Fact]
+    public void UnhealthyAqi_capsGradeAtC()
+    {
+        var result = GradeCalculator.Compute(Weather(), null, new AirQualitySnapshot(175, 60));
+        Assert.Equal(Grade.C, result.Grade);
+        Assert.Contains("Capped at C", result.Rationale);
+    }
+
+    [Fact]
+    public void HazardousAqi_capsGradeAtF_andLeadsDrivers()
+    {
+        var result = GradeCalculator.Compute(Weather(), null, new AirQualitySnapshot(250, 90));
+        Assert.Equal(Grade.F, result.Grade);
+        Assert.Equal("Poor air quality", result.Drivers[0].Label);
+    }
+
+    [Fact]
+    public void Aqi_neverManufacturesGradeWithoutWeatherOrSnowpack()
+    {
+        var result = GradeCalculator.Compute(null, null, new AirQualitySnapshot(250, 90));
+        Assert.DoesNotContain(result.Factors, f => f.Name == "Air quality");
+        Assert.Empty(result.Factors);
+    }
 }

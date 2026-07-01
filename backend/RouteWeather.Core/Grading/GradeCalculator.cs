@@ -12,7 +12,7 @@ public record GradeResult(
 
 public static class GradeCalculator
 {
-    public static GradeResult Compute(WeatherSnapshot? weather, SnowpackSnapshot? snowpack)
+    public static GradeResult Compute(WeatherSnapshot? weather, SnowpackSnapshot? snowpack, AirQualitySnapshot? airQuality = null)
     {
         var factors = new List<FactorScore>();
         var capCandidates = new List<(Grade Cap, string Reason, string FactorName)>();
@@ -86,6 +86,19 @@ public static class GradeCalculator
                 SnowpackFactor.Weight,
                 SnowpackFactor.Detail(snowpack.SnowWaterEquivalentIn, snowpack.PercentOfNormalSwe),
                 IsActive: snow.SnowpackActive));
+        }
+
+        // AQI is a grade modifier, never a standalone grade: only fold it in once
+        // at least one weather/snowpack factor exists (factors.Count > 0). Silent
+        // below 101, so no card and no drag on clean/moderate air.
+        if (airQuality is not null && factors.Count > 0 && AirQualityFactor.IsActive(airQuality.UsAqi))
+        {
+            factors.Add(new FactorScore(
+                "Air quality",
+                AirQualityFactor.Score(airQuality.UsAqi),
+                AirQualityFactor.Weight,
+                AirQualityFactor.Detail(airQuality.UsAqi)));
+            AddCap(capCandidates, "Air quality", AirQualityFactor.Cap(airQuality.UsAqi));
         }
 
         var activeFactors = factors.Where(f => f.IsActive).ToList();
@@ -164,6 +177,7 @@ public static class GradeCalculator
         "Snowpack" => severity == "negative" ? "Out-of-season snowpack" : "Typical snowpack",
         "Thunderstorm" => severity == "negative" ? "Storm risk" : severity == "neutral" ? "Some instability" : "Low storm risk",
         "Gusts" => severity == "negative" ? "Strong gusts" : severity == "neutral" ? "Gusty" : "Manageable gusts",
+        "Air quality" => severity == "negative" ? "Poor air quality" : severity == "neutral" ? "Reduced air quality" : "Clean air",
         _ => f.Name,
     };
 
