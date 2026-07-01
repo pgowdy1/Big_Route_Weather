@@ -4,15 +4,15 @@ namespace RouteWeather.Core.Grading;
 
 public static class WindowGradeCalculator
 {
-    public static WindowGrades Compute(WeatherSnapshot? weather, SnowpackSnapshot? snowpack)
+    public static WindowGrades Compute(WeatherSnapshot? weather, SnowpackSnapshot? snowpack, AirQualitySnapshot? airQuality = null)
     {
         return new WindowGrades(
-            Next12h: GradeWindow(weather, snowpack, 12),
-            Next24h: GradeWindow(weather, snowpack, 24),
-            Next48h: GradeWindow(weather, snowpack, 48));
+            Next12h: GradeWindow(weather, snowpack, 12, airQuality),
+            Next24h: GradeWindow(weather, snowpack, 24, airQuality),
+            Next48h: GradeWindow(weather, snowpack, 48, airQuality));
     }
 
-    private static WindowGrade GradeWindow(WeatherSnapshot? weather, SnowpackSnapshot? snowpack, int hours)
+    private static WindowGrade GradeWindow(WeatherSnapshot? weather, SnowpackSnapshot? snowpack, int hours, AirQualitySnapshot? airQuality)
     {
         var hourly = weather?.Next48Hours ?? Array.Empty<HourlyForecast>();
         var slice = hourly.Take(hours).ToList();
@@ -29,7 +29,7 @@ public static class WindowGradeCalculator
                 Rationale: "No forecast or snowpack data for this window.");
         }
 
-        var result = GradeCalculator.Compute(windowed, snowpack);
+        var result = GradeCalculator.Compute(windowed, snowpack, airQuality);
         return new WindowGrade(
             Grade: result.Grade,
             OverallScore: result.OverallScore,
