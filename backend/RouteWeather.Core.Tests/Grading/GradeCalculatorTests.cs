@@ -319,4 +319,55 @@ public class GradeCalculatorTests
         Assert.Equal(0.10, RecentSnowFactor.Weight);
         Assert.Equal(0.10, SnowpackFactor.Weight);
     }
+
+    [Fact]
+    public void GoodAqi_addsNoAirQualityFactor()
+    {
+        var result = GradeCalculator.Compute(Weather(), null, new AirQualitySnapshot(80, 10));
+        Assert.DoesNotContain(result.Factors, f => f.Name == "Air quality");
+    }
+
+    [Fact]
+    public void UnhealthyForSensitiveAqi_addsActiveDrag_withoutCap()
+    {
+        var result = GradeCalculator.Compute(Weather(), null, new AirQualitySnapshot(120, 30));
+        var f = Assert.Single(result.Factors, x => x.Name == "Air quality");
+        Assert.True(f.IsActive);
+        Assert.DoesNotContain("Capped", result.Rationale);
+    }
+
+    [Fact]
+    public void UnhealthyAqi_capsGradeAtC()
+    {
+        var result = GradeCalculator.Compute(Weather(), null, new AirQualitySnapshot(175, 60));
+        Assert.Equal(Grade.C, result.Grade);
+        Assert.Contains("Capped at C", result.Rationale);
+    }
+
+    [Fact]
+    public void HazardousAqi_capsGradeAtF_andLeadsDrivers()
+    {
+        var result = GradeCalculator.Compute(Weather(), null, new AirQualitySnapshot(250, 90));
+        Assert.Equal(Grade.F, result.Grade);
+        Assert.Equal("Poor air quality", result.Drivers[0].Label);
+    }
+
+    [Fact]
+    public void Aqi_neverManufacturesGradeWithoutWeatherOrSnowpack()
+    {
+        var result = GradeCalculator.Compute(null, null, new AirQualitySnapshot(250, 90));
+        Assert.DoesNotContain(result.Factors, f => f.Name == "Air quality");
+        Assert.Empty(result.Factors);
+    }
+
+    [Fact]
+    public void CappingAqi_inNeutralScoreBand_doesNotDoubleListDriver()
+    {
+        // AQI 160 scores 56 (neutral band) yet caps at C; the capped factor must
+        // appear exactly once as a negative driver, not also as a neutral one.
+        var result = GradeCalculator.Compute(Weather(), null, new AirQualitySnapshot(160, 60));
+        Assert.Equal(Grade.C, result.Grade);
+        Assert.Single(result.Drivers, d => d.Label == "Poor air quality");
+        Assert.DoesNotContain(result.Drivers, d => d.Label == "Reduced air quality");
+    }
 }

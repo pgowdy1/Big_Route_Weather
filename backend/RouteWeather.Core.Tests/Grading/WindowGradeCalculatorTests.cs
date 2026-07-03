@@ -140,4 +140,20 @@ public class WindowGradeCalculatorTests
         Assert.DoesNotContain(grades.Next12h.Factors, f => f.Name == "Thunderstorm");
         Assert.DoesNotContain(grades.Next12h.Factors, f => f.Name == "Gusts");
     }
+
+    [Fact]
+    public void HazardousAqi_capsEveryWindowAtF()
+    {
+        var hours = Enumerable.Range(0, 48)
+            .Select(i => new HourlyForecast(DateTimeOffset.UtcNow.AddHours(i), 50, 5, 0, "Clear"))
+            .ToList();
+        var weather = new WeatherSnapshot(
+            WindMph: 5, TempF: 50, PrecipitationProbabilityPct: 0, Next48Hours: hours);
+
+        var grades = WindowGradeCalculator.Compute(weather, null, new AirQualitySnapshot(250, 90));
+
+        Assert.Equal(Grade.F, grades.Next12h.Grade);
+        Assert.Equal(Grade.F, grades.Next24h.Grade);
+        Assert.Equal(Grade.F, grades.Next48h.Grade);
+    }
 }
