@@ -160,10 +160,16 @@ public static class GradeCalculator
         var capFactor = factors.FirstOrDefault(f => f.Name == appliedCap.Value.FactorName);
         if (capFactor is null) return ordered;
 
-        var negLabel = LabelFor(capFactor, "negative");
-        var posLabel = LabelFor(capFactor, "positive");
-        ordered.RemoveAll(d => d.Label == negLabel || d.Label == posLabel);
-        ordered.Insert(0, new Driver(negLabel, "negative"));
+        // Remove the cap factor's existing driver in ANY severity form before
+        // forcing it to the front as a negative. A three-label factor (AQI,
+        // Thunderstorm, Gusts) can sit in its neutral band while still capping the
+        // grade; matching only negative/positive would leave the neutral driver in
+        // place and list the same factor twice with conflicting severities.
+        ordered.RemoveAll(d =>
+            d.Label == LabelFor(capFactor, "negative") ||
+            d.Label == LabelFor(capFactor, "neutral") ||
+            d.Label == LabelFor(capFactor, "positive"));
+        ordered.Insert(0, new Driver(LabelFor(capFactor, "negative"), "negative"));
         if (ordered.Count > 3) ordered.RemoveAt(ordered.Count - 1);
         return ordered;
     }
@@ -177,6 +183,7 @@ public static class GradeCalculator
         "Snowpack" => severity == "negative" ? "Out-of-season snowpack" : "Typical snowpack",
         "Thunderstorm" => severity == "negative" ? "Storm risk" : severity == "neutral" ? "Some instability" : "Low storm risk",
         "Gusts" => severity == "negative" ? "Strong gusts" : severity == "neutral" ? "Gusty" : "Manageable gusts",
+        // "Clean air" is unreachable — an active AQI factor always scores <= 80 (< the 85 positive floor); kept for switch symmetry.
         "Air quality" => severity == "negative" ? "Poor air quality" : severity == "neutral" ? "Reduced air quality" : "Clean air",
         _ => f.Name,
     };

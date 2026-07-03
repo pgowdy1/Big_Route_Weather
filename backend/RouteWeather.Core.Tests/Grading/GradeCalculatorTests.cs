@@ -359,4 +359,15 @@ public class GradeCalculatorTests
         Assert.DoesNotContain(result.Factors, f => f.Name == "Air quality");
         Assert.Empty(result.Factors);
     }
+
+    [Fact]
+    public void CappingAqi_inNeutralScoreBand_doesNotDoubleListDriver()
+    {
+        // AQI 160 scores 56 (neutral band) yet caps at C; the capped factor must
+        // appear exactly once as a negative driver, not also as a neutral one.
+        var result = GradeCalculator.Compute(Weather(), null, new AirQualitySnapshot(160, 60));
+        Assert.Equal(Grade.C, result.Grade);
+        Assert.Single(result.Drivers, d => d.Label == "Poor air quality");
+        Assert.DoesNotContain(result.Drivers, d => d.Label == "Reduced air quality");
+    }
 }
