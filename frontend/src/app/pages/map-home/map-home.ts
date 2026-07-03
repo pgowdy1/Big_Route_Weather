@@ -8,6 +8,7 @@ import { RoutePosition, RouteSummary } from '../../models/route-conditions';
 import { RangeMeta } from '../../models/range';
 import { SeoService } from '../../seo/seo.service';
 import { homeMeta } from '../../seo/route-meta';
+import { MapViewState } from '../../services/map-view-state';
 
 type MapError = { kind: 'routes' | 'leaflet'; message: string };
 
@@ -29,6 +30,7 @@ export class MapHome implements OnDestroy {
   private destroyRef = inject(DestroyRef);
   private seo = inject(SeoService);
   private platformId = inject(PLATFORM_ID);
+  private mapViewState = inject(MapViewState);
 
   mapContainer = viewChild<ElementRef<HTMLDivElement>>('mapEl');
 
@@ -195,15 +197,23 @@ export class MapHome implements OnDestroy {
     }
 
     const isMobile = window.innerWidth <= 480;
+    const saved = this.mapViewState.load();
 
     this.map = L.map(el, {
-      center: [43.0, -113.6],
-      zoom: isMobile ? 4 : 6,
+      center: saved?.center ?? [43.0, -113.6],
+      zoom: saved?.zoom ?? (isMobile ? 4 : 6),
       minZoom: 4,
       maxZoom: 12,
       maxBounds: [[28, -130], [52, -100]],
       scrollWheelZoom: true,
       zoomControl: false,
+    });
+
+    // Persist the view for the session so returning to the map (via any path)
+    // lands back where the user left it. moveend covers both pan and zoom.
+    this.map.on('moveend', () => {
+      const c = this.map.getCenter();
+      this.mapViewState.save({ center: [c.lat, c.lng], zoom: this.map.getZoom() });
     });
 
     L.control.zoom({ position: 'topright' }).addTo(this.map);

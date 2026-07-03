@@ -299,4 +299,22 @@ public class ConditionsAggregatorTests
         Assert.Null(conditions.AirQuality);
         Assert.NotNull(conditions.Grade);
     }
+
+    [Fact]
+    public async Task HighAirQuality_capsServedGrade()
+    {
+        var h = new Harness(nameof(HighAirQuality_capsServedGrade));
+        await h.AddForecastRowAsync(
+            fetchedAtUtc: DateTime.UtcNow.AddMinutes(-10),
+            expiresAtUtc: DateTime.UtcNow.AddMinutes(50));
+        await h.AddAirQualityRowAsync(
+            """{"usAqi":250,"pm25":80.0}""",
+            fetchedAtUtc: DateTime.UtcNow.AddMinutes(-10),
+            expiresAtUtc: DateTime.UtcNow.AddMinutes(50));
+
+        var conditions = await h.Aggregator.GetConditionsAsync(h.Route, FetchMode.CacheOnly);
+
+        Assert.Equal(Grade.F, conditions.Grade);
+        Assert.Contains("air quality", conditions.Rationale, StringComparison.OrdinalIgnoreCase);
+    }
 }

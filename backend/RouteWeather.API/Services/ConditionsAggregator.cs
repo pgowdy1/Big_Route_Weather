@@ -220,7 +220,7 @@ public class ConditionsAggregator : IConditionsAggregator
         var blendedWeather = ensemble.Blended;
         var snowpack = snowpackResults.FirstOrDefault(r => r.Snapshot is not null).Snapshot;
 
-        var result = GradeCalculator.Compute(blendedWeather, snowpack);
+        var result = GradeCalculator.Compute(blendedWeather, snowpack, airQuality.Snapshot);
 
         var weatherFetched = liveForecasts.Count == 0 ? null : liveForecasts.Max(r => r.FetchedAt);
         var snowpackFetched = snowpackResults.Where(r => r.Snapshot is not null).Select(r => r.FetchedAt).FirstOrDefault();
@@ -232,7 +232,7 @@ public class ConditionsAggregator : IConditionsAggregator
 
         var windowGrades = blendedWeather is null && snowpack is null
             ? null
-            : WindowGradeCalculator.Compute(blendedWeather, snowpack);
+            : WindowGradeCalculator.Compute(blendedWeather, snowpack, airQuality.Snapshot);
 
         var route = new Core.Models.Route(
             routeEntity.Slug,
