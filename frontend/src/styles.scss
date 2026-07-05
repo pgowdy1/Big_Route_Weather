@@ -30,6 +30,9 @@ html, body {
   white-space: nowrap;
 }
 
+// Leaflet-injected DOM (divIcon markers, popup content) never carries Angular's
+// _ngcontent scoping attribute, so every rule targeting it must live in this
+// global sheet — component-scoped styles in map-home.scss cannot reach it.
 .peak-marker .dot {
   display: block;
   margin: 7px;
@@ -56,9 +59,22 @@ html, body {
   0%, 100% { opacity: 0.55; }
   50%      { opacity: 0.85; }
 }
+// Anchors against the icon element itself: .leaflet-marker-icon is position:absolute,
+// so it is already the containing block. Never add position:relative to .peak-marker —
+// it would override Leaflet's marker positioning and detach markers from the map.
+.peak-marker .glacier-badge {
+  position: absolute;
+  bottom: 15px;
+  font-size: 0.7rem;
+  line-height: 1;
+  color: #d6ecf7;
+  text-shadow: 0 0 2px #0b1620, 0 0 2px #0b1620;
+  pointer-events: none;
+}
 
 .peak-popup .popup-name { font-weight: 700; font-size: 1.05rem; color: #f5f8fb; margin-bottom: 2px; }
 .peak-popup .popup-sub  { font-size: 0.8rem;  color: #9fb5d5; margin-bottom: 8px; }
+.peak-popup .popup-glacier { margin-top: 0.25rem; font-size: 0.72rem; color: #bcd9ea; }
 .peak-popup .popup-grade {
   display: inline-flex; align-items: center; justify-content: center;
   width: 36px; height: 36px; border-radius: 6px;
