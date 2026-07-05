@@ -121,15 +121,6 @@
   }
 }
 
-.peak-marker {
-  position: relative;
-  animation: peak-fade-in 220ms ease-out;
-}
-@keyframes peak-fade-in {
-  from { opacity: 0; transform: scale(0.6); }
-  to   { opacity: 1; transform: scale(1); }
-}
-
 @media (max-width: 480px) {
   .search-overlay {
     min-width: 0;
@@ -142,21 +133,4 @@
     bottom: 12px;
     left: 12px;
   }
-}
-
-.peak-marker .glacier-badge {
-  position: absolute;
-  top: 1px;
-  right: 2px;
-  font-size: 0.7rem;
-  line-height: 1;
-  color: #d6ecf7;
-  text-shadow: 0 0 2px #0b1620, 0 0 2px #0b1620;
-  pointer-events: none;
-}
-
-.popup-glacier {
-  margin-top: 0.25rem;
-  font-size: 0.72rem;
-  color: #bcd9ea;
 }
