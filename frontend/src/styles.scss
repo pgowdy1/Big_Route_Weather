@@ -185,8 +185,8 @@ html, body {
   pointer-events: none;
 }
 
-.peak-popup .popup-name { font-weight: 700; font-size: 1.05rem; color: #f5f8fb; margin-bottom: 2px; }
-.peak-popup .popup-sub  { font-size: 0.8rem;  color: #9fb5d5; margin-bottom: 8px; }
+.peak-popup .popup-name { font-weight: 700; font-size: 1.05rem; color: var(--text); margin-bottom: 2px; }
+.peak-popup .popup-sub  { font-size: 0.8rem;  color: var(--muted); margin-bottom: 8px; }
 .peak-popup .popup-glacier { margin-top: 0.25rem; font-size: 0.72rem; color: var(--glacier-text); }
 .peak-popup .popup-grade {
   display: inline-flex; align-items: center; justify-content: center;
@@ -201,10 +201,10 @@ html, body {
 .peak-popup .popup-driver { font-size: 0.8rem; padding: 2px 0; }
 .peak-popup .popup-driver-positive { color: #3ecf78; }
 .peak-popup .popup-driver-negative { color: #e88848; }
-.peak-popup .popup-driver-neutral { color: #9fb5d5; }
+.peak-popup .popup-driver-neutral { color: var(--muted); }
 .peak-popup .popup-cta {
   display: block; margin-top: 8px; padding: 6px 10px; border-radius: 5px;
   background: var(--accent-strong); color: #fff; text-align: center; text-decoration: none; font-weight: 600;
 }
-.leaflet-popup-content-wrapper { background: var(--surface); color: #cfd9e8; }
+.leaflet-popup-content-wrapper { background: var(--surface); color: var(--text-soft); }
 .leaflet-popup-tip { background: var(--surface); }
