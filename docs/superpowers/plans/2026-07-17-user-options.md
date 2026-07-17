@@ -690,7 +690,7 @@ git commit -m "feat(units): number-to-number unit conversion pipes"
 - Modify: `src/styles.scss` (token block at top; own rules → vars)
 - Modify: `src/index.html` (inline script)
 
-This task must be a **visual no-op in dark mode**: dark token values are the exact hexes being replaced.
+This task must be a **visual no-op in dark mode** for structural colors — with one sanctioned exception: a handful of near-duplicate grays intentionally collapse onto shared tokens (listed per-row below and in Tasks 6-7). Those rows shift dark-mode rendering by a near-imperceptible delta; that consolidation is part of the approved design (a finite token set instead of one-off tokens per stray hex). Everything not explicitly listed as a consolidation must be byte-exact in dark mode.
 
 - [ ] **Step 1: Add the token block at the very top of `src/styles.scss`** (after the three `@import` lines, before `html, body`):
 
@@ -827,8 +827,10 @@ This task must be a **visual no-op in dark mode**: dark token values are the exa
 | `.peak-popup .popup-driver-negative` | `color: #e88848` | *leave literal (matches D-grade dot)* |
 | `.peak-popup .popup-driver-neutral` | `color: #9fb5d5` | `color: var(--muted)` |
 | `.peak-popup .popup-cta` | `background: #3a5a8a` | `background: var(--accent-strong)` |
-| `.leaflet-popup-content-wrapper` | `background: #0a1525; color: #cfd9e8` | `background: var(--panel); color: var(--text-soft)` |
-| `.leaflet-popup-tip` | `background: #0a1525` | `background: var(--panel)` |
+| `.leaflet-popup-content-wrapper` | `background: #0a1525; color: #cfd9e8` | `background: var(--surface); color: var(--text-soft)` |
+| `.leaflet-popup-tip` | `background: #0a1525` | `background: var(--surface)` |
+
+Intentional near-merge consolidations in this file (dark-mode drift sanctioned): `#f5f8fb` → `--text` (#e8eef3), `#9fb5d5` → `--muted` (#8aa0b4, two occurrences), `#cfd9e8` → `--text-soft` (#cfd8dc). Without these, light mode would render near-white popup text on a light panel.
 
 Leave untouched: `.peak-marker .dot` fills (`#3ecf78`…`#6f7a8e`), ghost `#3a4a62`, dot border `#ffffff`, `.popup-grade.grade-*` fills — brand constants.
 
