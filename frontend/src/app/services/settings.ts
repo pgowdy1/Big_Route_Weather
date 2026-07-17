@@ -90,6 +90,9 @@ export class SettingsService {
     }
   }
 
+  // Note: a set() before afterNextRender's applyStored() would persist current
+  // state and shadow yet-unread stored prefs. Unreachable today (no consumer
+  // can write pre-first-paint); revisit if a pre-paint caller ever appears.
   set<K extends keyof SiteSettings>(key: K, value: SiteSettings[K]): void {
     this.sig[key].set(value);
     this.persist();

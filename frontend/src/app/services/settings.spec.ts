@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { vi } from 'vitest';
 import { SettingsService } from './settings';
 import { STORAGE_KEY } from './settings-defaults';
 
@@ -6,6 +7,11 @@ describe('SettingsService', () => {
   beforeEach(() => {
     localStorage.clear();
     document.documentElement.removeAttribute('data-theme');
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   function create(): SettingsService {
@@ -106,5 +112,86 @@ describe('SettingsService', () => {
     const s = create();
     expect(s.theme()).toBe('light');
     expect(s.temperature()).toBe('F'); // units wait for applyStored/afterNextRender
+  });
+
+  it('applyPreset(imperial) round-trips every unit field back from metric', () => {
+    const s = create();
+    s.applyPreset('metric');
+    expect(s.unitPreset()).toBe('metric');
+    s.applyPreset('imperial');
+    expect(s.temperature()).toBe('F');
+    expect(s.windSpeed()).toBe('mph');
+    expect(s.elevation()).toBe('ft');
+    expect(s.snowDepth()).toBe('in');
+    expect(s.visibility()).toBe('mi');
+    expect(s.timeFormat()).toBe('12h');
+    expect(s.unitPreset()).toBe('imperial');
+  });
+
+  it('survives a storage write failure and keeps the change in memory', () => {
+    const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('quota');
+    });
+    const s = create();
+    expect(() => s.set('temperature', 'C')).not.toThrow();
+    expect(s.temperature()).toBe('C'); // in-memory settings still apply
+    expect(setItem).toHaveBeenCalled(); // persist was attempted, not skipped
+    setItem.mockRestore();
+  });
+
+  it('setFromMenu ignores values outside the allowed list', () => {
+    const s = create();
+    s.setFromMenu('windSpeed', 'knots');
+    expect(s.windSpeed()).toBe('mph'); // rejected — unchanged
+    expect(localStorage.getItem(STORAGE_KEY)).toBeNull(); // nothing persisted
+    // sanity: a valid value still flows through the same setter
+    s.setFromMenu('windSpeed', 'kmh');
+    expect(s.windSpeed()).toBe('kmh');
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!).windSpeed).toBe('kmh');
+  });
+
+  describe('system theme (live matchMedia)', () => {
+    let capturedChange: ((e: MediaQueryListEvent) => void) | undefined;
+    let removeSpy: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+      capturedChange = undefined;
+      removeSpy = vi.fn();
+      const mql = {
+        matches: true,
+        addEventListener: (_type: string, cb: (e: MediaQueryListEvent) => void) => {
+          capturedChange = cb;
+        },
+        removeEventListener: removeSpy,
+      };
+      vi.stubGlobal('matchMedia', () => mql);
+    });
+
+    it('follows the OS preference for theme "system" and stamps data-theme live', async () => {
+      const s = create();
+      // matches:true → systemTheme is light, but the dark brand default holds
+      // until the user explicitly opts into 'system'.
+      expect(s.theme()).toBe('dark');
+      expect(s.resolvedTheme()).toBe('dark');
+
+      s.set('theme', 'system');
+      expect(s.resolvedTheme()).toBe('light');
+      await Promise.resolve(); // let the effect run (zoneless scheduler)
+      TestBed.tick();
+      expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+
+      // OS flips to dark → the live listener updates resolved theme + attribute.
+      capturedChange!({ matches: false } as MediaQueryListEvent);
+      expect(s.resolvedTheme()).toBe('dark');
+      TestBed.tick();
+      expect(document.documentElement.hasAttribute('data-theme')).toBe(false);
+    });
+
+    it('removes the matchMedia listener when the injector is destroyed', () => {
+      create();
+      expect(removeSpy).not.toHaveBeenCalled();
+      TestBed.resetTestingModule(); // fires DestroyRef.onDestroy
+      expect(removeSpy).toHaveBeenCalledWith('change', expect.any(Function));
+    });
   });
 });
