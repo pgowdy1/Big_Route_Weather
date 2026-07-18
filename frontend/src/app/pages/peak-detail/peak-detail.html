@@ -59,6 +59,13 @@
   }
 
   @if (detail(); as d) {
+    @if (d.climbWindows !== null || d.hourlyQuality !== null) {
+      <section class="climb-windows">
+        <h3>Climb windows</h3>
+        <app-climb-window-hero [windows]="d.climbWindows" />
+        <app-week-strip [hours]="d.hourlyQuality" [windows]="d.climbWindows" [daylight]="d.dailyDaylight" />
+      </section>
+    }
     @if (secondaryWindows().length > 0) {
       <section class="window-strip">
         @for (w of secondaryWindows(); track w.key) {

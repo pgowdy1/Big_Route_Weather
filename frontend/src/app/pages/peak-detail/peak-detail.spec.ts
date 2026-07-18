@@ -368,6 +368,52 @@ describe('PeakDetail', () => {
     httpMock.expectOne('/api/routes/pikes-peak').flush({} as RouteDetail);
   });
 
+  it('renders the climb-window hero and week strip when the detail payload carries windows', async () => {
+    const fixture = TestBed.createComponent(PeakDetail);
+    fixture.componentRef.setInput('slug', 'longs-peak');
+    fixture.detectChanges();
+
+    const T0 = Date.now() + 6 * 3600_000;
+    const data = {
+      ...detail(),
+      climbWindows: [{
+        startUtc: new Date(T0).toISOString(),
+        endUtc: new Date(T0 + 9 * 3600_000).toISOString(),
+        grade: 'A' as const, score: 95,
+        endReason: 'ends with daylight', lowConfidence: false,
+      }],
+      hourlyQuality: Array.from({ length: 48 }, (_, i) => ({
+        timeUtc: new Date(Date.now() + i * 3600_000).toISOString(), score: 92, qualifies: true,
+      })),
+      dailyDaylight: Array.from({ length: 9 }, (_, d) => ({
+        sunriseUtc: new Date(Date.now() + (d * 24 + 6) * 3600_000).toISOString(),
+        sunsetUtc: new Date(Date.now() + (d * 24 + 21) * 3600_000).toISOString(),
+      })),
+    };
+    httpMock.expectOne('/api/routes/longs-peak').flush(data);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('app-climb-window-hero .cwh')).toBeTruthy();
+    expect(el.querySelector('app-week-strip .strip')).toBeTruthy();
+  });
+
+  it('renders no climb-windows section when windows, hours, and daylight are all null', async () => {
+    const fixture = TestBed.createComponent(PeakDetail);
+    fixture.componentRef.setInput('slug', 'longs-peak');
+    fixture.detectChanges();
+
+    httpMock.expectOne('/api/routes/longs-peak').flush(detail());
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('app-climb-window-hero .cwh')).toBeNull();
+    expect(el.querySelector('app-climb-window-hero .cwh-none')).toBeNull();
+    expect(el.querySelector('app-week-strip .strip')).toBeNull();
+  });
+
   describe('metric display mode', () => {
     async function renderMetric() {
       const svc = TestBed.inject(SettingsService);
