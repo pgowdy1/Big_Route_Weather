@@ -1445,8 +1445,9 @@ git commit -m "feat(settings): settings menu in header (popover + mobile sheet)"
 
     it('converts the hero elevation to meters', async () => {
       const el = await renderMetric();
-      expect(el.querySelector('.facts b')?.textContent).toContain('4,346');
-      expect(el.querySelector('.facts b')?.textContent).toContain('m');
+      // Hero elevation renders from the static SEO manifest (longs-peak: 14,255 ft),
+      // NOT the API detail() fixture — 14255 × 0.3048 = 4344.9 → '1.0-0' → 4,345.
+      expect(el.querySelector('.facts b')?.textContent).toMatch(/4,345\s?m/);
     });
 
     it('renders the forecast table in °C, km/h, and 24h time', async () => {
@@ -1503,7 +1504,7 @@ Inside the class (next to the other `inject` lines):
 
 1. Hero facts (line 20):
 ```html
-          <b>{{ p.summitElevationFt | elev: u.elevation() | number }} {{ u.elevLabel() }}</b><span class="dot">·</span>{{ p.routeName }}<span class="dot">·</span>Class {{ p.classDifficulty }}<span class="dot">·</span>{{ p.rangeName }}
+          <b>{{ p.summitElevationFt | elev: u.elevation() | number:'1.0-0' }} {{ u.elevLabel() }}</b><span class="dot">·</span>{{ p.routeName }}<span class="dot">·</span>Class {{ p.classDifficulty }}<span class="dot">·</span>{{ p.rangeName }}
 ```
 
 2. Feels-like tile (line 171):
@@ -1644,7 +1645,7 @@ import { SettingsService } from '../../services/settings';
 `route-card.html` line 5:
 
 ```html
-      <p class="route-name">{{ route().routeName }} · Class {{ route().classDifficulty }} · {{ route().summitElevationFt | elev: u.elevation() | number }}{{ u.elevSuffix() }}</p>
+      <p class="route-name">{{ route().routeName }} · Class {{ route().classDifficulty }} · {{ route().summitElevationFt | elev: u.elevation() | number:'1.0-0' }}{{ u.elevSuffix() }}</p>
 ```
 
 - [ ] **Step 4: Run test to verify it passes**
