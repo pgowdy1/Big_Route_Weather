@@ -460,8 +460,12 @@ function detail(): RouteDetail {
     },
     consensus: null,
     airQualityUsAqi: null,
+    nextWindow: null,
     perSourceForecast: null,
     airQuality: null,
     daylight: null,
+    climbWindows: null,
+    hourlyQuality: null,
+    dailyDaylight: null,
   };
 }

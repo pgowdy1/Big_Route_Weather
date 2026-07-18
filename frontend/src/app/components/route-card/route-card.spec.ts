@@ -117,5 +117,6 @@ function summary(slug: string): RouteSummary {
     isStale: false,
     consensus: null,
     airQualityUsAqi: null,
+    nextWindow: null,
   };
 }

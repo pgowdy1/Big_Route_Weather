@@ -51,6 +51,7 @@ export interface RouteSummary {
   isStale: boolean;
   consensus: Consensus | null;
   airQualityUsAqi: number | null;
+  nextWindow: NextWindow | null;
 }
 
 export interface FactorScore {
@@ -125,6 +126,29 @@ export interface Daylight {
   daylightHours: number;
 }
 
+export interface DaylightSpan {
+  sunriseUtc: string;
+  sunsetUtc: string;
+}
+
+export interface NextWindow {
+  startUtc: string;
+  endUtc: string;
+  grade: Grade;
+  lowConfidence: boolean;
+}
+
+export interface ClimbWindow extends NextWindow {
+  score: number;
+  endReason: string;
+}
+
+export interface HourlyQuality {
+  timeUtc: string;
+  score: number;
+  qualifies: boolean;
+}
+
 export interface RouteDetail extends RouteSummary {
   factors: FactorScore[];
   rationale: string;
@@ -135,4 +159,7 @@ export interface RouteDetail extends RouteSummary {
   perSourceForecast: PerSourceForecast[] | null;
   airQuality: AirQuality | null;
   daylight: Daylight | null;
+  climbWindows: ClimbWindow[] | null;
+  hourlyQuality: HourlyQuality[] | null;
+  dailyDaylight: DaylightSpan[] | null;
 }

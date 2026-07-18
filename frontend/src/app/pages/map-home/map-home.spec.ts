@@ -44,6 +44,7 @@ describe('MapHome', () => {
       isStale: false,
       consensus: null,
       airQualityUsAqi: null,
+      nextWindow: null,
       ...overrides,
     };
   }
@@ -310,6 +311,7 @@ describe('popupHtml', () => {
       classDifficulty: '2', isGlaciated: false, rangeSlug: 'r', rangeName: 'R',
       summitLat: 40, summitLon: -105, grade: 'A', overallScore: 92, drivers: [],
       updatedAt: new Date().toISOString(), isStale: false, consensus: null, airQualityUsAqi: null,
+      nextWindow: null,
       ...overrides,
     };
   }
