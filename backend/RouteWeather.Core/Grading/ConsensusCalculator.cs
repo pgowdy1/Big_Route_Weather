@@ -54,21 +54,23 @@ public class ConsensusCalculator
         var baseline = inputs.OrderByDescending(i => i.Weight).First().Source.Snapshot;
         var blendedHours = BlendHourly(inputs, baseline.Hourly);
 
-        // Headline new-fields are derived from the blended hourly series for consistency with
-        // WindowGradeCalculator.Aggregate: max gust, max CAPE, summed precip amount.
-        var blendedGusts = blendedHours.Where(h => h.GustMph.HasValue).Select(h => h.GustMph!.Value).ToList();
-        var blendedCapes = blendedHours.Where(h => h.CapeJkg.HasValue).Select(h => h.CapeJkg!.Value).ToList();
-        var blendedAmounts = blendedHours.Where(h => h.PrecipitationIn.HasValue).Select(h => h.PrecipitationIn!.Value).ToList();
+        // Blended scalars keep the WeatherSnapshot invariant: they describe the first
+        // HeadlineHours of the blended series even when sources extend to 7 days.
+        var headCutoff = blendedHours.Count == 0
+            ? default
+            : blendedHours[0].Time.AddHours(WeatherSnapshot.HeadlineHours);
+        var head = blendedHours.Where(h => h.Time < headCutoff).ToList();
+
+        var blendedGusts = head.Where(h => h.GustMph.HasValue).Select(h => h.GustMph!.Value).ToList();
+        var blendedCapes = head.Where(h => h.CapeJkg.HasValue).Select(h => h.CapeJkg!.Value).ToList();
+        var blendedAmounts = head.Where(h => h.PrecipitationIn.HasValue).Select(h => h.PrecipitationIn!.Value).ToList();
 
         return new WeatherSnapshot(
             WindMph: Math.Round(wind),
             TempF: Math.Round(temp),
-            // Headline PoP = worst hour of the blended consensus series. The weighted-mean
-            // branch is a fallback only for the degenerate empty-hours case (test fixtures);
-            // production snapshots always carry an hourly series.
-            PrecipitationProbabilityPct: blendedHours.Count == 0
+            PrecipitationProbabilityPct: head.Count == 0
                 ? (int)Math.Round(WeightedMean(precipInputs, s => s.PrecipitationProbabilityPct))
-                : blendedHours.Max(h => h.PrecipitationProbabilityPct),
+                : head.Max(h => h.PrecipitationProbabilityPct),
             Hourly: blendedHours,
             MaxGustMph: blendedGusts.Count == 0 ? null : blendedGusts.Max(),
             MaxCapeJkg: blendedCapes.Count == 0 ? null : blendedCapes.Max(),

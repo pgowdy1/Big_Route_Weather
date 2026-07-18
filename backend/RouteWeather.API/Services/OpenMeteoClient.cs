@@ -135,7 +135,7 @@ public class OpenMeteoClient
         $"&hourly={hourly}" +
         $"&models={models}" +
         "&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch" +
-        "&forecast_days=2&timezone=UTC";
+        "&forecast_days=7&timezone=UTC";
 
     private static string Truncate(string s, int max) => s.Length <= max ? s : s.Substring(0, max) + "…";
 
@@ -160,10 +160,10 @@ public class OpenMeteoClient
         hourly.Series.TryGetValue($"apparent_temperature_{modelKey}", out var apparentSeries);
         hourly.Series.TryGetValue($"weather_code_{modelKey}", out var codeSeries);
 
-        var count = Math.Min(48, Math.Min(times.Count, tempSeries.Count));
+        var count = Math.Min(168, Math.Min(times.Count, tempSeries.Count));
         if (count == 0) return null;
 
-        var hourly48 = new List<HourlyForecast>(count);
+        var series = new List<HourlyForecast>(count);
         for (var i = 0; i < count; i++)
         {
             var t = tempSeries[i];
@@ -172,7 +172,7 @@ public class OpenMeteoClient
             var code = At(codeSeries, i);
             var visMeters = At(visSeries, i);
 
-            hourly48.Add(new HourlyForecast(
+            series.Add(new HourlyForecast(
                 Time: times[i],
                 TempF: t.Value,
                 WindMph: w,
@@ -186,17 +186,21 @@ public class OpenMeteoClient
                 ApparentTempF: At(apparentSeries, i)));
         }
 
-        if (hourly48.Count == 0) return null;
+        if (series.Count == 0) return null;
 
-        var gusts = hourly48.Where(h => h.GustMph.HasValue).Select(h => h.GustMph!.Value).ToList();
-        var capes = hourly48.Where(h => h.CapeJkg.HasValue).Select(h => h.CapeJkg!.Value).ToList();
-        var amounts = hourly48.Where(h => h.PrecipitationIn.HasValue).Select(h => h.PrecipitationIn!.Value).ToList();
+        var headCutoff = times[0].AddHours(WeatherSnapshot.HeadlineHours);
+        var head = series.Where(h => h.Time < headCutoff).ToList();
+        if (head.Count == 0) return null;
+
+        var gusts = head.Where(h => h.GustMph.HasValue).Select(h => h.GustMph!.Value).ToList();
+        var capes = head.Where(h => h.CapeJkg.HasValue).Select(h => h.CapeJkg!.Value).ToList();
+        var amounts = head.Where(h => h.PrecipitationIn.HasValue).Select(h => h.PrecipitationIn!.Value).ToList();
 
         return new WeatherSnapshot(
-            WindMph: hourly48.Max(h => h.WindMph),
-            TempF: hourly48.Min(h => h.TempF),
+            WindMph: head.Max(h => h.WindMph),
+            TempF: head.Min(h => h.TempF),
             PrecipitationProbabilityPct: 0,
-            Hourly: hourly48,
+            Hourly: series,
             MaxGustMph: gusts.Count == 0 ? null : gusts.Max(),
             MaxCapeJkg: capes.Count == 0 ? null : capes.Max(),
             PrecipAmountIn: amounts.Count == 0 ? null : amounts.Sum());
@@ -218,15 +222,15 @@ public class OpenMeteoClient
         if (probByTime.Count == 0) return snapshot;
 
         var hourly = snapshot.Hourly.Select(h =>
-        {
-            return probByTime.TryGetValue(h.Time, out var pct)
+            probByTime.TryGetValue(h.Time, out var pct)
                 ? h with { PrecipitationProbabilityPct = pct }
-                : h;
-        }).ToList();
+                : h).ToList();
 
+        var headCutoff = hourly.Count == 0 ? default : hourly[0].Time.AddHours(WeatherSnapshot.HeadlineHours);
         return snapshot with
         {
-            PrecipitationProbabilityPct = hourly.Max(h => h.PrecipitationProbabilityPct),
+            PrecipitationProbabilityPct = hourly.Count == 0 ? 0
+                : hourly.Where(h => h.Time < headCutoff).Max(h => h.PrecipitationProbabilityPct),
             Hourly = hourly,
         };
     }
