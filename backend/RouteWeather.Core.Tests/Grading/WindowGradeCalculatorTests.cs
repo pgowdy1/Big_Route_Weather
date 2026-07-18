@@ -27,7 +27,7 @@ public class WindowGradeCalculatorTests
             WindMph: hourly.Max(h => h.WindMph),
             TempF: hourly.Min(h => h.TempF),
             PrecipitationProbabilityPct: hourly.Max(h => h.PrecipitationProbabilityPct),
-            Next48Hours: hourly);
+            Hourly: hourly);
 
     [Fact]
     public void Late_window_precip_spike_does_not_affect_12h_grade()
@@ -84,7 +84,7 @@ public class WindowGradeCalculatorTests
             WindMph: 0,
             TempF: 0,
             PrecipitationProbabilityPct: 0,
-            Next48Hours: Array.Empty<HourlyForecast>());
+            Hourly: Array.Empty<HourlyForecast>());
 
         var grades = WindowGradeCalculator.Compute(weather, CleanSnowpack());
 
@@ -148,7 +148,7 @@ public class WindowGradeCalculatorTests
             .Select(i => new HourlyForecast(DateTimeOffset.UtcNow.AddHours(i), 50, 5, 0, "Clear"))
             .ToList();
         var weather = new WeatherSnapshot(
-            WindMph: 5, TempF: 50, PrecipitationProbabilityPct: 0, Next48Hours: hours);
+            WindMph: 5, TempF: 50, PrecipitationProbabilityPct: 0, Hourly: hours);
 
         var grades = WindowGradeCalculator.Compute(weather, null, new AirQualitySnapshot(250, 90));
 

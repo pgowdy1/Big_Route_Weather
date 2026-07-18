@@ -21,7 +21,7 @@ public static class SnowRelevance
 
     public static bool IsSnowExpected(WeatherSnapshot? weather)
     {
-        var hourly = weather?.Next48Hours;
+        var hourly = weather?.Hourly;
         if (hourly is null || hourly.Count == 0) return false;
 
         foreach (var h in hourly)

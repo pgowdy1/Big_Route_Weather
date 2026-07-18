@@ -11,7 +11,7 @@ public class ConsensusCalculatorTests
         WindMph: wind,
         TempF: temp,
         PrecipitationProbabilityPct: precip,
-        Next48Hours: Array.Empty<HourlyForecast>());
+        Hourly: Array.Empty<HourlyForecast>());
 
     private static ConsensusInput Input(string name, double wind, double temp, int precip, double weight = 1.0, IReadOnlySet<string>? active = null) =>
         new(new SourceSnapshot(name, Snapshot(wind, temp, precip), DateTimeOffset.UtcNow, active ?? ForecastFactors.All), weight);
@@ -265,7 +265,7 @@ public class ConsensusCalculatorTests
         var hour = new HourlyForecast(time, TempF: 50, WindMph: 10,
             PrecipitationProbabilityPct: popPct, ShortForecast: "", PrecipitationIn: amountIn);
         var snap = new WeatherSnapshot(WindMph: 10, TempF: 50,
-            PrecipitationProbabilityPct: popPct, Next48Hours: new[] { hour }, PrecipAmountIn: amountIn);
+            PrecipitationProbabilityPct: popPct, Hourly: new[] { hour }, PrecipAmountIn: amountIn);
         return new ConsensusInput(new SourceSnapshot(name, snap, DateTimeOffset.UtcNow, active),
             weight, precipVoteWeight);
     }

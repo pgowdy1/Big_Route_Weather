@@ -52,7 +52,7 @@ public class ConsensusCalculator
         var temp = WeightedMean(tempInputs, s => s.TempF);
 
         var baseline = inputs.OrderByDescending(i => i.Weight).First().Source.Snapshot;
-        var blendedHours = BlendHourly(inputs, baseline.Next48Hours);
+        var blendedHours = BlendHourly(inputs, baseline.Hourly);
 
         // Headline new-fields are derived from the blended hourly series for consistency with
         // WindowGradeCalculator.Aggregate: max gust, max CAPE, summed precip amount.
@@ -69,7 +69,7 @@ public class ConsensusCalculator
             PrecipitationProbabilityPct: blendedHours.Count == 0
                 ? (int)Math.Round(WeightedMean(precipInputs, s => s.PrecipitationProbabilityPct))
                 : blendedHours.Max(h => h.PrecipitationProbabilityPct),
-            Next48Hours: blendedHours,
+            Hourly: blendedHours,
             MaxGustMph: blendedGusts.Count == 0 ? null : blendedGusts.Max(),
             MaxCapeJkg: blendedCapes.Count == 0 ? null : blendedCapes.Max(),
             PrecipAmountIn: blendedAmounts.Count == 0 ? null : blendedAmounts.Sum());
@@ -136,7 +136,7 @@ public class ConsensusCalculator
         var weight = 0.0;
         foreach (var input in inputs)
         {
-            var match = FindNearestHour(input.Source.Snapshot.Next48Hours, target);
+            var match = FindNearestHour(input.Source.Snapshot.Hourly, target);
             if (match is null) continue;
             sum += select(match) * input.Weight;
             weight += input.Weight;
@@ -158,7 +158,7 @@ public class ConsensusCalculator
         var weight = 0.0;
         foreach (var input in inputs)
         {
-            var match = FindNearestHour(input.Source.Snapshot.Next48Hours, target);
+            var match = FindNearestHour(input.Source.Snapshot.Hourly, target);
             if (match is null) continue;
             var vote = PrecipVote.For(input.Source, match);
             if (vote is null) continue;
@@ -178,7 +178,7 @@ public class ConsensusCalculator
         var weight = 0.0;
         foreach (var input in inputs)
         {
-            var match = FindNearestHour(input.Source.Snapshot.Next48Hours, target);
+            var match = FindNearestHour(input.Source.Snapshot.Hourly, target);
             var v = match is null ? null : select(match);
             if (v is null) continue;
             sum += v.Value * input.Weight;

@@ -196,7 +196,7 @@ public class OpenMeteoClient
             WindMph: hourly48.Max(h => h.WindMph),
             TempF: hourly48.Min(h => h.TempF),
             PrecipitationProbabilityPct: 0,
-            Next48Hours: hourly48,
+            Hourly: hourly48,
             MaxGustMph: gusts.Count == 0 ? null : gusts.Max(),
             MaxCapeJkg: capes.Count == 0 ? null : capes.Max(),
             PrecipAmountIn: amounts.Count == 0 ? null : amounts.Sum());
@@ -217,7 +217,7 @@ public class OpenMeteoClient
         }
         if (probByTime.Count == 0) return snapshot;
 
-        var hourly = snapshot.Next48Hours.Select(h =>
+        var hourly = snapshot.Hourly.Select(h =>
         {
             return probByTime.TryGetValue(h.Time, out var pct)
                 ? h with { PrecipitationProbabilityPct = pct }
@@ -227,7 +227,7 @@ public class OpenMeteoClient
         return snapshot with
         {
             PrecipitationProbabilityPct = hourly.Max(h => h.PrecipitationProbabilityPct),
-            Next48Hours = hourly,
+            Hourly = hourly,
         };
     }
 

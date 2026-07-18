@@ -106,7 +106,7 @@ public class RoutesController : ControllerBase
         rationale = c.Rationale,
         updatedAt = c.UpdatedAt,
         isStale = c.IsStale,
-        forecastNext48h = c.Weather?.Next48Hours,
+        forecastNext48h = c.Weather?.Hourly.Take(WeatherSnapshot.HeadlineHours),
         snowpack = c.Snowpack,
         windowGrades = c.WindowGrades is null ? null : new
         {

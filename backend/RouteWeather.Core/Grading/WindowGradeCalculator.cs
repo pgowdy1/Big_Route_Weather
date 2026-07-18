@@ -14,7 +14,7 @@ public static class WindowGradeCalculator
 
     private static WindowGrade GradeWindow(WeatherSnapshot? weather, SnowpackSnapshot? snowpack, int hours, AirQualitySnapshot? airQuality)
     {
-        var hourly = weather?.Next48Hours ?? Array.Empty<HourlyForecast>();
+        var hourly = weather?.Hourly ?? Array.Empty<HourlyForecast>();
         var slice = hourly.Take(hours).ToList();
         var windowed = slice.Count == 0 ? null : Aggregate(slice);
 
@@ -49,7 +49,7 @@ public static class WindowGradeCalculator
             WindMph: slice.Max(h => h.WindMph),
             TempF: slice.Min(h => h.TempF),
             PrecipitationProbabilityPct: slice.Max(h => h.PrecipitationProbabilityPct),
-            Next48Hours: slice,
+            Hourly: slice,
             MaxGustMph: gusts.Count == 0 ? null : gusts.Max(),
             MaxCapeJkg: capes.Count == 0 ? null : capes.Max(),
             PrecipAmountIn: amounts.Count == 0 ? null : amounts.Sum());

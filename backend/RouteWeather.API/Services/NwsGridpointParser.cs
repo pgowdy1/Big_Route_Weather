@@ -62,7 +62,7 @@ public static class NwsGridpointParser
             WindMph: hours.Max(h => h.WindMph),
             TempF: hours.Min(h => h.TempF),
             PrecipitationProbabilityPct: hours.Max(h => h.PrecipitationProbabilityPct),
-            Next48Hours: hours,
+            Hourly: hours,
             MaxGustMph: gusts.Count == 0 ? null : gusts.Max(),
             MaxCapeJkg: null,
             PrecipAmountIn: amounts.Count == 0 ? null : amounts.Sum());

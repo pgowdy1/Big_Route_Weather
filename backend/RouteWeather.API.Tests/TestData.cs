@@ -37,7 +37,7 @@ public static class TestData
         WindMph: 5,
         TempF: 30,
         PrecipitationProbabilityPct: 10,
-        Next48Hours: Enumerable.Range(0, 48)
+        Hourly: Enumerable.Range(0, 48)
             .Select(i => new HourlyForecast(DateTimeOffset.UtcNow.AddHours(i), 30, 5, 10, "Clear"))
             .ToList());
 
