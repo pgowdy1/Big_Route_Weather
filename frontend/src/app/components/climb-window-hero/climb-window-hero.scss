@@ -1,0 +1,33 @@
+.cwh {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.75rem 1rem;
+  background: var(--panel-raised);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+}
+
+.cwh-title {
+  margin: 0;
+}
+
+.cwh-reason {
+  margin: 0.15rem 0 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.cwh-conf {
+  margin-left: 0.4rem;
+  font-style: italic;
+  color: var(--muted-deep);
+}
+
+.cwh-none {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border: 1px dashed var(--border);
+  border-radius: 0.75rem;
+  color: var(--muted);
+}
