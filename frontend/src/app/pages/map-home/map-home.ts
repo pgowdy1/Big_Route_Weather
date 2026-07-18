@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, OnDestroy, PLATFORM_ID, afterNextRender, computed, inject, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, OnDestroy, PLATFORM_ID, afterNextRender, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
@@ -9,6 +9,8 @@ import { RangeMeta } from '../../models/range';
 import { SeoService } from '../../seo/seo.service';
 import { homeMeta } from '../../seo/route-meta';
 import { MapViewState } from '../../services/map-view-state';
+import { SettingsService } from '../../services/settings';
+import { formatElevationText } from '../../units/conversions';
 
 type MapError = { kind: 'routes' | 'leaflet'; message: string };
 
@@ -31,6 +33,7 @@ export class MapHome implements OnDestroy {
   private seo = inject(SeoService);
   private platformId = inject(PLATFORM_ID);
   private mapViewState = inject(MapViewState);
+  private settings = inject(SettingsService);
 
   mapContainer = viewChild<ElementRef<HTMLDivElement>>('mapEl');
 
@@ -56,6 +59,7 @@ export class MapHome implements OnDestroy {
   private staleRefetchAttempts = 0;
 
   private map: any | null = null;
+  private tileLayer: any | null = null;
   private layers: any[] = [];       // range polygons + labels — owned by renderLayers
   private ghostLayers: any[] = [];  // pre-data position ghosts — owned by renderGhostMarkers
   private markerLayers: any[] = []; // graded markers AND null-grade ghosts — owned by renderMarkers
@@ -90,6 +94,18 @@ export class MapHome implements OnDestroy {
       this.fetchRoutes();
     }
     afterNextRender(() => this.initMap());
+
+    // Re-render markers when the elevation unit changes so popup text converts;
+    // swap the basemap when the resolved theme changes. Both no-op until the
+    // map exists (renderMarkers guards on !this.map; tileLayer starts null).
+    effect(() => {
+      this.settings.elevation();
+      untracked(() => { void this.renderMarkers(); });
+    });
+    effect(() => {
+      const theme = this.settings.resolvedTheme();
+      untracked(() => this.tileLayer?.setUrl(tileUrlFor(theme)));
+    });
   }
 
   private fetchRanges() {
@@ -218,7 +234,7 @@ export class MapHome implements OnDestroy {
 
     L.control.zoom({ position: 'topright' }).addTo(this.map);
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    this.tileLayer = L.tileLayer(tileUrlFor(this.settings.resolvedTheme()), {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
       subdomains: 'abcd',
       maxZoom: 12,
@@ -342,7 +358,7 @@ export class MapHome implements OnDestroy {
       }
 
       const marker = L.marker([route.summitLat, route.summitLon], { icon, title: route.mountain });
-      marker.bindPopup(popupHtml(route), { className: 'peak-popup' });
+      marker.bindPopup(popupHtml(route, formatElevationText(route.summitElevationFt, this.settings.elevation())), { className: 'peak-popup' });
       this.markerBySlug.set(route.slug, marker);
 
       // Every range clusters at low zoom and separates at zoom >= 8
@@ -397,14 +413,20 @@ export function markerIconSpec(route: Pick<RouteSummary, 'grade'>): MarkerIconSp
   return { className: 'peak-marker', dotClass: `grade-${route.grade.toLowerCase()}`, interactive: true };
 }
 
-export function popupHtml(route: RouteSummary): string {
+export function tileUrlFor(theme: 'dark' | 'light'): string {
+  return `https://{s}.basemaps.cartocdn.com/${theme === 'light' ? 'light_all' : 'dark_all'}/{z}/{x}/{y}{r}.png`;
+}
+
+// elevationText is built by formatElevationText from trusted numeric + enum
+// inputs — no escaping needed; escapeHtml stays on the API-sourced strings.
+export function popupHtml(route: RouteSummary, elevationText: string): string {
   const grade = route.grade ?? '?';
   const drivers = (route.drivers ?? []).slice(0, 2)
     .map(d => `<div class="popup-driver popup-driver-${d.severity}">${escapeHtml(d.label)}</div>`)
     .join('');
   return `
     <div class="popup-name">${escapeHtml(route.mountain)}</div>
-    <div class="popup-sub">${route.summitElevationFt.toLocaleString()} ft &middot; Class ${escapeHtml(route.classDifficulty)}</div>
+    <div class="popup-sub">${elevationText} &middot; Class ${escapeHtml(route.classDifficulty)}</div>
     ${route.isGlaciated ? '<div class="popup-glacier">❄ Glaciated — extreme hazard; see full forecast</div>' : ''}
     <div class="popup-grade grade-${grade.toLowerCase()}">${grade}</div>
     ${drivers}

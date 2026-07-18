@@ -2,7 +2,7 @@
   <header class="card-head">
     <div class="title">
       <h2>{{ route().mountain }}</h2>
-      <p class="route-name">{{ route().routeName }} · Class {{ route().classDifficulty }} · {{ route().summitElevationFt | number }}'</p>
+      <p class="route-name">{{ route().routeName }} · Class {{ route().classDifficulty }} · {{ route().summitElevationFt | elev: u.elevation() | number:'1.0-0' }}{{ u.elevSuffix() }}</p>
     </div>
     <app-grade-badge [grade]="route().grade" />
   </header>

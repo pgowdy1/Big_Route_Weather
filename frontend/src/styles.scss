@@ -2,10 +2,125 @@
 @import 'leaflet.markercluster/dist/MarkerCluster.css';
 @import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 
+// ---------------------------------------------------------------------------
+// Design tokens. Dark is the default (:root); light overrides via
+// [data-theme="light"], stamped pre-paint by the inline script in index.html
+// and kept in sync by SettingsService. Grade fills (badges, dots) are brand
+// constants and intentionally NOT tokenized.
+// ---------------------------------------------------------------------------
+:root {
+  --bg: #0d1620;
+  --surface: #0a1525;            // map bg, Leaflet popup chrome
+  --panel: #11202c;
+  --panel-raised: #1a2632;
+  --panel-hover: #22313f;
+  --text: #e8eef3;
+  --text-soft: #cfd8dc;
+  --muted: #8aa0b4;
+  --muted-deep: #6b7e90;
+  --border: #2c3e50;
+  --border-soft: #243240;
+  --accent: #5fa8d8;
+  --accent-hover: #cfe5f5;
+  --accent-strong: #3a5a8a;
+  --nav-active: #c5e1a5;
+  --teal: #80cbc4;
+  --focus: #4a90e2;
+  --ink-on-grade: #0a1525;       // text on grade chips — dark in BOTH themes
+
+  --warn-bg: #6d4c00;
+  --warn-text: #ffd54f;
+  --danger-text: #ef9a9a;
+  --danger-strong: #c44;
+  --danger-strong-hover: #d55;
+
+  --pill-pos-bg: #1b3a1b; --pill-pos-text: #a5d6a7; --pill-pos-border: #2e7d32;
+  --pill-neu-bg: #2a3340; --pill-neu-text: #b0bec5; --pill-neu-border: #455a64;
+  --pill-neg-bg: #4a1f1f; --pill-neg-text: #ef9a9a; --pill-neg-border: #c62828;
+  --driver-pos: #3ecf78; --driver-neg: #e88848;
+
+  --chip-range-bg: rgba(95, 168, 216, 0.18); --chip-range-text: #cfe5f5;
+  --chip-glacier-bg: rgba(120, 170, 200, 0.16); --chip-glacier-text: #cfe2ee;
+  --glacier-text: #bcd9ea;
+  --glacier-badge: #d6ecf7;
+  --glacier-badge-halo: #0b1620;
+
+  --gw-bg: #2a1414; --gw-border: #c62828; --gw-edge: #ef5350;
+  --gw-text: #ffd9d9; --gw-title: #ff8a80; --gw-strong: #fff;
+
+  --aqi-good: #81c784; --aqi-moderate: #ffd54f; --aqi-usg: #ffb74d;
+  --aqi-unhealthy: #e57373; --aqi-very-unhealthy: #ba68c8; --aqi-hazardous: #c75b6d;
+
+  --grade-text-a: #81c784; --grade-text-b: #aed581; --grade-text-c: #ffd54f;
+  --grade-text-d: #ffb74d; --grade-text-f: #ef9a9a;
+
+  --overlay-bg: rgba(10, 21, 37, 0.85);
+  --overlay-dim: rgba(10, 21, 37, 0.78);
+  --err-card-bg: #1a2942;
+  --map-label: rgba(207, 229, 245, 0.75);
+  --map-label-halo: rgba(0, 0, 0, 0.6);
+  --panel-shadow: rgba(0, 0, 0, 0.4);
+}
+
+// Approved light palette direction (spec §Theming); fine-tuning allowed within
+// WCAG AA (>= 4.5:1) for body text.
+:root[data-theme='light'] {
+  --bg: #f2f5f8;
+  --surface: #e6edf3;
+  --panel: #ffffff;
+  --panel-raised: #f6f8fa;
+  --panel-hover: #e9eef3;
+  --text: #1a2733;
+  --text-soft: #3d4f60;
+  --muted: #55677a;
+  --muted-deep: #5a6f83;
+  --border: #d5dee6;
+  --border-soft: #e4ebf1;
+  --accent: #33567f;
+  --accent-hover: #24405e;
+  --accent-strong: #33567f;
+  --nav-active: #4a7c2a;
+  --teal: #0f766e;
+  --focus: #2f6db3;
+
+  --warn-bg: #f5e9c8;
+  --warn-text: #7a5c00;
+  --danger-text: #b3453c;
+  --danger-strong: #c0392b;
+  --danger-strong-hover: #a93226;
+
+  --pill-pos-bg: #e3f2e7; --pill-pos-text: #1f7a43; --pill-pos-border: #a9d5b5;
+  --pill-neu-bg: #eef2f5; --pill-neu-text: #55677a; --pill-neu-border: #c6d2dc;
+  --pill-neg-bg: #f7ede2; --pill-neg-text: #9a4708; --pill-neg-border: #dbb28c;
+  --driver-pos: #1f7a43; --driver-neg: #9a4708;
+
+  --chip-range-bg: rgba(51, 86, 127, 0.12); --chip-range-text: #33567f;
+  --chip-glacier-bg: rgba(43, 106, 146, 0.12); --chip-glacier-text: #2b6a92;
+  --glacier-text: #2b6a92;
+  --glacier-badge: #2b6a92;
+  --glacier-badge-halo: #ffffff;
+
+  --gw-bg: #fdf1f1; --gw-border: #e5a29d; --gw-edge: #d9534f;
+  --gw-text: #7a2e2e; --gw-title: #b3453c; --gw-strong: #5c1f1f;
+
+  --aqi-good: #2e7d32; --aqi-moderate: #8f6a00; --aqi-usg: #a84a18;
+  --aqi-unhealthy: #c62828; --aqi-very-unhealthy: #7b1fa2; --aqi-hazardous: #8e2437;
+
+  --grade-text-a: #2e7d32; --grade-text-b: #4a7c2a; --grade-text-c: #8f6a00;
+  --grade-text-d: #a84a18; --grade-text-f: #c62828;
+
+  --overlay-bg: rgba(255, 255, 255, 0.88);
+  --overlay-dim: rgba(242, 245, 248, 0.8);
+  --err-card-bg: #ffffff;
+  --map-label: rgba(38, 60, 80, 0.85);
+  --map-label-halo: rgba(255, 255, 255, 0.7);
+  --panel-shadow: rgba(23, 39, 51, 0.1);
+}
+
 html, body {
   margin: 0;
-  background: #0d1620;
-  color: #e8eef3;
+  background: var(--bg);
+  color: var(--text);
   min-height: 100%;
   font-family: 'Inter', system-ui, sans-serif;
 }
@@ -25,8 +140,8 @@ html, body {
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.15em;
-  color: rgba(207, 229, 245, 0.75);
-  text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+  color: var(--map-label);
+  text-shadow: 0 1px 2px var(--map-label-halo);
   white-space: nowrap;
 }
 
@@ -67,18 +182,18 @@ html, body {
   bottom: 15px;
   font-size: 0.7rem;
   line-height: 1;
-  color: #d6ecf7;
-  text-shadow: 0 0 2px #0b1620, 0 0 2px #0b1620;
+  color: var(--glacier-badge);
+  text-shadow: 0 0 2px var(--glacier-badge-halo), 0 0 2px var(--glacier-badge-halo);
   pointer-events: none;
 }
 
-.peak-popup .popup-name { font-weight: 700; font-size: 1.05rem; color: #f5f8fb; margin-bottom: 2px; }
-.peak-popup .popup-sub  { font-size: 0.8rem;  color: #9fb5d5; margin-bottom: 8px; }
-.peak-popup .popup-glacier { margin-top: 0.25rem; font-size: 0.72rem; color: #bcd9ea; }
+.peak-popup .popup-name { font-weight: 700; font-size: 1.05rem; color: var(--text); margin-bottom: 2px; }
+.peak-popup .popup-sub  { font-size: 0.8rem;  color: var(--muted); margin-bottom: 8px; }
+.peak-popup .popup-glacier { margin-top: 0.25rem; font-size: 0.72rem; color: var(--glacier-text); }
 .peak-popup .popup-grade {
   display: inline-flex; align-items: center; justify-content: center;
   width: 36px; height: 36px; border-radius: 6px;
-  font-weight: 800; font-size: 1.4rem; color: #0a1525; margin-bottom: 6px;
+  font-weight: 800; font-size: 1.4rem; color: var(--ink-on-grade); margin-bottom: 6px;
 }
 .peak-popup .popup-grade.grade-a { background: #3ecf78; }
 .peak-popup .popup-grade.grade-b { background: #a8d050; }
@@ -86,12 +201,12 @@ html, body {
 .peak-popup .popup-grade.grade-d { background: #e88848; }
 .peak-popup .popup-grade.grade-f { background: #d04848; }
 .peak-popup .popup-driver { font-size: 0.8rem; padding: 2px 0; }
-.peak-popup .popup-driver-positive { color: #3ecf78; }
-.peak-popup .popup-driver-negative { color: #e88848; }
-.peak-popup .popup-driver-neutral { color: #9fb5d5; }
+.peak-popup .popup-driver-positive { color: var(--driver-pos); }
+.peak-popup .popup-driver-negative { color: var(--driver-neg); }
+.peak-popup .popup-driver-neutral { color: var(--muted); }
 .peak-popup .popup-cta {
   display: block; margin-top: 8px; padding: 6px 10px; border-radius: 5px;
-  background: #3a5a8a; color: #fff; text-align: center; text-decoration: none; font-weight: 600;
+  background: var(--accent-strong); color: #fff; text-align: center; text-decoration: none; font-weight: 600;
 }
-.leaflet-popup-content-wrapper { background: #0a1525; color: #cfd9e8; }
-.leaflet-popup-tip { background: #0a1525; }
+.leaflet-popup-content-wrapper { background: var(--surface); color: var(--text-soft); }
+.leaflet-popup-tip { background: var(--surface); }

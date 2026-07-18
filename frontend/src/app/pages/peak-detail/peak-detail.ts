@@ -10,6 +10,8 @@ import { FactorScore, Grade, RouteDetail, WindowGrade } from '../../models/route
 import { SeoService } from '../../seo/seo.service';
 import { peakMeta } from '../../seo/route-meta';
 import { getPeakBySlug } from '../../seo/peaks-catalog';
+import { UNIT_PIPES } from '../../units/unit-pipes';
+import { SettingsService } from '../../services/settings';
 
 interface WindowView {
   key: 'next12h' | 'next24h' | 'next48h';
@@ -21,7 +23,7 @@ interface WindowView {
 @Component({
   selector: 'app-peak-detail',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, DecimalPipe, GradeBadge, ConsensusBadge, Sparkline, RouterLink],
+  imports: [DatePipe, DecimalPipe, GradeBadge, ConsensusBadge, Sparkline, RouterLink, UNIT_PIPES],
   templateUrl: './peak-detail.html',
   styleUrl: './peak-detail.scss',
 })
@@ -29,6 +31,7 @@ export class PeakDetail {
   private service = inject(RoutesService);
   private seo = inject(SeoService);
   private platformId = inject(PLATFORM_ID);
+  readonly u = inject(SettingsService);
 
   slug = input.required<string>();
 

@@ -2,9 +2,11 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { RouteCard } from './route-card';
 import { RouteSummary } from '../../models/route-conditions';
+import { SettingsService } from '../../services/settings';
 
 describe('RouteCard', () => {
   beforeEach(() => {
+    localStorage.clear();
     TestBed.configureTestingModule({
       imports: [RouteCard],
       providers: [provideRouter([])],
@@ -74,6 +76,25 @@ describe('RouteCard', () => {
     fixture.detectChanges();
 
     expect((fixture.nativeElement as HTMLElement).querySelector('.glacier-chip')).toBeNull();
+  });
+
+  it('renders elevation in meters when the elevation setting is metric', () => {
+    TestBed.inject(SettingsService).set('elevation', 'm');
+    const fixture = TestBed.createComponent(RouteCard);
+    fixture.componentRef.setInput('route', summary('foo'));
+    fixture.detectChanges();
+
+    const text = (fixture.nativeElement as HTMLElement).querySelector('.route-name')?.textContent ?? '';
+    expect(text).toContain('4,267 m'); // 14,000 ft × 0.3048 → 4,267.2 → '1.0-0'
+    expect(text).not.toContain(`'`);
+  });
+
+  it(`renders elevation with the feet tick by default`, () => {
+    const fixture = TestBed.createComponent(RouteCard);
+    fixture.componentRef.setInput('route', summary('foo'));
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement as HTMLElement).querySelector('.route-name')?.textContent).toContain(`14,000'`);
   });
 });
 

@@ -1,0 +1,100 @@
+:host {
+  position: relative;
+  display: inline-flex;
+}
+
+.gear {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 0.4rem;
+  padding: 0.1rem 0.4rem;
+  font-size: 1rem;
+  line-height: 1.4;
+  cursor: pointer;
+  color: var(--muted);
+
+  &:hover { color: var(--text-soft); }
+  &[aria-expanded='true'] { color: var(--text); border-color: var(--border); }
+}
+
+.settings-panel {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 1200; // above Leaflet overlays (map chips sit at 1000-1100)
+  width: 15rem;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  padding: 0.7rem;
+  box-shadow: 0 8px 24px var(--panel-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  font-size: 0.8rem;
+}
+
+.preset-row {
+  display: flex;
+  gap: 0.35rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.preset {
+  flex: 1;
+  padding: 0.3rem 0;
+  border-radius: 0.4rem;
+  border: 1px solid var(--border);
+  background: var(--panel-raised);
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+
+  &.active { background: var(--accent-strong); border-color: var(--accent-strong); color: #fff; }
+}
+
+.setting-row, .theme-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.theme-row {
+  padding-top: 0.45rem;
+  border-top: 1px solid var(--border-soft);
+}
+
+.row-label { color: var(--text-soft); }
+
+.seg-group { display: inline-flex; gap: 0.2rem; }
+
+.seg {
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.35rem;
+  border: 1px solid transparent;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+
+  &:hover { color: var(--text-soft); }
+  &.active { background: var(--panel-raised); border-color: var(--border); color: var(--text); }
+}
+
+// Below the breakpoint the same DOM becomes a full-width sheet pinned to the
+// top of the viewport (the header isn't fixed, so anchoring under it while
+// scrolled isn't meaningful).
+@media (max-width: 640px) {
+  .settings-panel {
+    position: fixed;
+    inset: 0 0 auto 0;
+    width: auto;
+    max-height: 85vh;
+    overflow-y: auto;
+    border-radius: 0 0 0.6rem 0.6rem;
+    padding: 0.9rem 1rem;
+  }
+}

@@ -1,18 +1,22 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { GradeBadge } from '../grade-badge/grade-badge';
 import { ConsensusBadge } from '../consensus-badge/consensus-badge';
 import { RouteSummary } from '../../models/route-conditions';
+import { ElevPipe } from '../../units/unit-pipes';
+import { SettingsService } from '../../services/settings';
 
 @Component({
   selector: 'app-route-card',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DecimalPipe, GradeBadge, ConsensusBadge, RouterLink],
+  imports: [DecimalPipe, GradeBadge, ConsensusBadge, RouterLink, ElevPipe],
   templateUrl: './route-card.html',
   styleUrl: './route-card.scss',
 })
 export class RouteCard {
+  readonly u = inject(SettingsService);
+
   route = input.required<RouteSummary>();
 
   ageLabel = computed(() => relativeMinutes(this.route().updatedAt));

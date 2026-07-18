@@ -1,0 +1,38 @@
+<button #gearBtn type="button" class="gear" aria-label="Settings"
+        [attr.aria-expanded]="open()" aria-controls="settings-panel"
+        (click)="toggle()">⚙</button>
+
+@if (open()) {
+  <div class="settings-panel" id="settings-panel" role="group" aria-label="Site settings">
+    <div class="preset-row">
+      <button type="button" class="preset" [class.active]="u.unitPreset() === 'imperial'"
+              (click)="u.applyPreset('imperial')">Imperial</button>
+      <button type="button" class="preset" [class.active]="u.unitPreset() === 'metric'"
+              (click)="u.applyPreset('metric')">Metric</button>
+    </div>
+
+    @for (row of rows; track row.key) {
+      <div class="setting-row" role="group" [attr.aria-label]="row.label">
+        <span class="row-label">{{ row.label }}</span>
+        <span class="seg-group">
+          @for (opt of row.options; track opt.v) {
+            <button type="button" class="seg" [attr.data-value]="opt.v"
+                    [class.active]="u.valueFor(row.key) === opt.v"
+                    (click)="u.setFromMenu(row.key, opt.v)">{{ opt.label }}</button>
+          }
+        </span>
+      </div>
+    }
+
+    <div class="theme-row" role="group" aria-label="Theme">
+      <span class="row-label">Theme</span>
+      <span class="seg-group">
+        @for (opt of themeOptions; track opt.v) {
+          <button type="button" class="seg" [attr.data-value]="opt.v"
+                  [class.active]="u.theme() === opt.v"
+                  (click)="u.setFromMenu('theme', opt.v)">{{ opt.label }}</button>
+        }
+      </span>
+    </div>
+  </div>
+}
