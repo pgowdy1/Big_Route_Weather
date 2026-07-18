@@ -27,13 +27,14 @@ describe('ClimbWindowHero', () => {
 
   it('renders the strongest upcoming window with its end reason', () => {
     const el = create([
-      win({ grade: 'B', score: 84, endUtc: new Date(Date.now() + 10 * 3600_000).toISOString(), startUtc: new Date(Date.now() + 2 * 3600_000).toISOString() }),
+      win({ grade: 'B', score: 84, endReason: 'closes as wind picks up', endUtc: new Date(Date.now() + 10 * 3600_000).toISOString(), startUtc: new Date(Date.now() + 2 * 3600_000).toISOString() }),
       win(), // A/95 → the hero
     ]);
 
     const hero = el.querySelector('.cwh');
     expect(hero).toBeTruthy();
     expect(hero!.textContent).toContain('storm energy builds');
+    expect(hero!.textContent).not.toContain('wind picks up');
     expect(el.querySelector('app-grade-badge')).toBeTruthy();
   });
 
