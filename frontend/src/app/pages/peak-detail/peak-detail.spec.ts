@@ -4,11 +4,13 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { provideRouter } from '@angular/router';
 import { PeakDetail } from './peak-detail';
 import { RouteDetail } from '../../models/route-conditions';
+import { SettingsService } from '../../services/settings';
 
 describe('PeakDetail', () => {
   let httpMock: HttpTestingController;
 
   beforeEach(() => {
+    localStorage.clear();
     TestBed.configureTestingModule({
       imports: [PeakDetail],
       providers: [
@@ -364,6 +366,45 @@ describe('PeakDetail', () => {
     expect((fixture.nativeElement as HTMLElement).querySelector('.glacier-warning')).toBeNull();
 
     httpMock.expectOne('/api/routes/pikes-peak').flush({} as RouteDetail);
+  });
+
+  describe('metric display mode', () => {
+    async function renderMetric() {
+      const svc = TestBed.inject(SettingsService);
+      svc.applyPreset('metric');
+      const fixture = TestBed.createComponent(PeakDetail);
+      fixture.componentRef.setInput('slug', 'longs-peak');
+      fixture.detectChanges();
+      httpMock.expectOne('/api/routes/longs-peak').flush(detail());
+      await fixture.whenStable();
+      fixture.detectChanges();
+      return fixture.nativeElement as HTMLElement;
+    }
+
+    it('converts the hero elevation to meters', async () => {
+      const el = await renderMetric();
+      // Hero elevation renders from the static SEO manifest (longs-peak: 14,255 ft),
+      // NOT the API detail() fixture — 14255 × 0.3048 = 4344.9 → '1.0-0' → 4,345.
+      expect(el.querySelector('.facts b')?.textContent).toMatch(/4,345\s?m/);
+    });
+
+    it('renders the forecast table in °C, km/h, and 24h time', async () => {
+      const el = await renderMetric();
+      const headers = Array.from(el.querySelectorAll('.forecast thead th')).map(th => th.textContent?.trim());
+      expect(headers).toContain('°C');
+      const firstRow = el.querySelector('.forecast tbody tr')!;
+      expect(firstRow.textContent).toContain('4');            // 40°F → 4°C
+      expect(firstRow.textContent).toContain('13 km/h');      // 8 mph → 12.87 → 13
+      expect(firstRow.textContent).toMatch(/\d{2}:\d{2}/);    // 24h clock (TZ-agnostic)
+      expect(firstRow.textContent).not.toContain('mph');
+    });
+
+    it('converts snowpack tiles to centimeters', async () => {
+      const el = await renderMetric();
+      const tiles = el.querySelector('.snowpack')!.textContent!;
+      expect(tiles).toContain('3.0 cm');   // SWE 1.2 in
+      expect(tiles).toContain('10.2 cm');  // depth 4.0 in
+    });
   });
 });
 
