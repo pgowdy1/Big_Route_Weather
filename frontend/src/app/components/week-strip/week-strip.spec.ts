@@ -57,4 +57,10 @@ describe('WeekStrip', () => {
     expect(create(null).querySelector('.strip')).toBeNull();
     expect(create([]).querySelector('.strip')).toBeNull();
   });
+
+  it('exposes the strip as a labelled image for assistive tech', () => {
+    const strip = create(hours(48)).querySelector('.strip')!;
+    expect(strip.getAttribute('role')).toBe('img');
+    expect(strip.getAttribute('aria-label')?.trim()).toBeTruthy();
+  });
 });

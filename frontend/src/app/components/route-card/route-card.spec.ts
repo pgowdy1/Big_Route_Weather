@@ -151,6 +151,21 @@ describe('RouteCard', () => {
     const text = (fixture.nativeElement as HTMLElement).querySelector('.next-window')!.textContent ?? '';
     expect(text).not.toMatch(/AM|PM/i);
   });
+
+  it('shows the end day when the window crosses midnight', () => {
+    const start = new Date(Date.now() + 30 * 3600_000);
+    const end = new Date(start.getTime() + 26 * 3600_000); // >24h ⇒ different local day
+    const fixture = TestBed.createComponent(RouteCard);
+    fixture.componentRef.setInput('route', {
+      ...summary('foo'),
+      nextWindow: nextWindow({ startUtc: start.toISOString(), endUtc: end.toISOString() }),
+    });
+    fixture.detectChanges();
+
+    const text = (fixture.nativeElement as HTMLElement).querySelector('.next-window strong')!.textContent ?? '';
+    const days = text.match(/\b(Sun|Mon|Tue|Wed|Thu|Fri|Sat)\b/g) ?? [];
+    expect(days.length).toBe(2);
+  });
 });
 
 function summary(slug: string): RouteSummary {

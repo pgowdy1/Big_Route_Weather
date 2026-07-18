@@ -21,6 +21,7 @@ export class RouteCard {
 
   ageLabel = computed(() => relativeMinutes(this.route().updatedAt));
 
+  // Reads Date.now() per CD cycle; under OnPush, "Now" refreshes on the next input-driven change detection, not a timer.
   startsNow(w: NextWindow): boolean {
     return new Date(w.startUtc).getTime() <= Date.now();
   }
