@@ -96,6 +96,61 @@ describe('RouteCard', () => {
 
     expect((fixture.nativeElement as HTMLElement).querySelector('.route-name')?.textContent).toContain(`14,000'`);
   });
+
+  const nextWindow = (over: Partial<import('../../models/route-conditions').NextWindow> = {}) => ({
+    startUtc: new Date(Date.now() + 30 * 3600_000).toISOString(),
+    endUtc: new Date(Date.now() + 39 * 3600_000).toISOString(),
+    grade: 'A' as const,
+    lowConfidence: false,
+    ...over,
+  });
+
+  it('shows the next-window line when a window exists', () => {
+    const fixture = TestBed.createComponent(RouteCard);
+    fixture.componentRef.setInput('route', { ...summary('foo'), nextWindow: nextWindow() });
+    fixture.detectChanges();
+
+    const line = (fixture.nativeElement as HTMLElement).querySelector('.next-window');
+    expect(line).toBeTruthy();
+    expect(line!.textContent).toContain('A');
+  });
+
+  it('hides the line when nextWindow is null', () => {
+    const fixture = TestBed.createComponent(RouteCard);
+    fixture.componentRef.setInput('route', summary('foo'));
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement as HTMLElement).querySelector('.next-window')).toBeNull();
+  });
+
+  it('labels an underway window as starting now', () => {
+    const fixture = TestBed.createComponent(RouteCard);
+    fixture.componentRef.setInput('route', {
+      ...summary('foo'),
+      nextWindow: nextWindow({ startUtc: new Date(Date.now() - 3600_000).toISOString() }),
+    });
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement as HTMLElement).querySelector('.next-window')!.textContent).toContain('Now');
+  });
+
+  it('marks low-confidence windows with a muted suffix', () => {
+    const fixture = TestBed.createComponent(RouteCard);
+    fixture.componentRef.setInput('route', { ...summary('foo'), nextWindow: nextWindow({ lowConfidence: true }) });
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement as HTMLElement).querySelector('.next-window .win-conf')).toBeTruthy();
+  });
+
+  it('renders 24h clock times when the time format setting is 24h', () => {
+    TestBed.inject(SettingsService).set('timeFormat', '24h');
+    const fixture = TestBed.createComponent(RouteCard);
+    fixture.componentRef.setInput('route', { ...summary('foo'), nextWindow: nextWindow() });
+    fixture.detectChanges();
+
+    const text = (fixture.nativeElement as HTMLElement).querySelector('.next-window')!.textContent ?? '';
+    expect(text).not.toMatch(/AM|PM/i);
+  });
 });
 
 function summary(slug: string): RouteSummary {
