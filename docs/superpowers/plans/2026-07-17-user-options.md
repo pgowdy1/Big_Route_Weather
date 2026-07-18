@@ -730,6 +730,7 @@ This task must be a **visual no-op in dark mode** for structural colors — with
   --pill-pos-bg: #1b3a1b; --pill-pos-text: #a5d6a7; --pill-pos-border: #2e7d32;
   --pill-neu-bg: #2a3340; --pill-neu-text: #b0bec5; --pill-neu-border: #455a64;
   --pill-neg-bg: #4a1f1f; --pill-neg-text: #ef9a9a; --pill-neg-border: #c62828;
+  --driver-pos: #3ecf78; --driver-neg: #e88848;
 
   --chip-range-bg: rgba(95, 168, 216, 0.18); --chip-range-text: #cfe5f5;
   --chip-glacier-bg: rgba(120, 170, 200, 0.16); --chip-glacier-text: #cfe2ee;
@@ -765,7 +766,7 @@ This task must be a **visual no-op in dark mode** for structural colors — with
   --text: #1a2733;
   --text-soft: #3d4f60;
   --muted: #55677a;
-  --muted-deep: #7d8fa3;
+  --muted-deep: #5f7488;
   --border: #d5dee6;
   --border-soft: #e4ebf1;
   --accent: #33567f;
@@ -783,7 +784,8 @@ This task must be a **visual no-op in dark mode** for structural colors — with
 
   --pill-pos-bg: #e3f2e7; --pill-pos-text: #1f7a43; --pill-pos-border: #a9d5b5;
   --pill-neu-bg: #eef2f5; --pill-neu-text: #55677a; --pill-neu-border: #c6d2dc;
-  --pill-neg-bg: #f7ede2; --pill-neg-text: #b45309; --pill-neg-border: #dbb28c;
+  --pill-neg-bg: #f7ede2; --pill-neg-text: #9a4708; --pill-neg-border: #dbb28c;
+  --driver-pos: #1f7a43; --driver-neg: #9a4708;
 
   --chip-range-bg: rgba(51, 86, 127, 0.12); --chip-range-text: #33567f;
   --chip-glacier-bg: rgba(43, 106, 146, 0.12); --chip-glacier-text: #2b6a92;
@@ -794,10 +796,10 @@ This task must be a **visual no-op in dark mode** for structural colors — with
   --gw-bg: #fdf1f1; --gw-border: #e5a29d; --gw-edge: #d9534f;
   --gw-text: #7a2e2e; --gw-title: #b3453c; --gw-strong: #5c1f1f;
 
-  --aqi-good: #2e7d32; --aqi-moderate: #a67c00; --aqi-usg: #c05621;
+  --aqi-good: #2e7d32; --aqi-moderate: #8f6a00; --aqi-usg: #c05621;
   --aqi-unhealthy: #c62828; --aqi-very-unhealthy: #7b1fa2; --aqi-hazardous: #8e2437;
 
-  --grade-text-a: #2e7d32; --grade-text-b: #558b2f; --grade-text-c: #a67c00;
+  --grade-text-a: #2e7d32; --grade-text-b: #4a7c2a; --grade-text-c: #8f6a00;
   --grade-text-d: #c05621; --grade-text-f: #c62828;
 
   --overlay-bg: rgba(255, 255, 255, 0.88);
@@ -823,8 +825,8 @@ This task must be a **visual no-op in dark mode** for structural colors — with
 | `.peak-popup .popup-sub` | `color: #9fb5d5` | `color: var(--muted)` |
 | `.peak-popup .popup-glacier` | `color: #bcd9ea` | `color: var(--glacier-text)` |
 | `.peak-popup .popup-grade` | `color: #0a1525` | `color: var(--ink-on-grade)` |
-| `.peak-popup .popup-driver-positive` | `color: #3ecf78` | *leave literal (grade-green driver accent on map only; brand)* |
-| `.peak-popup .popup-driver-negative` | `color: #e88848` | *leave literal (matches D-grade dot)* |
+| `.peak-popup .popup-driver-positive` | `color: #3ecf78` | `color: var(--driver-pos)` (dark value identical; light darkened for ≥4.5:1 on `--surface`) |
+| `.peak-popup .popup-driver-negative` | `color: #e88848` | `color: var(--driver-neg)` (same rationale) |
 | `.peak-popup .popup-driver-neutral` | `color: #9fb5d5` | `color: var(--muted)` |
 | `.peak-popup .popup-cta` | `background: #3a5a8a` | `background: var(--accent-strong)` |
 | `.leaflet-popup-content-wrapper` | `background: #0a1525; color: #cfd9e8` | `background: var(--surface); color: var(--text-soft)` |
@@ -1014,7 +1016,7 @@ git commit -m "refactor(theme): tokenize peak-detail styles; raise component sty
 | `#1a2632` (refresh bg AND td border) | `var(--panel-raised)` (bg), `var(--border-soft)` (the `th, td` border-bottom) |
 | `#2c3e50` | `var(--border)` |
 | `#22313f` (refresh hover) | `var(--panel-hover)` |
-| `#11202c` (`.calls` bg AND `.today-tag` text) | `var(--panel)` (bg), `var(--ink-on-grade)` (tag text on teal) |
+| `#11202c` (`.calls` bg AND `.today-tag` text) | `var(--panel)` for BOTH (bg, and tag text on teal — dark `--panel` is byte-identical `#11202c`; light gives white-on-teal ≥4.5:1, where `--ink-on-grade` would fail at 3.35:1) |
 | `#80cbc4` (today row + tag bg) | `var(--teal)` |
 
 - [ ] **Step 7: Verify no strays remain**
@@ -1805,6 +1807,7 @@ Expected: success; no budget warnings; prerender completes for all routes (no `w
 6. DevTools → Application → Local Storage: `brw.settings.v1` appears only after changing a setting; corrupt it by hand (`{{{`) and reload → site works with defaults.
 7. DevTools Sensors/locale override (or `Object.defineProperty(navigator, 'language', ...)` in console before load is unreliable — instead temporarily clear storage and set the browser UI language to e.g. German): first visit shows metric + dark.
 8. Hydration: open a peak page with the console open — no NG05xx hydration warnings.
+9. Light-mode contrast sweep: with the light theme active, spot-verify body-text pairings hold ≥4.5:1 (hero grade word, pills, AQI value, popup drivers, muted metadata) — the token values were chosen numerically but the sweep confirms no pairing was missed.
 
 - [ ] **Step 3: Push and hand off**
 
