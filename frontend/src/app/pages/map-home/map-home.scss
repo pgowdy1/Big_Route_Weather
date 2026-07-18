@@ -53,6 +53,8 @@
   border-radius: 4px;
   padding: 6px 8px;
   color: var(--text-soft);
+
+  &::placeholder { color: var(--muted); }
 }
 .search-results {
   list-style: none;
