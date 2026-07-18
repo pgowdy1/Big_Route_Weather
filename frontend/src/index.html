@@ -14,6 +14,19 @@
   <link rel="shortcut icon" href="favicon.ico">
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
   <link rel="manifest" href="site.webmanifest">
+  <script>
+    // Stamp the theme before first paint so a stored light preference never
+    // flashes dark. SettingsService adopts this same storage value on boot.
+    (function () {
+      try {
+        var s = JSON.parse(localStorage.getItem('brw.settings.v1') || 'null') || {};
+        var t = s.theme === 'system'
+          ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+          : s.theme;
+        if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
+      } catch (e) { /* default dark */ }
+    })();
+  </script>
 </head>
 <body>
   <app-root></app-root>

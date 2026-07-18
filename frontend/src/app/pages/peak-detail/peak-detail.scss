@@ -1,33 +1,33 @@
 .peak-detail {
   font-family: 'Inter', system-ui, sans-serif;
-  color: #e8eef3;
+  color: var(--text);
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 
   .back a {
-    color: #8aa0b4;
+    color: var(--muted);
     text-decoration: none;
     font-size: 0.85rem;
 
-    &:hover { color: #cfd8dc; }
+    &:hover { color: var(--text-soft); }
   }
 
   .back-sep {
     margin: 0 0.5rem;
-    color: #6f7a8e;
+    color: var(--muted-deep);
   }
 
   .status {
-    color: #92a4b5;
+    color: var(--muted);
     font-style: italic;
 
-    &.error { color: #ef9a9a; font-style: normal; }
+    &.error { color: var(--danger-text); font-style: normal; }
   }
 
   .stale-chip {
-    background: #6d4c00;
-    color: #ffd54f;
+    background: var(--warn-bg);
+    color: var(--warn-text);
     padding: 0.125rem 0.5rem;
     border-radius: 999px;
     font-size: 0.75rem;
@@ -40,58 +40,58 @@
     .grade-skeleton {
       display: block;
       width: var(--grade-badge-size); height: var(--grade-badge-size);
-      border-radius: 0.75rem; background: #1a2632; border: 1px solid #2c3e50;
+      border-radius: 0.75rem; background: var(--panel-raised); border: 1px solid var(--border);
     }
     .hero-body { min-width: 0; }
 
     h1 { margin: 0; font-size: 1.75rem; line-height: 1.12; font-weight: 800; }
-    .h1-tail { font-weight: 500; color: #8aa0b4; }
+    .h1-tail { font-weight: 500; color: var(--muted); }
 
-    .facts { margin: 0.4rem 0 0; font-size: 0.8rem; color: #8aa0b4; }
-    .facts b { color: #cfd8dc; font-weight: 600; }
-    .facts .dot { margin: 0 0.5rem; color: #41566b; }
+    .facts { margin: 0.4rem 0 0; font-size: 0.8rem; color: var(--muted); }
+    .facts b { color: var(--text-soft); font-weight: 600; }
+    .facts .dot { margin: 0 0.5rem; color: var(--muted-deep); }
 
-    .hero-win { margin: 0.7rem 0 0; font-size: 0.8rem; text-transform: uppercase; color: #8aa0b4; }
-    .hero-win.muted { text-transform: none; font-style: italic; color: #92a4b5; }
+    .hero-win { margin: 0.7rem 0 0; font-size: 0.8rem; text-transform: uppercase; color: var(--muted); }
+    .hero-win.muted { text-transform: none; font-style: italic; color: var(--muted); }
     .q { font-weight: 700; }
-    .grade-a { color: #81c784; } .grade-b { color: #aed581; }
-    .grade-c { color: #ffd54f; } .grade-d { color: #ffb74d; } .grade-f { color: #ef9a9a; }
+    .grade-a { color: var(--grade-text-a); } .grade-b { color: var(--grade-text-b); }
+    .grade-c { color: var(--grade-text-c); } .grade-d { color: var(--grade-text-d); } .grade-f { color: var(--grade-text-f); }
 
-    .rationale { margin: 0.45rem 0 0; color: #cfd8dc; font-size: 0.95rem; line-height: 1.4; }
+    .rationale { margin: 0.45rem 0 0; color: var(--text-soft); font-size: 0.95rem; line-height: 1.4; }
     .drivers { list-style: none; padding: 0; margin: 0.6rem 0 0; display: flex; flex-wrap: wrap; gap: 0.3rem; }
     .hero-meta { margin: 0.7rem 0 0; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
-    .updated { font-size: 0.75rem; color: #8aa0b4; }
+    .updated { font-size: 0.75rem; color: var(--muted); }
   }
 
   .window-strip {
     display: flex; gap: 0.6rem;
     .ws {
       flex: 1; min-width: 0;
-      background: #11202c; border: 1px solid #2c3e50; border-radius: 0.6rem; padding: 0.6rem 0.7rem;
+      background: var(--panel); border: 1px solid var(--border); border-radius: 0.6rem; padding: 0.6rem 0.7rem;
       display: flex; flex-direction: column; gap: 0.4rem;
       --grade-badge-size: 1.9rem; --grade-badge-font: 0.95rem; --grade-badge-radius: 0.45rem;
     }
     .ws-head { display: flex; align-items: center; gap: 0.5rem; }
     .ws-meta { display: flex; flex-direction: column; gap: 0.1rem; }
-    .ws-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: #8aa0b4; }
-    .ws-partial { font-size: 0.66rem; color: #ffd54f; }
-    .ws-rationale { margin: 0; font-size: 0.78rem; color: #b6c2cf; line-height: 1.35; }
+    .ws-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+    .ws-partial { font-size: 0.66rem; color: var(--warn-text); }
+    .ws-rationale { margin: 0; font-size: 0.78rem; color: var(--text-soft); line-height: 1.35; }
     .drivers { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 0.3rem; }
   }
 
   .range-link {
-    a { color: #5fa8d8; text-decoration: none; font-size: 0.85rem; &:hover { color: #cfe5f5; } }
+    a { color: var(--accent); text-decoration: none; font-size: 0.85rem; &:hover { color: var(--accent-hover); } }
   }
 }
 
 .factors {
-  background: #11202c;
-  border: 1px solid #2c3e50;
+  background: var(--panel);
+  border: 1px solid var(--border);
   border-radius: 0.75rem;
   padding: 1rem;
 
-  h3 { margin: 0 0 0.5rem; font-size: 1rem; color: #b0bec5; }
-  .factors-note { margin: 0 0 0.75rem; font-size: 0.75rem; color: #8aa0b4; font-style: italic; }
+  h3 { margin: 0 0 0.5rem; font-size: 1rem; color: var(--text-soft); }
+  .factors-note { margin: 0 0 0.75rem; font-size: 0.75rem; color: var(--muted); font-style: italic; }
 
   .factor-list {
     list-style: none;
@@ -103,7 +103,7 @@
   }
 
   .factor-card {
-    background: #1a2632;
+    background: var(--panel-raised);
     border-radius: 0.5rem;
     padding: 0.65rem 0.8rem;
     display: flex;
@@ -111,11 +111,11 @@
     gap: 0.3rem;
 
     .factor-head { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
-    .factor-name { color: #e8eef3; font-size: 0.9rem; font-weight: 600; }
-    .factor-score { color: #cfd8dc; font-weight: 700; }
-    .factor-detail { margin: 0; color: #92a4b5; font-size: 0.75rem; }
-    .factor-weight, .factor-badge { font-size: 0.7rem; color: #8aa0b4; text-transform: uppercase; }
-    .factor-badge { background: #243240; padding: 0.125rem 0.5rem; border-radius: 999px; }
+    .factor-name { color: var(--text); font-size: 0.9rem; font-weight: 600; }
+    .factor-score { color: var(--text-soft); font-weight: 700; }
+    .factor-detail { margin: 0; color: var(--muted); font-size: 0.75rem; }
+    .factor-weight, .factor-badge { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; }
+    .factor-badge { background: var(--border-soft); padding: 0.125rem 0.5rem; border-radius: 999px; }
 
     &.inactive { opacity: 0.55; }
   }
@@ -123,13 +123,13 @@
 
 // card shell + tiles shared by the Snowpack and Sky & Air sections
 .snowpack, .sky-air {
-  background: #11202c;
-  border: 1px solid #2c3e50;
+  background: var(--panel);
+  border: 1px solid var(--border);
   border-radius: 0.75rem;
   padding: 1rem;
 
-  h3 { margin: 0 0 0.75rem; font-size: 1rem; color: #b0bec5; }
-  h4 { margin: 1rem 0 0.5rem; font-size: 0.85rem; color: #8aa0b4; }
+  h3 { margin: 0 0 0.75rem; font-size: 1rem; color: var(--text-soft); }
+  h4 { margin: 1rem 0 0.5rem; font-size: 0.85rem; color: var(--muted); }
 
   .snowpack-grid {
     display: grid;
@@ -138,26 +138,26 @@
   }
 
   .snowpack-tile {
-    background: #1a2632;
+    background: var(--panel-raised);
     border-radius: 0.5rem;
     padding: 0.6rem 0.8rem;
     display: flex;
     flex-direction: column;
     gap: 0.15rem;
 
-    .label { color: #8aa0b4; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; }
-    .value { color: #e8eef3; font-size: 1.15rem; font-weight: 600; }
+    .label { color: var(--muted); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .value { color: var(--text); font-size: 1.15rem; font-weight: 600; }
   }
 
   .station {
     margin: 0.75rem 0 0;
     font-size: 0.75rem;
-    color: #6b7e90;
+    color: var(--muted-deep);
   }
 }
 
 .forecast {
-  h3 { margin: 0 0 0.5rem; font-size: 1rem; color: #b0bec5; }
+  h3 { margin: 0 0 0.5rem; font-size: 1rem; color: var(--text-soft); }
 
   table {
     width: 100%;
@@ -167,16 +167,16 @@
     th, td {
       padding: 0.35rem 0.5rem;
       text-align: left;
-      border-bottom: 1px solid #243240;
+      border-bottom: 1px solid var(--border-soft);
     }
-    th { color: #8aa0b4; font-weight: 500; }
+    th { color: var(--muted); font-weight: 500; }
   }
 }
 
 .forecast-toggle {
   margin-top: 0.5rem;
   background: none;
-  border: 1px solid #2c3e50;
+  border: 1px solid var(--border);
   border-radius: 4px;
   padding: 0.25rem 0.75rem;
   cursor: pointer;
@@ -189,12 +189,12 @@
 // US EPA AQI bands, softened for the dark theme. Must out-rank the
 // .sky-air .snowpack-tile .value color, hence the four-class selectors.
 .sky-air .snowpack-tile {
-  .value.aqi-good { color: #81c784; }
-  .value.aqi-moderate { color: #ffd54f; }
-  .value.aqi-usg { color: #ffb74d; }
-  .value.aqi-unhealthy { color: #e57373; }
-  .value.aqi-very-unhealthy { color: #ba68c8; }
-  .value.aqi-hazardous { color: #c75b6d; }
+  .value.aqi-good { color: var(--aqi-good); }
+  .value.aqi-moderate { color: var(--aqi-moderate); }
+  .value.aqi-usg { color: var(--aqi-usg); }
+  .value.aqi-unhealthy { color: var(--aqi-unhealthy); }
+  .value.aqi-very-unhealthy { color: var(--aqi-very-unhealthy); }
+  .value.aqi-hazardous { color: var(--aqi-hazardous); }
 }
 
 .sources {
@@ -202,13 +202,13 @@
   gap: 1rem;
   flex-wrap: wrap;
   font-size: 0.75rem;
-  color: #6b7e90;
+  color: var(--muted-deep);
 }
 
 .pill { font-size: 0.7rem; padding: 0.15rem 0.5rem; border-radius: 999px; border: 1px solid transparent; }
-.pill-positive { background: #1b3a1b; color: #a5d6a7; border-color: #2e7d32; }
-.pill-neutral  { background: #2a3340; color: #b0bec5; border-color: #455a64; }
-.pill-negative { background: #4a1f1f; color: #ef9a9a; border-color: #c62828; }
+.pill-positive { background: var(--pill-pos-bg); color: var(--pill-pos-text); border-color: var(--pill-pos-border); }
+.pill-neutral  { background: var(--pill-neu-bg); color: var(--pill-neu-text); border-color: var(--pill-neu-border); }
+.pill-negative { background: var(--pill-neg-bg); color: var(--pill-neg-text); border-color: var(--pill-neg-border); }
 
 @media (max-width: 600px) {
   .peak-detail .hero { flex-direction: column; }
@@ -217,19 +217,19 @@
 
 .glacier-warning {
   padding: 1rem 1.25rem;
-  border: 1px solid #c62828;
-  border-left: 4px solid #ef5350;
+  border: 1px solid var(--gw-border);
+  border-left: 4px solid var(--gw-edge);
   border-radius: 0.75rem;
-  background: #2a1414;
-  color: #ffd9d9;
+  background: var(--gw-bg);
+  color: var(--gw-text);
 
   .gw-title {
     margin: 0 0 0.5rem;
     font-size: 1.05rem;
     line-height: 1.3;
-    color: #ff8a80;
+    color: var(--gw-title);
   }
 
   p { margin: 0.4rem 0 0; font-size: 0.9rem; line-height: 1.5; }
-  strong { color: #fff; }
+  strong { color: var(--gw-strong); }
 }

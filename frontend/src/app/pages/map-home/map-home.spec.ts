@@ -3,7 +3,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
 import { vi } from 'vitest';
-import { MapHome, markerIconSpec, popupHtml } from './map-home';
+import { MapHome, markerIconSpec, popupHtml, tileUrlFor } from './map-home';
 import { RouteSummary } from '../../models/route-conditions';
 
 describe('MapHome', () => {
@@ -315,10 +315,22 @@ describe('popupHtml', () => {
   }
 
   it('adds a glaciated note when the route is glaciated', () => {
-    expect(popupHtml(summary({ isGlaciated: true }))).toContain('Glaciated');
+    expect(popupHtml(summary({ isGlaciated: true }), '12,000 ft')).toContain('Glaciated');
   });
 
   it('omits the glaciated note otherwise', () => {
-    expect(popupHtml(summary({ isGlaciated: false }))).not.toContain('Glaciated');
+    expect(popupHtml(summary({ isGlaciated: false }), '12,000 ft')).not.toContain('Glaciated');
+  });
+
+  it('renders the pre-formatted elevation text verbatim', () => {
+    expect(popupHtml(summary(), '3,658 m')).toContain('3,658 m &middot; Class 2');
+    expect(popupHtml(summary(), '3,658 m')).not.toContain('12,000');
+  });
+});
+
+describe('tileUrlFor', () => {
+  it('selects the CARTO basemap matching the resolved theme', () => {
+    expect(tileUrlFor('dark')).toBe('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png');
+    expect(tileUrlFor('light')).toBe('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png');
   });
 });

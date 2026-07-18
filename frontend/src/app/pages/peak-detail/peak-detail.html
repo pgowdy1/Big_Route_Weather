@@ -17,7 +17,7 @@
       <div class="hero-body">
         <h1>{{ p.mountain }} <span class="h1-tail">Weather &amp; Climbing Conditions</span></h1>
         <p class="facts">
-          <b>{{ p.summitElevationFt | number }} ft</b><span class="dot">·</span>{{ p.routeName }}<span class="dot">·</span>Class {{ p.classDifficulty }}<span class="dot">·</span>{{ p.rangeName }}
+          <b>{{ p.summitElevationFt | elev: u.elevation() | number:'1.0-0' }} {{ u.elevLabel() }}</b><span class="dot">·</span>{{ p.routeName }}<span class="dot">·</span>Class {{ p.classDifficulty }}<span class="dot">·</span>{{ p.rangeName }}
         </p>
         @if (heroWindow(); as w) {
           <p class="hero-win">Next 24h · <span [class]="'q grade-' + (w.grade ? w.grade.toLowerCase() : 'x')">{{ gradeWord(w.grade) }}</span></p>
@@ -123,15 +123,15 @@
         <div class="snowpack-grid">
           <div class="snowpack-tile">
             <span class="label">SWE</span>
-            <span class="value">{{ snow.snowWaterEquivalentIn | number:'1.1-1' }}"</span>
+            <span class="value">{{ snow.snowWaterEquivalentIn | depth: u.snowDepth() | number:'1.1-1' }}{{ u.depthSuffix() }}</span>
           </div>
           <div class="snowpack-tile">
             <span class="label">Depth</span>
-            <span class="value">{{ snow.snowDepthIn | number:'1.1-1' }}"</span>
+            <span class="value">{{ snow.snowDepthIn | depth: u.snowDepth() | number:'1.1-1' }}{{ u.depthSuffix() }}</span>
           </div>
           <div class="snowpack-tile">
             <span class="label">New (7d)</span>
-            <span class="value">{{ snow.newSnowLast7DaysIn | number:'1.1-1' }}"</span>
+            <span class="value">{{ snow.newSnowLast7DaysIn | depth: u.snowDepth() | number:'1.1-1' }}{{ u.depthSuffix() }}</span>
           </div>
           <div class="snowpack-tile">
             <span class="label">% of normal</span>
@@ -155,7 +155,7 @@
         </div>
         <div class="snowpack-tile">
           <span class="label">Visibility</span>
-          <span class="value">{{ skyNow()?.visibilityMiles !== null && skyNow()?.visibilityMiles !== undefined ? (skyNow()!.visibilityMiles | number:'1.0-1') + ' mi' : '—' }}</span>
+          <span class="value">{{ skyNow()?.visibilityMiles !== null && skyNow()?.visibilityMiles !== undefined ? (skyNow()!.visibilityMiles! | dist: u.visibility() | number:'1.0-1') + ' ' + u.distLabel() : '—' }}</span>
         </div>
         <div class="snowpack-tile">
           <span class="label">Air quality</span>
@@ -168,12 +168,12 @@
         </div>
         <div class="snowpack-tile">
           <span class="label">Feels like</span>
-          <span class="value">{{ skyNow()?.apparentTempF !== null && skyNow()?.apparentTempF !== undefined ? (skyNow()!.apparentTempF | number:'1.0-0') + '°F' : '—' }}</span>
+          <span class="value">{{ skyNow()?.apparentTempF !== null && skyNow()?.apparentTempF !== undefined ? (skyNow()!.apparentTempF! | temp: u.temperature() | number:'1.0-0') + u.tempLabel() : '—' }}</span>
         </div>
         <div class="snowpack-tile">
           <span class="label">Daylight</span>
           @if (d.daylight; as day) {
-            <span class="value">{{ day.sunriseUtc | date:'h:mm a' }}–{{ day.sunsetUtc | date:'h:mm a' }}</span>
+            <span class="value">{{ day.sunriseUtc | date: u.clockFmt() }}–{{ day.sunsetUtc | date: u.clockFmt() }}</span>
             <span class="label">{{ day.daylightHours | number:'1.1-1' }} h</span>
           } @else {
             <span class="value muted">—</span>
@@ -187,15 +187,15 @@
         <h3>Hourly forecast — next {{ displayedForecast().length }}h</h3>
         <table>
           <thead>
-            <tr><th>Time</th><th>°F</th><th>Wind</th><th>Gust</th><th>Precip</th><th>Clouds</th><th>Conditions</th></tr>
+            <tr><th>Time</th><th>{{ u.tempLabel() }}</th><th>Wind</th><th>Gust</th><th>Precip</th><th>Clouds</th><th>Conditions</th></tr>
           </thead>
           <tbody>
             @for (h of displayedForecast(); track h.time) {
               <tr>
-                <td>{{ h.time | date:'EEE h a' }}</td>
-                <td>{{ h.tempF }}</td>
-                <td>{{ h.windMph }} mph</td>
-                <td>@if (h.gustMph !== null) { {{ h.gustMph }} mph } @else { — }</td>
+                <td>{{ h.time | date: u.hourFmt() }}</td>
+                <td>{{ h.tempF | temp: u.temperature() | number:'1.0-0' }}</td>
+                <td>{{ h.windMph | speed: u.windSpeed() | number:'1.0-0' }} {{ u.windLabel() }}</td>
+                <td>@if (h.gustMph !== null) { {{ h.gustMph | speed: u.windSpeed() | number:'1.0-0' }} {{ u.windLabel() }} } @else { — }</td>
                 <td>{{ h.precipitationProbabilityPct }}%</td>
                 <td>@if (h.cloudCoverPct !== null) { {{ h.cloudCoverPct }}% } @else { — }</td>
                 <td>{{ h.shortForecast }}</td>
@@ -217,15 +217,15 @@
         <h3>Per-source forecast (next 48h headlines)</h3>
         <table>
           <thead>
-            <tr><th>Source</th><th>Max wind</th><th>Max gust</th><th>Min °F</th><th>Max precip</th><th>CAPE</th></tr>
+            <tr><th>Source</th><th>Max wind</th><th>Max gust</th><th>Min {{ u.tempLabel() }}</th><th>Max precip</th><th>CAPE</th></tr>
           </thead>
           <tbody>
             @for (s of d.perSourceForecast; track s.sourceName) {
               <tr>
                 <td>{{ s.sourceName }}</td>
-                <td>{{ s.windMph | number:'1.0-1' }} mph</td>
-                <td>@if (s.maxGustMph !== null) { {{ s.maxGustMph | number:'1.0-1' }} mph } @else { — }</td>
-                <td>{{ s.tempF | number:'1.0-1' }}</td>
+                <td>{{ s.windMph | speed: u.windSpeed() | number:'1.0-1' }} {{ u.windLabel() }}</td>
+                <td>@if (s.maxGustMph !== null) { {{ s.maxGustMph | speed: u.windSpeed() | number:'1.0-1' }} {{ u.windLabel() }} } @else { — }</td>
+                <td>{{ s.tempF | temp: u.temperature() | number:'1.0-1' }}</td>
                 <td>
                   @if (s.precipitationProbabilityPct === null) {
                     <span class="precip-na" [attr.title]="'This model does not report precipitation probability'">—</span>
@@ -243,8 +243,8 @@
 
     @if (d.sources; as s) {
       <footer class="sources">
-        <span>NWS: {{ (s.nws.fetchedAt | date:'short') ?? 'unavailable' }}</span>
-        <span>SNOTEL: {{ (s.snotel.fetchedAt | date:'short') ?? 'unavailable' }}</span>
+        <span>NWS: {{ (s.nws.fetchedAt | date: u.stampFmt()) ?? 'unavailable' }}</span>
+        <span>SNOTEL: {{ (s.snotel.fetchedAt | date: u.stampFmt()) ?? 'unavailable' }}</span>
       </footer>
     }
   }
