@@ -961,6 +961,7 @@ git commit -m "refactor(theme): tokenize peak-detail styles; raise component sty
 | `rgba(95, 168, 216, 0.4)` (search border) | `var(--chip-range-bg)` is wrong here — use `var(--accent)` at 40%: replace with `color-mix(in srgb, var(--accent) 40%, transparent)` |
 | `rgba(95, 168, 216, 0.15)` (result hover) | `color-mix(in srgb, var(--accent) 15%, transparent)` |
 | `#9fb5d5` (result-range) | `var(--muted)` |
+| `.search-input` (no placeholder rule exists) | add `&::placeholder { color: var(--muted); }` — browser-default placeholder (~54% of text color) fails AA on the light overlay; mirrors route-grid's tokenized placeholder |
 | `#1a2942` (error card) | `var(--err-card-bg)` |
 | `#c44` / `#d55` (error button) | `var(--danger-strong)` / `var(--danger-strong-hover)` |
 | `#ff8a8a` (error h2) | `var(--danger-text)` |
@@ -1039,6 +1040,8 @@ git commit -m "refactor(theme): tokenize remaining component styles"
 ```
 
 ---
+
+> **Execution order note:** Tasks 9-11 run BEFORE Task 8. The menu is what makes light mode user-reachable, and the map's light basemap only lands in Task 11 — shipping the menu first would expose a half-themed map page. No code dependency forces the written order; 9-11 consume `SettingsService` directly.
 
 ### Task 8: SettingsMenu component + header wiring
 
