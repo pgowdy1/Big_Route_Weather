@@ -34,7 +34,7 @@ public static class GradeCalculator
                 TemperatureFactor.Detail(weather.TempF)));
             AddCap(capCandidates, "Temperature", TemperatureFactor.Cap(weather.TempF));
 
-            var windowHours = Math.Min(WeatherSnapshot.HeadlineHours, weather.Hourly.Count);
+            var windowHours = WeatherSnapshot.HeadlineWindow(weather.Hourly).Count;
             factors.Add(new FactorScore(
                 "Precipitation",
                 PrecipitationFactor.Score(weather.PrecipitationProbabilityPct, weather.PrecipAmountIn, windowHours),

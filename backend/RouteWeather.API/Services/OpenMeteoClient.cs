@@ -188,8 +188,7 @@ public class OpenMeteoClient
 
         if (series.Count == 0) return null;
 
-        var headCutoff = times[0].AddHours(WeatherSnapshot.HeadlineHours);
-        var head = series.Where(h => h.Time < headCutoff).ToList();
+        var head = WeatherSnapshot.HeadlineWindow(series);
         if (head.Count == 0) return null;
 
         var gusts = head.Where(h => h.GustMph.HasValue).Select(h => h.GustMph!.Value).ToList();
@@ -226,11 +225,11 @@ public class OpenMeteoClient
                 ? h with { PrecipitationProbabilityPct = pct }
                 : h).ToList();
 
-        var headCutoff = hourly.Count == 0 ? default : hourly[0].Time.AddHours(WeatherSnapshot.HeadlineHours);
+        var head = WeatherSnapshot.HeadlineWindow(hourly);
         return snapshot with
         {
-            PrecipitationProbabilityPct = hourly.Count == 0 ? 0
-                : hourly.Where(h => h.Time < headCutoff).Max(h => h.PrecipitationProbabilityPct),
+            PrecipitationProbabilityPct = head.Count == 0 ? 0
+                : head.Max(h => h.PrecipitationProbabilityPct),
             Hourly = hourly,
         };
     }

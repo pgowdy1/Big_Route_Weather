@@ -57,8 +57,7 @@ public static class NwsGridpointParser
         if (hours.Count == 0) return null;
 
         // Scalars describe the headline window only (see WeatherSnapshot invariant).
-        var headCutoff = start.AddHours(WeatherSnapshot.HeadlineHours);
-        var head = hours.Where(h => h.Time < headCutoff).ToList();
+        var head = WeatherSnapshot.HeadlineWindow(hours);
         if (head.Count == 0) return null;
 
         var gusts = head.Where(h => h.GustMph.HasValue).Select(h => h.GustMph!.Value).ToList();

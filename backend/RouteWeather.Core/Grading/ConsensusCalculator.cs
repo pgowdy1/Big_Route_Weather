@@ -56,10 +56,7 @@ public class ConsensusCalculator
 
         // Blended scalars keep the WeatherSnapshot invariant: they describe the first
         // HeadlineHours of the blended series even when sources extend to 7 days.
-        var headCutoff = blendedHours.Count == 0
-            ? default
-            : blendedHours[0].Time.AddHours(WeatherSnapshot.HeadlineHours);
-        var head = blendedHours.Where(h => h.Time < headCutoff).ToList();
+        var head = WeatherSnapshot.HeadlineWindow(blendedHours);
 
         var blendedGusts = head.Where(h => h.GustMph.HasValue).Select(h => h.GustMph!.Value).ToList();
         var blendedCapes = head.Where(h => h.CapeJkg.HasValue).Select(h => h.CapeJkg!.Value).ToList();

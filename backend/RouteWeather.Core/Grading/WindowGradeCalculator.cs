@@ -15,7 +15,7 @@ public static class WindowGradeCalculator
     private static WindowGrade GradeWindow(WeatherSnapshot? weather, SnowpackSnapshot? snowpack, int hours, AirQualitySnapshot? airQuality)
     {
         var hourly = weather?.Hourly ?? Array.Empty<HourlyForecast>();
-        var slice = hourly.Take(hours).ToList();
+        var slice = WeatherSnapshot.Window(hourly, hours).ToList();
         var windowed = slice.Count == 0 ? null : Aggregate(slice);
 
         if (windowed is null && snowpack is null)

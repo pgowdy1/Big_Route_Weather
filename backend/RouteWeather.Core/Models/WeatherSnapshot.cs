@@ -21,6 +21,20 @@ public record WeatherSnapshot(
 {
     /// <summary>Hours the scalar headline fields describe (and the visible-window grades cover).</summary>
     public const int HeadlineHours = 48;
+
+    /// <summary>First <paramref name="windowHours"/> of a series, anchored on the first
+    /// hour's timestamp (time-based, not count-based — sparse series must not reach past
+    /// the wall-clock window). Empty input → empty.</summary>
+    public static IReadOnlyList<HourlyForecast> Window(IReadOnlyList<HourlyForecast> hours, int windowHours)
+    {
+        if (hours.Count == 0) return hours;
+        var cutoff = hours[0].Time.AddHours(windowHours);
+        return hours.Where(h => h.Time < cutoff).ToList();
+    }
+
+    /// <summary>The headline window: Window(hours, HeadlineHours).</summary>
+    public static IReadOnlyList<HourlyForecast> HeadlineWindow(IReadOnlyList<HourlyForecast> hours) =>
+        Window(hours, HeadlineHours);
 }
 
 public record HourlyForecast(
