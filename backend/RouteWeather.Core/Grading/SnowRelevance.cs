@@ -24,8 +24,13 @@ public static class SnowRelevance
         var hourly = weather?.Hourly;
         if (hourly is null || hourly.Count == 0) return false;
 
+        // Only the headline window gates today's active-state (see WeatherSnapshot invariant):
+        // snow forecast on days 5–7 of the 7-day series must not flip RecentSnow relevance now.
+        var headCutoff = hourly[0].Time.AddHours(WeatherSnapshot.HeadlineHours);
+
         foreach (var h in hourly)
         {
+            if (h.Time >= headCutoff) continue;
             if (h.PrecipitationProbabilityPct >= LikelyPrecipPct &&
                 !string.IsNullOrEmpty(h.ShortForecast) &&
                 h.ShortForecast.Contains("snow", StringComparison.OrdinalIgnoreCase))
