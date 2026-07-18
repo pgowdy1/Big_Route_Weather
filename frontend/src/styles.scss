@@ -37,6 +37,7 @@
   --pill-pos-bg: #1b3a1b; --pill-pos-text: #a5d6a7; --pill-pos-border: #2e7d32;
   --pill-neu-bg: #2a3340; --pill-neu-text: #b0bec5; --pill-neu-border: #455a64;
   --pill-neg-bg: #4a1f1f; --pill-neg-text: #ef9a9a; --pill-neg-border: #c62828;
+  --driver-pos: #3ecf78; --driver-neg: #e88848;
 
   --chip-range-bg: rgba(95, 168, 216, 0.18); --chip-range-text: #cfe5f5;
   --chip-glacier-bg: rgba(120, 170, 200, 0.16); --chip-glacier-text: #cfe2ee;
@@ -72,7 +73,7 @@
   --text: #1a2733;
   --text-soft: #3d4f60;
   --muted: #55677a;
-  --muted-deep: #7d8fa3;
+  --muted-deep: #5f7488;
   --border: #d5dee6;
   --border-soft: #e4ebf1;
   --accent: #33567f;
@@ -90,7 +91,8 @@
 
   --pill-pos-bg: #e3f2e7; --pill-pos-text: #1f7a43; --pill-pos-border: #a9d5b5;
   --pill-neu-bg: #eef2f5; --pill-neu-text: #55677a; --pill-neu-border: #c6d2dc;
-  --pill-neg-bg: #f7ede2; --pill-neg-text: #b45309; --pill-neg-border: #dbb28c;
+  --pill-neg-bg: #f7ede2; --pill-neg-text: #9a4708; --pill-neg-border: #dbb28c;
+  --driver-pos: #1f7a43; --driver-neg: #9a4708;
 
   --chip-range-bg: rgba(51, 86, 127, 0.12); --chip-range-text: #33567f;
   --chip-glacier-bg: rgba(43, 106, 146, 0.12); --chip-glacier-text: #2b6a92;
@@ -101,10 +103,10 @@
   --gw-bg: #fdf1f1; --gw-border: #e5a29d; --gw-edge: #d9534f;
   --gw-text: #7a2e2e; --gw-title: #b3453c; --gw-strong: #5c1f1f;
 
-  --aqi-good: #2e7d32; --aqi-moderate: #a67c00; --aqi-usg: #c05621;
+  --aqi-good: #2e7d32; --aqi-moderate: #8f6a00; --aqi-usg: #c05621;
   --aqi-unhealthy: #c62828; --aqi-very-unhealthy: #7b1fa2; --aqi-hazardous: #8e2437;
 
-  --grade-text-a: #2e7d32; --grade-text-b: #558b2f; --grade-text-c: #a67c00;
+  --grade-text-a: #2e7d32; --grade-text-b: #4a7c2a; --grade-text-c: #8f6a00;
   --grade-text-d: #c05621; --grade-text-f: #c62828;
 
   --overlay-bg: rgba(255, 255, 255, 0.88);
@@ -199,8 +201,8 @@ html, body {
 .peak-popup .popup-grade.grade-d { background: #e88848; }
 .peak-popup .popup-grade.grade-f { background: #d04848; }
 .peak-popup .popup-driver { font-size: 0.8rem; padding: 2px 0; }
-.peak-popup .popup-driver-positive { color: #3ecf78; }
-.peak-popup .popup-driver-negative { color: #e88848; }
+.peak-popup .popup-driver-positive { color: var(--driver-pos); }
+.peak-popup .popup-driver-negative { color: var(--driver-neg); }
 .peak-popup .popup-driver-neutral { color: var(--muted); }
 .peak-popup .popup-cta {
   display: block; margin-top: 8px; padding: 6px 10px; border-radius: 5px;
