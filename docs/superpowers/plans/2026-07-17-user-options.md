@@ -965,6 +965,7 @@ git commit -m "refactor(theme): tokenize peak-detail styles; raise component sty
 | `#c44` / `#d55` (error button) | `var(--danger-strong)` / `var(--danger-strong-hover)` |
 | `#ff8a8a` (error h2) | `var(--danger-text)` |
 | `#fff` (error card text) | `var(--text)` |
+| `#fff` (error card BUTTON label) | *leave literal — button labels on colored action backgrounds stay white in both themes (dark-on-red fails AA in light)* |
 | `rgba(0, 0, 0, 0.4)` (card shadow) | `var(--panel-shadow)` |
 
 `color-mix` is baseline-available in all evergreen browsers this app supports; it keeps the accent-derived translucents theme-correct.
