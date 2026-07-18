@@ -19,9 +19,9 @@
     display: inline-block;
     font-weight: 800;
     letter-spacing: -0.01em;
-    color: #eef3f7;
+    color: var(--text);
 
-    .accent { color: #5fa8d8; }
+    .accent { color: var(--accent); }
   }
   p {
     margin: 0.45rem 0 0;
@@ -29,7 +29,7 @@
     letter-spacing: 0.12em;
     font-size: 0.78rem;
     font-weight: 500;
-    color: #9fb2c4;
+    color: var(--muted);
   }
 
   .hero-nav {
@@ -38,13 +38,13 @@
     gap: 1.25rem;
 
     .about-link {
-      color: #8aa0b4;
+      color: var(--muted);
       text-decoration: none;
       font-size: 0.85rem;
       font-family: 'Inter', system-ui, sans-serif;
 
-      &:hover { color: #cfd8dc; }
-      &.active { color: #c5e1a5; }
+      &:hover { color: var(--text-soft); }
+      &.active { color: var(--nav-active); }
     }
   }
 }

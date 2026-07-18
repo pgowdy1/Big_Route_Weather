@@ -5,7 +5,7 @@
 .map-container {
   width: 100%;
   height: calc(100vh - 120px);
-  background: #0a1525;
+  background: var(--surface);
   border-radius: 8px;
 }
 .updated-chip {
@@ -13,8 +13,8 @@
   top: 12px;
   right: 60px;
   z-index: 1000;
-  background: rgba(10, 21, 37, 0.85);
-  color: #cfd9e8;
+  background: var(--overlay-bg);
+  color: var(--text-soft);
   padding: 6px 10px;
   border-radius: 6px;
   font-size: 0.85rem;
@@ -29,7 +29,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #5fa8d8;
+  background: var(--accent);
   animation: chip-pulse 1.4s ease-in-out infinite;
 }
 @keyframes chip-pulse {
@@ -41,7 +41,7 @@
   top: 12px;
   left: 12px;
   z-index: 1000;
-  background: rgba(10, 21, 37, 0.85);
+  background: var(--overlay-bg);
   border-radius: 6px;
   padding: 6px;
   min-width: 220px;
@@ -49,10 +49,10 @@
 .search-input {
   width: 100%;
   background: transparent;
-  border: 1px solid rgba(95, 168, 216, 0.4);
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
   border-radius: 4px;
   padding: 6px 8px;
-  color: #cfd9e8;
+  color: var(--text-soft);
 }
 .search-results {
   list-style: none;
@@ -70,13 +70,13 @@
   border: none;
   padding: 6px 8px;
   cursor: pointer;
-  color: #cfd9e8;
+  color: var(--text-soft);
   text-align: left;
 
-  &:hover { background: rgba(95, 168, 216, 0.15); }
+  &:hover { background: color-mix(in srgb, var(--accent) 15%, transparent); }
 }
 .result-name { font-weight: 600; }
-.result-range { font-size: 0.75rem; color: #9fb5d5; }
+.result-range { font-size: 0.75rem; color: var(--muted); }
 
 .map-error-overlay {
   position: absolute;
@@ -85,39 +85,39 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(10, 21, 37, 0.78);
+  background: var(--overlay-dim);
   border-radius: 8px;
 }
 .map-error-card {
-  background: #1a2942;
-  border: 1px solid #c44;
+  background: var(--err-card-bg);
+  border: 1px solid var(--danger-strong);
   border-radius: 8px;
   padding: 20px 28px;
   max-width: 360px;
   text-align: center;
-  color: #fff;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  color: var(--text);
+  box-shadow: 0 8px 24px var(--panel-shadow);
 
   h2 {
     font-size: 1.1rem;
     margin: 0 0 8px;
-    color: #ff8a8a;
+    color: var(--danger-text);
   }
   p {
-    color: #cfd9e8;
+    color: var(--text-soft);
     margin: 0 0 16px;
     font-size: 0.9rem;
   }
   button {
-    background: #c44;
-    color: #fff;
+    background: var(--danger-strong);
+    color: var(--text);
     border: none;
     padding: 8px 20px;
     border-radius: 4px;
     cursor: pointer;
     font-weight: 600;
 
-    &:hover { background: #d55; }
+    &:hover { background: var(--danger-strong-hover); }
   }
 }
 

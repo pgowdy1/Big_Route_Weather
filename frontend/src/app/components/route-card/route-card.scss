@@ -1,15 +1,15 @@
 .card {
   display: block;
-  background: #1a2632;
-  border: 1px solid #2c3e50;
+  background: var(--panel-raised);
+  border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 1.25rem;
-  color: #e8eef3;
+  color: var(--text);
   text-decoration: none;
   transition: border-color 0.15s, transform 0.15s;
   font-family: 'Inter', system-ui, sans-serif;
 
-  &:hover { border-color: #4a6075; transform: translateY(-1px); }
+  &:hover { border-color: var(--muted-deep); transform: translateY(-1px); }
 }
 
 .card-head {
@@ -27,7 +27,7 @@
   }
   .route-name {
     margin: 0.25rem 0 0;
-    color: #92a4b5;
+    color: var(--muted);
     font-size: 0.85rem;
   }
 }
@@ -38,11 +38,11 @@
   gap: 0.75rem;
   align-items: center;
   font-size: 0.75rem;
-  color: #6b7e90;
+  color: var(--muted-deep);
 
   .stale-chip, .aqi-chip {
-    background: #6d4c00;
-    color: #ffd54f;
+    background: var(--warn-bg);
+    color: var(--warn-text);
     padding: 0.125rem 0.5rem;
     border-radius: 999px;
   }
@@ -63,17 +63,17 @@
   border-radius: 999px;
   border: 1px solid transparent;
 }
-.pill-positive { background: #1b3a1b; color: #a5d6a7; border-color: #2e7d32; }
-.pill-neutral  { background: #2a3340; color: #b0bec5; border-color: #455a64; }
-.pill-negative { background: #4a1f1f; color: #ef9a9a; border-color: #c62828; }
+.pill-positive { background: var(--pill-pos-bg); color: var(--pill-pos-text); border-color: var(--pill-pos-border); }
+.pill-neutral  { background: var(--pill-neu-bg); color: var(--pill-neu-text); border-color: var(--pill-neu-border); }
+.pill-negative { background: var(--pill-neg-bg); color: var(--pill-neg-text); border-color: var(--pill-neg-border); }
 
 .range-chip {
   display: inline-block;
   padding: 2px 8px;
   border-radius: 999px;
   font-size: 0.7rem;
-  background: rgba(95, 168, 216, 0.18);
-  color: #cfe5f5;
+  background: var(--chip-range-bg);
+  color: var(--chip-range-text);
   letter-spacing: 0.04em;
 }
 
@@ -82,8 +82,8 @@
   padding: 2px 8px;
   border-radius: 999px;
   font-size: 0.7rem;
-  background: rgba(120, 170, 200, 0.16);
-  color: #cfe2ee;
+  background: var(--chip-glacier-bg);
+  color: var(--chip-glacier-text);
   letter-spacing: 0.04em;
 }
 
