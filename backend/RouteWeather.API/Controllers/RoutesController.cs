@@ -84,6 +84,7 @@ public class RoutesController : ControllerBase
             isStale = c.IsStale,
             consensus = SerializeConsensus(c.Consensus),
             airQualityUsAqi = c.AirQuality?.UsAqi,
+            nextWindow = SerializeNextWindow(c.Windows),
         };
     }
 
@@ -142,12 +143,60 @@ public class RoutesController : ControllerBase
             maxGustMph = p.MaxGustMph,
             maxCapeJkg = p.MaxCapeJkg,
         }),
+        climbWindows = c.Windows?
+            .Where(w => w.EndUtc > DateTimeOffset.UtcNow)
+            .Select(w => new
+            {
+                startUtc = w.StartUtc,
+                endUtc = w.EndUtc,
+                grade = w.Grade.ToString(),
+                score = w.Score,
+                endReason = w.EndReason,
+                lowConfidence = w.LowConfidence,
+            }),
+        hourlyQuality = c.HourlyScores?.Select(q => new
+        {
+            timeUtc = q.TimeUtc,
+            score = q.Score,
+            qualifies = q.Qualifies,
+        }),
+        dailyDaylight = ComputeDailyDaylight(c),
     };
 
     // Computed at read time, never cached: a RouteConditions row can be served up to
     // 24h stale, which would freeze sunrise/sunset into the past.
     private static DaylightInfo? ComputeDaylight(RouteConditions c) =>
         SolarCalculator.NextDaylight(c.Route.SummitLat, c.Route.SummitLon, DateTimeOffset.UtcNow);
+
+    // Selected at request time so a memory-cached RouteConditions can't pin
+    // "next window" to a stretch that has already ended.
+    private static object? SerializeNextWindow(IReadOnlyList<ClimbWindow>? windows)
+    {
+        var best = windows?
+            .Where(w => w.EndUtc > DateTimeOffset.UtcNow)
+            .OrderByDescending(w => w.Score)
+            .ThenBy(w => w.StartUtc)
+            .FirstOrDefault();
+        return best is null ? null : new
+        {
+            startUtc = best.StartUtc,
+            endUtc = best.EndUtc,
+            grade = best.Grade.ToString(),
+            lowConfidence = best.LowConfidence,
+        };
+    }
+
+    // Read-time like ComputeDaylight: a stale cached row must not freeze sunrise/sunset.
+    // Today + 8 days covers the 168h horizon plus UTC-date spill at western longitudes.
+    private static IReadOnlyList<object> ComputeDailyDaylight(RouteConditions c)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        return Enumerable.Range(0, 9)
+            .Select(i => SolarCalculator.ComputeUtc(c.Route.SummitLat, c.Route.SummitLon, today.AddDays(i)))
+            .Where(d => d is not null)
+            .Select(d => (object)new { sunriseUtc = d!.SunriseUtc, sunsetUtc = d.SunsetUtc })
+            .ToList();
+    }
 
     private static object? SerializeConsensus(ConsensusReport? r) => r is null ? null : new
     {
