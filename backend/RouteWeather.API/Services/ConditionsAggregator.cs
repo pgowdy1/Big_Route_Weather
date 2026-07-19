@@ -234,13 +234,13 @@ public class ConditionsAggregator : IConditionsAggregator
             ? null
             : WindowGradeCalculator.Compute(blendedWeather, snowpack, airQuality.Snapshot);
 
-        var climbWindows = blendedWeather is null
-            ? Array.Empty<ClimbWindow>()
-            : WindowFinder.Find(blendedWeather, snowpack, airQuality.Snapshot,
-                routeEntity.TypicalClimbHours, routeEntity.SummitLat, routeEntity.SummitLon);
         var hourlyScores = blendedWeather is null
             ? Array.Empty<HourlyQuality>()
             : WindowFinder.ScoreHours(blendedWeather, snowpack, airQuality.Snapshot);
+        var climbWindows = blendedWeather is null
+            ? Array.Empty<ClimbWindow>()
+            : WindowFinder.Find(blendedWeather, snowpack, airQuality.Snapshot,
+                routeEntity.TypicalClimbHours, routeEntity.SummitLat, routeEntity.SummitLon, hourlyScores);
 
         var route = new Core.Models.Route(
             routeEntity.Slug,

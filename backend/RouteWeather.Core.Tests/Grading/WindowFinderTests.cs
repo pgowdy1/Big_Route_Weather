@@ -148,4 +148,52 @@ public class WindowFinderTests
         Assert.Empty(WindowFinder.Find(null, null, null, 8, Lat, Lon));
         Assert.Empty(WindowFinder.ScoreHours(null, null, null));
     }
+
+    [Fact]
+    public void Mid_series_gap_splits_a_run()
+    {
+        // A 3-hour hole in the data mid-frame must break the qualifying run so no window
+        // straddles it, with a window landing on each side.
+        var gapStart = new DateTimeOffset(2026, 7, 21, 15, 0, 0, TimeSpan.Zero); // T0 + 21h
+        var gapEnd = gapStart.AddHours(3);
+
+        var series = Enumerable.Range(0, 168)
+            .Select(i => T0.AddHours(i))
+            .Where(t => t < gapStart || t >= gapEnd)   // omit the 3 gap hours
+            .Select(Good)
+            .ToList();
+        var head = series.Take(48).ToList();
+        var snap = new WeatherSnapshot(
+            head.Max(h => h.WindMph), head.Min(h => h.TempF), head.Max(h => h.PrecipitationProbabilityPct),
+            series,
+            head.Max(h => h.GustMph!.Value), head.Max(h => h.CapeJkg!.Value), head.Sum(h => h.PrecipitationIn!.Value));
+
+        var windows = WindowFinder.Find(snap, snowpack: null, airQuality: null, 2, Lat, Lon);
+
+        Assert.NotEmpty(windows);
+        Assert.All(windows, w => Assert.True(w.EndUtc <= gapStart || w.StartUtc >= gapEnd,
+            $"window [{w.StartUtc:o},{w.EndUtc:o}] straddles the gap [{gapStart:o},{gapEnd:o}]"));
+        Assert.Contains(windows, w => w.EndUtc <= gapStart);
+        Assert.Contains(windows, w => w.StartUtc >= gapEnd);
+    }
+
+    [Fact]
+    public void Zero_typical_climb_hours_returns_empty()
+    {
+        Assert.Empty(Find(Snap((_, t) => Good(t)), typicalHours: 0));
+    }
+
+    [Fact]
+    public void Frames_never_overlap_at_high_latitude()
+    {
+        // Lat 63° in July: the night is shorter than the 6h alpine-start lead, so raw frames
+        // would overlap. The clamp must keep the returned windows non-overlapping.
+        var windows = WindowFinder.Find(Snap((_, t) => Good(t)), snowpack: null, airQuality: null,
+            typicalClimbHours: 8, lat: 63.0, lon: Lon);
+
+        Assert.NotEmpty(windows);
+        for (var i = 1; i < windows.Count; i++)
+            Assert.True(windows[i].StartUtc >= windows[i - 1].EndUtc,
+                $"window {i} starts {windows[i].StartUtc:o} before previous end {windows[i - 1].EndUtc:o}");
+    }
 }

@@ -39,12 +39,26 @@ public static class WindowFinder
         double typicalClimbHours,
         double lat,
         double lon)
+        => Find(weather, snowpack, airQuality, typicalClimbHours, lat, lon,
+            ScoreHours(weather, snowpack, airQuality));
+
+    /// <summary>
+    /// Overload for callers that already scored the series (e.g. the aggregator, which
+    /// also surfaces the per-hour scores). Avoids a second full scoring pass.
+    /// </summary>
+    public static IReadOnlyList<ClimbWindow> Find(
+        WeatherSnapshot? weather,
+        SnowpackSnapshot? snowpack,
+        AirQualitySnapshot? airQuality,
+        double typicalClimbHours,
+        double lat,
+        double lon,
+        IReadOnlyList<HourlyQuality> scored)
     {
         if (weather is null || weather.Hourly.Count == 0 || typicalClimbHours <= 0)
             return Array.Empty<ClimbWindow>();
 
         var hours = weather.Hourly;
-        var scored = ScoreHours(weather, snowpack, airQuality);
         var seriesStart = hours[0].Time;
         var seriesEnd = hours[^1].Time.AddHours(1);
 
@@ -60,8 +74,9 @@ public static class WindowFinder
                 var end = run.End < frame.End ? run.End : frame.End;
                 if ((end - start).TotalHours < typicalClimbHours) continue;
 
-                windows.Add(BuildWindow(hours, snowpack, airQuality,
-                    start, end, run, frame, seriesStart, seriesEnd));
+                var window = BuildWindow(hours, snowpack, airQuality,
+                    start, end, run, frame, seriesStart, seriesEnd);
+                if (window is not null) windows.Add(window);
             }
         }
         return windows.OrderBy(w => w.StartUtc).ToList();
@@ -78,7 +93,9 @@ public static class WindowFinder
         int? runStart = null;
         for (var i = 0; i < hours.Count; i++)
         {
-            var brokeContinuity = i > 0 && hours[i].Time - hours[i - 1].Time != TimeSpan.FromHours(1);
+            // ±1-minute tolerance: sources timestamp hours with sub-second clock jitter,
+            // so an exact 60-minute equality would read every pair as a gap.
+            var brokeContinuity = i > 0 && Math.Abs((hours[i].Time - hours[i - 1].Time).TotalMinutes - 60) > 1;
             if (runStart is not null && (brokeContinuity || !scored[i].Qualifies))
             {
                 runs.Add(MakeRun(hours, runStart.Value, i - 1));
@@ -104,13 +121,17 @@ public static class WindowFinder
             var daylight = SolarCalculator.ComputeUtc(lat, lon, date);
             if (daylight is null) continue; // polar day/night
             var frame = new Frame(daylight.SunriseUtc.AddHours(-FrameLeadHours), daylight.SunsetUtc);
+            // High-latitude clamp: when the night is shorter than the alpine-start lead,
+            // this frame's start can precede the previous sunset. Clamp so frames never overlap.
+            if (frames.Count > 0 && frame.Start < frames[^1].End)
+                frame = frame with { Start = frames[^1].End };
             if (frame.End <= start || frame.Start >= end) continue;
             frames.Add(frame);
         }
         return frames;
     }
 
-    private static ClimbWindow BuildWindow(
+    private static ClimbWindow? BuildWindow(
         IReadOnlyList<HourlyForecast> hours,
         SnowpackSnapshot? snowpack,
         AirQualitySnapshot? airQuality,
@@ -121,7 +142,10 @@ public static class WindowFinder
         DateTimeOffset seriesStart,
         DateTimeOffset seriesEnd)
     {
+        // Hours are inclusive-start, exclusive-end ([h, h+1) coverage): an hour stamped
+        // exactly at `end` belongs to the next window, not this one.
         var slice = hours.Where(h => h.Time >= start && h.Time < end).ToList();
+        if (slice.Count == 0) return null; // a clamped frame can leave no hours to grade
         var graded = GradeCalculator.Compute(WindowGradeCalculator.Aggregate(slice), snowpack, airQuality);
 
         var midpoint = start + (end - start) / 2;
@@ -140,8 +164,9 @@ public static class WindowFinder
         Frame frame,
         DateTimeOffset seriesEnd)
     {
-        // Clipped by the data horizon while still good.
-        if (end >= seriesEnd && run.End >= seriesEnd) return "runs to the forecast edge";
+        // Clipped by the data horizon while still good. end = min(run.End, frame.End),
+        // so end >= seriesEnd already implies the run itself reached the horizon.
+        if (end >= seriesEnd) return "runs to the forecast edge";
         // Clipped by sunset while the run keeps going.
         if (end >= frame.End && run.End > frame.End) return "ends with daylight";
 
