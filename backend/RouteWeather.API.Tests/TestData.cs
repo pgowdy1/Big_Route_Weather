@@ -34,13 +34,17 @@ public static class TestData
     /// Benign weather that grades well, with enough hourly data for window grades.
     /// Captures wall-clock UtcNow at call time — tests asserting exact time
     /// boundaries should build their own snapshots with explicit timestamps.
-    public static WeatherSnapshot Snapshot() => new(
-        WindMph: 5,
-        TempF: 30,
-        PrecipitationProbabilityPct: 10,
-        Hourly: Enumerable.Range(0, 48)
-            .Select(i => new HourlyForecast(DateTimeOffset.UtcNow.AddHours(i), 30, 5, 10, "Clear"))
-            .ToList());
+    public static WeatherSnapshot Snapshot()
+    {
+        var t0 = DateTimeOffset.UtcNow;
+        return new(
+            WindMph: 5,
+            TempF: 30,
+            PrecipitationProbabilityPct: 10,
+            Hourly: Enumerable.Range(0, 48)
+                .Select(i => new HourlyForecast(t0.AddHours(i), 30, 5, 10, "Clear"))
+                .ToList());
+    }
 
     /// Minimal RouteConditions for controller tests (grade present, no weather detail).
     public static RouteConditions Conditions(

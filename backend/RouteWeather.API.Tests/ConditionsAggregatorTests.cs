@@ -317,4 +317,33 @@ public class ConditionsAggregatorTests
         Assert.Equal(Grade.F, conditions.Grade);
         Assert.Contains("air quality", conditions.Rationale, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public async Task CacheOnly_WithForecastRow_ComputesClimbWindowsAndHourlyScores()
+    {
+        var h = new Harness(nameof(CacheOnly_WithForecastRow_ComputesClimbWindowsAndHourlyScores));
+        await h.AddForecastRowAsync(DateTime.UtcNow.AddMinutes(-5), DateTime.UtcNow.AddMinutes(55));
+
+        var conditions = await h.Aggregator.GetConditionsAsync(h.Route, FetchMode.CacheOnly);
+
+        Assert.NotNull(conditions.Windows);
+        Assert.NotNull(conditions.HourlyScores);
+        Assert.Equal(48, conditions.HourlyScores!.Count);      // one score per series hour
+        // Benign fixture should clear the B bar every hour. If this assert alone fails,
+        // the fixture's 30°F hours score sub-B on the hourly path — relax to
+        // Assert.Contains(conditions.HourlyScores!, q => q.Qualifies) rather than touching
+        // the shared TestData.Snapshot() fixture, and report that you did so.
+        Assert.All(conditions.HourlyScores!, q => Assert.True(q.Qualifies));
+        Assert.NotEmpty(conditions.Windows!);
+    }
+
+    [Fact]
+    public async Task CacheOnly_NoRows_HasNoWindows()
+    {
+        var h = new Harness(nameof(CacheOnly_NoRows_HasNoWindows));
+
+        var conditions = await h.Aggregator.GetConditionsAsync(h.Route, FetchMode.CacheOnly);
+
+        Assert.True(conditions.Windows is null || conditions.Windows.Count == 0);
+    }
 }
