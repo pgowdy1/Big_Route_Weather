@@ -171,6 +171,7 @@ function summary(slug: string, mountain = 'Test Mountain', overrides: Partial<Ro
     isStale: false,
     consensus: null,
     airQualityUsAqi: null,
+    nextWindow: null,
     ...overrides,
   };
 }

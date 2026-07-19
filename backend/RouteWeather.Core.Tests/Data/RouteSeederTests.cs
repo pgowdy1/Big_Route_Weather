@@ -67,4 +67,48 @@ public class RouteSeederTests
         Assert.True((await db.Routes.SingleAsync(r => r.Slug == "mount-rainier")).IsGlaciated);
         Assert.False((await db.Routes.SingleAsync(r => r.Slug == "pikes-peak")).IsGlaciated);
     }
+
+    [Fact]
+    public async Task Every_seeded_route_has_a_positive_typical_climb_duration()
+    {
+        await using var db = NewContext();
+        await RouteSeeder.SeedAsync(db);
+
+        var missing = await db.Routes
+            .Where(r => r.TypicalClimbHours <= 0)
+            .Select(r => r.Slug)
+            .ToListAsync();
+
+        Assert.True(missing.Count == 0, $"Routes without TypicalClimbHours: {string.Join(", ", missing)}");
+    }
+
+    [Theory]
+    [InlineData("mount-rainier", 12)]
+    [InlineData("liberty-bell", 7)]
+    [InlineData("capitol-peak", 14)]
+    [InlineData("mount-sherman", 5)]
+    public async Task Spot_check_typical_climb_hours(string slug, double expected)
+    {
+        await using var db = NewContext();
+        await RouteSeeder.SeedAsync(db);
+
+        var route = await db.Routes.SingleAsync(r => r.Slug == slug);
+        Assert.Equal(expected, route.TypicalClimbHours);
+    }
+
+    [Fact]
+    public async Task Reconciles_TypicalClimbHours_on_existing_rows()
+    {
+        await using var db = NewContext();
+        await RouteSeeder.SeedAsync(db);
+
+        var rainier = await db.Routes.SingleAsync(r => r.Slug == "mount-rainier");
+        rainier.TypicalClimbHours = 0;
+        await db.SaveChangesAsync();
+
+        await RouteSeeder.SeedAsync(db);
+
+        var after = await db.Routes.SingleAsync(r => r.Slug == "mount-rainier");
+        Assert.Equal(12, after.TypicalClimbHours);
+    }
 }

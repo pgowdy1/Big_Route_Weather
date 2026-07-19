@@ -8,5 +8,6 @@ public record Route(
     double SummitLat,
     double SummitLon,
     string ClassDifficulty,
-    string SnotelStationTriplet
+    string SnotelStationTriplet,
+    double TypicalClimbHours = 0
 );

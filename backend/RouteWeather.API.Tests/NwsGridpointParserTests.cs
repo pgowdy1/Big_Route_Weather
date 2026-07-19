@@ -42,14 +42,14 @@ public class NwsGridpointParserTests
         var snap = NwsGridpointParser.Parse(doc.RootElement, Now);
 
         Assert.NotNull(snap);
-        Assert.Equal(3, snap!.Next48Hours.Count); // 12:00, 13:00 (PT2H), 14:00 (PT1H)
+        Assert.Equal(3, snap!.Hourly.Count); // 12:00, 13:00 (PT2H), 14:00 (PT1H)
     }
 
     [Fact]
     public void Parse_convertsUnits()
     {
         using var doc = JsonDocument.Parse(SampleJson);
-        var h0 = NwsGridpointParser.Parse(doc.RootElement, Now)!.Next48Hours[0];
+        var h0 = NwsGridpointParser.Parse(doc.RootElement, Now)!.Hourly[0];
 
         Assert.Equal(50.0, h0.TempF, 1);                 // 10 C
         Assert.Equal(9.9, h0.WindMph, 1);                // 16 km/h
@@ -65,7 +65,7 @@ public class NwsGridpointParserTests
     public void Parse_buildsConditionsTextFromWeatherLayer()
     {
         using var doc = JsonDocument.Parse(SampleJson);
-        var h0 = NwsGridpointParser.Parse(doc.RootElement, Now)!.Next48Hours[0];
+        var h0 = NwsGridpointParser.Parse(doc.RootElement, Now)!.Hourly[0];
         Assert.Equal("Snow showers", h0.ShortForecast);
     }
 
@@ -112,7 +112,7 @@ public class NwsGridpointParserTests
         using var doc = JsonDocument.Parse(hostile);
         var snap = NwsGridpointParser.Parse(doc.RootElement, DateTimeOffset.Parse("2026-06-10T12:00:00+00:00"));
         Assert.NotNull(snap);
-        Assert.Single(snap!.Next48Hours); // only the one well-formed temperature hour survives
+        Assert.Single(snap!.Hourly); // only the one well-formed temperature hour survives
     }
 
     [Theory]
@@ -134,6 +134,37 @@ public class NwsGridpointParserTests
         var offsetNow = DateTimeOffset.Parse("2026-06-10T08:00:00-04:00");
         var snap = NwsGridpointParser.Parse(doc.RootElement, offsetNow);
         Assert.NotNull(snap);
-        Assert.Equal(3, snap!.Next48Hours.Count);
+        Assert.Equal(3, snap!.Hourly.Count);
+    }
+
+    [Fact]
+    public void Parse_series_beyond_48h_extends_hourly_but_pins_scalars_to_first_48()
+    {
+        var now = new DateTimeOffset(2026, 7, 20, 6, 0, 0, TimeSpan.Zero);
+        // 168h of 50°F temps and calm wind, except hour 100 is 90°F with 60 mph wind.
+        // If scalars leak past 48h, WindMph becomes 60 — so assert on WindMph and the hourly count.
+        var json = BuildGridpointJson(
+            tempF: Enumerable.Repeat(50.0, 168).Select((v, i) => i == 100 ? 90.0 : v).ToArray(),
+            windMph: Enumerable.Repeat(5.0, 168).Select((v, i) => i == 100 ? 60.0 : v).ToArray(),
+            startUtc: now);
+
+        using var doc = JsonDocument.Parse(json);
+        var snap = NwsGridpointParser.Parse(doc.RootElement, now);
+
+        Assert.NotNull(snap);
+        Assert.Equal(168, snap!.Hourly.Count);
+        Assert.Equal(5.0, snap.WindMph, 3);              // scalar ignores hour 100
+        Assert.Equal(60.0, snap.Hourly[100].WindMph, 3); // series carries it
+    }
+
+    private static string BuildGridpointJson(double[] tempF, double[] windMph, DateTimeOffset startUtc)
+    {
+        string Iso(DateTimeOffset t) => t.ToString("yyyy-MM-dd'T'HH:mm:ssK");
+        string Layer(string uom, double[] values) =>
+            $"{{\"uom\":\"{uom}\",\"values\":[" +
+            string.Join(',', values.Select((v, i) =>
+                $"{{\"validTime\":\"{Iso(startUtc.AddHours(i))}/PT1H\",\"value\":{v.ToString(System.Globalization.CultureInfo.InvariantCulture)}}}")) +
+            "]}";
+        return $"{{\"properties\":{{\"temperature\":{Layer("wmoUnit:degF", tempF)},\"windSpeed\":{Layer("wmoUnit:km_h-1", windMph.Select(w => w / 0.621371).ToArray())}}}}}";
     }
 }

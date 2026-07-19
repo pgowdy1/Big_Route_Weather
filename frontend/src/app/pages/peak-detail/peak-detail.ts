@@ -5,6 +5,8 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { GradeBadge } from '../../components/grade-badge/grade-badge';
 import { ConsensusBadge } from '../../components/consensus-badge/consensus-badge';
 import { Sparkline, SparklinePoint } from '../../components/sparkline/sparkline';
+import { ClimbWindowHero } from '../../components/climb-window-hero/climb-window-hero';
+import { WeekStrip } from '../../components/week-strip/week-strip';
 import { RoutesService } from '../../services/routes-service';
 import { FactorScore, Grade, RouteDetail, WindowGrade } from '../../models/route-conditions';
 import { SeoService } from '../../seo/seo.service';
@@ -23,7 +25,7 @@ interface WindowView {
 @Component({
   selector: 'app-peak-detail',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, DecimalPipe, GradeBadge, ConsensusBadge, Sparkline, RouterLink, UNIT_PIPES],
+  imports: [DatePipe, DecimalPipe, GradeBadge, ConsensusBadge, Sparkline, ClimbWindowHero, WeekStrip, RouterLink, UNIT_PIPES],
   templateUrl: './peak-detail.html',
   styleUrl: './peak-detail.scss',
 })

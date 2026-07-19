@@ -1,0 +1,20 @@
+@if (best(); as w) {
+  <div class="cwh">
+    <app-grade-badge [grade]="w.grade" />
+    <div class="cwh-body">
+      <p class="cwh-title">
+        Best window:
+        <strong>
+          @if (startsNow(w)) { Now } @else { {{ w.startUtc | date:'EEE' }} {{ w.startUtc | date:u.clockFmt() }} }
+          – @if (crossesDay(w)) { {{ w.endUtc | date:'EEE' }} } {{ w.endUtc | date:u.clockFmt() }}
+        </strong>
+      </p>
+      <p class="cwh-reason">
+        Window {{ w.endReason }}.
+        @if (w.lowConfidence) { <span class="cwh-conf">Low confidence — 5+ days out.</span> }
+      </p>
+    </div>
+  </div>
+} @else if (windows() !== null) {
+  <p class="cwh-none">No climbable window in the next 7 days.</p>
+}

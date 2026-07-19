@@ -32,9 +32,10 @@ public static class NwsGridpointParser
         var apparent = Layer(props, "apparentTemperature", spread: false);
         var weather = WeatherTextLayer(props);
 
+        const int horizonHours = 168;
         var start = new DateTimeOffset(nowUtc.Year, nowUtc.Month, nowUtc.Day, nowUtc.Hour, 0, 0, TimeSpan.Zero);
-        var hours = new List<HourlyForecast>(48);
-        for (var i = 0; i < 48; i++)
+        var hours = new List<HourlyForecast>(horizonHours);
+        for (var i = 0; i < horizonHours; i++)
         {
             var t = start.AddHours(i);
             if (!temp.Values.TryGetValue(t, out var tempVal)) continue;
@@ -55,14 +56,18 @@ public static class NwsGridpointParser
 
         if (hours.Count == 0) return null;
 
-        var gusts = hours.Where(h => h.GustMph.HasValue).Select(h => h.GustMph!.Value).ToList();
-        var amounts = hours.Where(h => h.PrecipitationIn.HasValue).Select(h => h.PrecipitationIn!.Value).ToList();
+        // Scalars describe the headline window only (see WeatherSnapshot invariant).
+        var head = WeatherSnapshot.HeadlineWindow(hours);
+        if (head.Count == 0) return null;
+
+        var gusts = head.Where(h => h.GustMph.HasValue).Select(h => h.GustMph!.Value).ToList();
+        var amounts = head.Where(h => h.PrecipitationIn.HasValue).Select(h => h.PrecipitationIn!.Value).ToList();
 
         return new WeatherSnapshot(
-            WindMph: hours.Max(h => h.WindMph),
-            TempF: hours.Min(h => h.TempF),
-            PrecipitationProbabilityPct: hours.Max(h => h.PrecipitationProbabilityPct),
-            Next48Hours: hours,
+            WindMph: head.Max(h => h.WindMph),
+            TempF: head.Min(h => h.TempF),
+            PrecipitationProbabilityPct: head.Max(h => h.PrecipitationProbabilityPct),
+            Hourly: hours,
             MaxGustMph: gusts.Count == 0 ? null : gusts.Max(),
             MaxCapeJkg: null,
             PrecipAmountIn: amounts.Count == 0 ? null : amounts.Sum());

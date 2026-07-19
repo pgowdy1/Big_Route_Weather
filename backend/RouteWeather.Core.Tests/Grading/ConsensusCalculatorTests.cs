@@ -11,7 +11,7 @@ public class ConsensusCalculatorTests
         WindMph: wind,
         TempF: temp,
         PrecipitationProbabilityPct: precip,
-        Next48Hours: Array.Empty<HourlyForecast>());
+        Hourly: Array.Empty<HourlyForecast>());
 
     private static ConsensusInput Input(string name, double wind, double temp, int precip, double weight = 1.0, IReadOnlySet<string>? active = null) =>
         new(new SourceSnapshot(name, Snapshot(wind, temp, precip), DateTimeOffset.UtcNow, active ?? ForecastFactors.All), weight);
@@ -265,7 +265,7 @@ public class ConsensusCalculatorTests
         var hour = new HourlyForecast(time, TempF: 50, WindMph: 10,
             PrecipitationProbabilityPct: popPct, ShortForecast: "", PrecipitationIn: amountIn);
         var snap = new WeatherSnapshot(WindMph: 10, TempF: 50,
-            PrecipitationProbabilityPct: popPct, Next48Hours: new[] { hour }, PrecipAmountIn: amountIn);
+            PrecipitationProbabilityPct: popPct, Hourly: new[] { hour }, PrecipAmountIn: amountIn);
         return new ConsensusInput(new SourceSnapshot(name, snap, DateTimeOffset.UtcNow, active),
             weight, precipVoteWeight);
     }
@@ -390,5 +390,36 @@ public class ConsensusCalculatorTests
         var atOne = calc.Compute(Build(1.0), 5).Blended!.PrecipitationProbabilityPct;
         var atSeventyFive = calc.Compute(Build(1.75), 5).Blended!.PrecipitationProbabilityPct;
         Assert.True(atSeventyFive < atOne, $"expected heavier NWS to lower consensus: {atSeventyFive} vs {atOne}");
+    }
+
+    private static ConsensusInput ConstantSeriesInput(string name, double wind, double temp, int hours, double weight)
+    {
+        var t0 = DateTimeOffset.Parse("2026-07-20T06:00:00Z");
+        var series = new List<HourlyForecast>(hours);
+        for (var i = 0; i < hours; i++)
+            series.Add(new HourlyForecast(t0.AddHours(i), temp, wind, 0, "Clear"));
+        var snap = new WeatherSnapshot(wind, temp, 0, series);
+        return new ConsensusInput(
+            new SourceSnapshot(name, snap, DateTimeOffset.UtcNow, ForecastFactors.All), weight);
+    }
+
+    [Fact]
+    public void Blend_extends_to_longest_series_when_high_weight_source_is_short()
+    {
+        // A: heavy weight but short horizon (48h); B: light weight, deep horizon (168h).
+        // The blend axis must follow the DEEPEST series, so the blended series reaches
+        // 168h; past hour 48 only B still votes. Weight governs voting, never reach.
+        var calc = new ConsensusCalculator();
+        var result = calc.Compute(new[]
+        {
+            ConstantSeriesInput("A", wind: 10, temp: 40, hours: 48,  weight: 2.0),
+            ConstantSeriesInput("B", wind: 10, temp: 60, hours: 168, weight: 1.0),
+        }, sourcesAttempted: 2);
+
+        Assert.NotNull(result.Blended);
+        Assert.Equal(168, result.Blended!.Hourly.Count);
+        Assert.Equal(47, result.Blended.Hourly[10].TempF);   // (40*2 + 60*1)/3 = 46.67 -> 47, both vote
+        Assert.Equal(60, result.Blended.Hourly[100].TempF);  // past A's horizon, B alone votes
+        Assert.Equal(47, result.Blended.TempF);              // headline scalar still the first-48h weighted mean
     }
 }

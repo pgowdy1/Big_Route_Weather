@@ -201,4 +201,77 @@ public class RoutesControllerTests
         var rockDetail = Json(await controller.GetBySlug("mt-rock", CancellationToken.None));
         Assert.False(rockDetail.GetProperty("isGlaciated").GetBoolean());
     }
+
+    private static ClimbWindow Window(int startHoursFromNow, int lengthHours, Grade grade, int score,
+        bool lowConfidence = false) => new(
+        DateTimeOffset.UtcNow.AddHours(startHoursFromNow),
+        DateTimeOffset.UtcNow.AddHours(startHoursFromNow + lengthHours),
+        grade, score, "closes as storm energy builds", lowConfidence);
+
+    [Fact]
+    public async Task GetAll_SerializesBestUpcomingWindowAsNextWindow()
+    {
+        var dbFactory = new TestDbContextFactory(nameof(GetAll_SerializesBestUpcomingWindowAsNextWindow));
+        await TestData.SeedRoutesAsync(dbFactory, TestData.Route());
+        var best = Window(30, 9, Grade.A, 95);
+        var fake = new FakeConditionsAggregator
+        {
+            OnGet = r => TestData.Conditions(r, isStale: false, windows: new[]
+            {
+                Window(-30, 8, Grade.B, 85),   // already past — ignored
+                Window(6, 8, Grade.B, 84),     // sooner but weaker
+                best,                          // strongest upcoming → nextWindow
+            }),
+        };
+        var controller = Build(dbFactory, fake);
+
+        var json = Json(await controller.GetAll(CancellationToken.None));
+        var nextWindow = json[0].GetProperty("nextWindow");
+
+        Assert.Equal("A", nextWindow.GetProperty("grade").GetString());
+        Assert.Equal(best.StartUtc, nextWindow.GetProperty("startUtc").GetDateTimeOffset());
+        Assert.False(nextWindow.GetProperty("lowConfidence").GetBoolean());
+    }
+
+    [Fact]
+    public async Task GetAll_NoUpcomingWindows_SerializesNullNextWindow()
+    {
+        var dbFactory = new TestDbContextFactory(nameof(GetAll_NoUpcomingWindows_SerializesNullNextWindow));
+        await TestData.SeedRoutesAsync(dbFactory, TestData.Route());
+        var fake = new FakeConditionsAggregator
+        {
+            OnGet = r => TestData.Conditions(r, isStale: false, windows: new[] { Window(-30, 8, Grade.A, 95) }),
+        };
+        var controller = Build(dbFactory, fake);
+
+        var json = Json(await controller.GetAll(CancellationToken.None));
+
+        Assert.Equal(JsonValueKind.Null, json[0].GetProperty("nextWindow").ValueKind);
+    }
+
+    [Fact]
+    public async Task GetBySlug_SerializesUpcomingClimbWindowsAndDailyDaylight()
+    {
+        var dbFactory = new TestDbContextFactory(nameof(GetBySlug_SerializesUpcomingClimbWindowsAndDailyDaylight));
+        await TestData.SeedRoutesAsync(dbFactory, TestData.Route());
+        var fake = new FakeConditionsAggregator
+        {
+            OnGet = r => TestData.Conditions(r, isStale: false, windows: new[]
+            {
+                Window(-30, 8, Grade.A, 95),   // past — filtered out
+                Window(6, 8, Grade.B, 84, lowConfidence: true),
+            }),
+        };
+        var controller = Build(dbFactory, fake);
+
+        var json = Json(await controller.GetBySlug("mt-test", CancellationToken.None));
+
+        var windows = json.GetProperty("climbWindows");
+        Assert.Equal(1, windows.GetArrayLength());
+        Assert.Equal("closes as storm energy builds", windows[0].GetProperty("endReason").GetString());
+        Assert.True(windows[0].GetProperty("lowConfidence").GetBoolean());
+
+        // Read-time daylight covers the horizon: 9 mid-latitude entries.
+        Assert.Equal(9, json.GetProperty("dailyDaylight").GetArrayLength());
+    }
 }

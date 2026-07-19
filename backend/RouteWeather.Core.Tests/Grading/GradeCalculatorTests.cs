@@ -10,13 +10,13 @@ public class GradeCalculatorTests
         WindMph: 5,
         TempF: 45,
         PrecipitationProbabilityPct: 0,
-        Next48Hours: Array.Empty<HourlyForecast>());
+        Hourly: Array.Empty<HourlyForecast>());
 
     private static WeatherSnapshot Terrible() => new(
         WindMph: 80,
         TempF: -20,
         PrecipitationProbabilityPct: 100,
-        Next48Hours: Array.Empty<HourlyForecast>());
+        Hourly: Array.Empty<HourlyForecast>());
 
     private static SnowpackSnapshot PerfectSnowpack() => new(
         SnowWaterEquivalentIn: 5,
@@ -69,7 +69,7 @@ public class GradeCalculatorTests
     [Fact]
     public void Drivers_lead_with_negatives_when_present()
     {
-        var bad = new WeatherSnapshot(WindMph: 60, TempF: 40, PrecipitationProbabilityPct: 0, Next48Hours: Array.Empty<HourlyForecast>());
+        var bad = new WeatherSnapshot(WindMph: 60, TempF: 40, PrecipitationProbabilityPct: 0, Hourly: Array.Empty<HourlyForecast>());
         var result = GradeCalculator.Compute(bad, PerfectSnowpack());
         Assert.Equal("negative", result.Drivers[0].Severity);
     }
@@ -83,7 +83,7 @@ public class GradeCalculatorTests
         // Under rebalanced weights wind 21 (score 63, wt 0.20) drags an otherwise
         // perfect winter profile to a natural 89 -> B, so the >20 B-cap is redundant
         // (cap only binds when natural is strictly better) and no "Capped" prefix shows.
-        var windy = new WeatherSnapshot(WindMph: 21, TempF: 45, PrecipitationProbabilityPct: 0, Next48Hours: Array.Empty<HourlyForecast>());
+        var windy = new WeatherSnapshot(WindMph: 21, TempF: 45, PrecipitationProbabilityPct: 0, Hourly: Array.Empty<HourlyForecast>());
         var result = GradeCalculator.Compute(windy, WinterSnowpackWithTraceRecent());
         Assert.Equal(Grade.B, result.Grade);
         Assert.Equal(89, result.OverallScore);
@@ -96,7 +96,7 @@ public class GradeCalculatorTests
     {
         // 35% precip (score 56, wt 0.18) yields a natural 88 -> B; the >30 B-cap is
         // redundant with the natural grade, so no "Capped" prefix shows.
-        var wet = new WeatherSnapshot(WindMph: 5, TempF: 45, PrecipitationProbabilityPct: 35, Next48Hours: Array.Empty<HourlyForecast>());
+        var wet = new WeatherSnapshot(WindMph: 5, TempF: 45, PrecipitationProbabilityPct: 35, Hourly: Array.Empty<HourlyForecast>());
         var result = GradeCalculator.Compute(wet, WinterSnowpackWithTraceRecent());
         Assert.Equal(Grade.B, result.Grade);
         Assert.Equal(88, result.OverallScore);
@@ -109,7 +109,7 @@ public class GradeCalculatorTests
         // Wind 22 (B-cap) + precip 80 (score 0, D-cap). Natural weighted mean is 63 -> D,
         // which already matches the worst (D) cap, so the cap is redundant and the
         // rationale is the natural-D form. Precipitation is the worst factor.
-        var bad = new WeatherSnapshot(WindMph: 22, TempF: 45, PrecipitationProbabilityPct: 80, Next48Hours: Array.Empty<HourlyForecast>());
+        var bad = new WeatherSnapshot(WindMph: 22, TempF: 45, PrecipitationProbabilityPct: 80, Hourly: Array.Empty<HourlyForecast>());
         var result = GradeCalculator.Compute(bad, WinterSnowpackWithTraceRecent());
         Assert.Equal(Grade.D, result.Grade);
         Assert.Equal(63, result.OverallScore);
@@ -120,7 +120,7 @@ public class GradeCalculatorTests
     [Fact]
     public void Cap_does_not_raise_grade_above_natural()
     {
-        var bad = new WeatherSnapshot(WindMph: 22, TempF: 100, PrecipitationProbabilityPct: 100, Next48Hours: Array.Empty<HourlyForecast>());
+        var bad = new WeatherSnapshot(WindMph: 22, TempF: 100, PrecipitationProbabilityPct: 100, Hourly: Array.Empty<HourlyForecast>());
         var result = GradeCalculator.Compute(bad, TerribleSnowpack());
         Assert.Equal(Grade.F, result.Grade);
     }
@@ -128,7 +128,7 @@ public class GradeCalculatorTests
     [Fact]
     public void Cold_temp_extreme_triggers_temperature_cap()
     {
-        var freezing = new WeatherSnapshot(WindMph: 5, TempF: -5, PrecipitationProbabilityPct: 0, Next48Hours: Array.Empty<HourlyForecast>());
+        var freezing = new WeatherSnapshot(WindMph: 5, TempF: -5, PrecipitationProbabilityPct: 0, Hourly: Array.Empty<HourlyForecast>());
         var result = GradeCalculator.Compute(freezing, PerfectSnowpack());
         Assert.True((int)result.Grade >= (int)Grade.C, $"Expected at least C cap from -5°F, got {result.Grade}");
         Assert.Contains("Capped at", result.Rationale);
@@ -153,7 +153,7 @@ public class GradeCalculatorTests
     [Fact]
     public void Capped_factor_surfaces_as_first_driver()
     {
-        var windy = new WeatherSnapshot(WindMph: 25, TempF: 45, PrecipitationProbabilityPct: 0, Next48Hours: Array.Empty<HourlyForecast>());
+        var windy = new WeatherSnapshot(WindMph: 25, TempF: 45, PrecipitationProbabilityPct: 0, Hourly: Array.Empty<HourlyForecast>());
         var result = GradeCalculator.Compute(windy, PerfectSnowpack());
         Assert.NotEmpty(result.Drivers);
         Assert.Equal("High winds", result.Drivers[0].Label);
@@ -172,7 +172,7 @@ public class GradeCalculatorTests
     public void Summer_dry_route_marks_snow_factors_inactive()
     {
         var summer = new WeatherSnapshot(WindMph: 5, TempF: 60, PrecipitationProbabilityPct: 0,
-            Next48Hours: new[] { new HourlyForecast(DateTimeOffset.UtcNow, 60, 5, 0, "Sunny") });
+            Hourly: new[] { new HourlyForecast(DateTimeOffset.UtcNow, 60, 5, 0, "Sunny") });
         var result = GradeCalculator.Compute(summer, DryRouteSnowpack());
 
         var recent = result.Factors.Single(f => f.Name == "Recent snow");
@@ -185,7 +185,7 @@ public class GradeCalculatorTests
     public void Summer_dry_route_excludes_snow_factors_from_weight_sum()
     {
         var summer = new WeatherSnapshot(WindMph: 5, TempF: 60, PrecipitationProbabilityPct: 0,
-            Next48Hours: new[] { new HourlyForecast(DateTimeOffset.UtcNow, 60, 5, 0, "Sunny") });
+            Hourly: new[] { new HourlyForecast(DateTimeOffset.UtcNow, 60, 5, 0, "Sunny") });
 
         var weatherOnly = GradeCalculator.Compute(summer, snowpack: null);
         var withDryPack = GradeCalculator.Compute(summer, DryRouteSnowpack());
@@ -198,7 +198,7 @@ public class GradeCalculatorTests
     public void Lingering_depth_without_new_snow_keeps_snowpack_active_recent_inactive()
     {
         var summer = new WeatherSnapshot(WindMph: 5, TempF: 60, PrecipitationProbabilityPct: 0,
-            Next48Hours: new[] { new HourlyForecast(DateTimeOffset.UtcNow, 60, 5, 0, "Sunny") });
+            Hourly: new[] { new HourlyForecast(DateTimeOffset.UtcNow, 60, 5, 0, "Sunny") });
         var lingering = new SnowpackSnapshot(
             SnowWaterEquivalentIn: 2,
             SnowDepthIn: 8,
@@ -220,7 +220,7 @@ public class GradeCalculatorTests
     public void Forecast_snow_keeps_recent_active_but_snowpack_inactive()
     {
         var snowy = new WeatherSnapshot(WindMph: 5, TempF: 30, PrecipitationProbabilityPct: 60,
-            Next48Hours: new[] { new HourlyForecast(DateTimeOffset.UtcNow, 30, 5, 60, "Snow showers") });
+            Hourly: new[] { new HourlyForecast(DateTimeOffset.UtcNow, 30, 5, 60, "Snow showers") });
         var result = GradeCalculator.Compute(snowy, DryRouteSnowpack());
 
         var recent = result.Factors.Single(f => f.Name == "Recent snow");
@@ -232,7 +232,7 @@ public class GradeCalculatorTests
     [Fact]
     public void Existing_snowpack_keeps_both_active()
     {
-        var weather = new WeatherSnapshot(WindMph: 5, TempF: 40, PrecipitationProbabilityPct: 0, Next48Hours: Array.Empty<HourlyForecast>());
+        var weather = new WeatherSnapshot(WindMph: 5, TempF: 40, PrecipitationProbabilityPct: 0, Hourly: Array.Empty<HourlyForecast>());
         var winter = new SnowpackSnapshot(
             SnowWaterEquivalentIn: 8,
             SnowDepthIn: 30,
