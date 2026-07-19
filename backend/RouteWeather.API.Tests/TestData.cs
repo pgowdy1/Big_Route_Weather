@@ -17,6 +17,7 @@ public static class TestData
         SummitLon = -110.8,
         ClassDifficulty = "2",
         SnotelStationTriplet = "999:WY:SNTL",
+        TypicalClimbHours = 8,
         RangeId = 1,
     };
 
