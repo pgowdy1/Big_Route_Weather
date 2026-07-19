@@ -24,6 +24,9 @@ public class RouteEntity
 
     public bool IsGlaciated { get; set; }
 
+    /// <summary>Typical summit-day push in hours (car-to-car or camp-to-camp), slow end of guidebook ranges.</summary>
+    public double TypicalClimbHours { get; set; }
+
     [MaxLength(40)]
     public string SnotelStationTriplet { get; set; } = string.Empty;
 

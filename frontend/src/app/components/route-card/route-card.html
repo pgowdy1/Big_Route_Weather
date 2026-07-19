@@ -31,4 +31,15 @@
       <li [class]="'pill pill-' + d.severity">{{ d.label }}</li>
     }
   </ul>
+
+  @if (route().nextWindow; as w) {
+    <p class="next-window">
+      Next window:
+      <strong>
+        @if (startsNow(w)) { Now } @else { {{ w.startUtc | date:'EEE' }} {{ w.startUtc | date:u.clockFmt() }} }
+        – @if (crossesDay(w)) { {{ w.endUtc | date:'EEE' }} } {{ w.endUtc | date:u.clockFmt() }} · {{ w.grade }}
+      </strong>
+      @if (w.lowConfidence) { <span class="win-conf">low confidence</span> }
+    </p>
+  }
 </a>

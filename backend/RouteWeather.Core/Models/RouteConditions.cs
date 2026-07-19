@@ -44,5 +44,7 @@ public record RouteConditions(
     SourceFreshness Sources,
     ConsensusReport? Consensus,
     IReadOnlyList<PerSourceForecast>? PerSourceForecast,
-    AirQualitySnapshot? AirQuality = null
+    AirQualitySnapshot? AirQuality = null,
+    IReadOnlyList<ClimbWindow>? Windows = null,
+    IReadOnlyList<HourlyQuality>? HourlyScores = null
 );

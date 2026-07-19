@@ -51,25 +51,27 @@ public class ConsensusCalculator
         var wind = WeightedMean(windInputs, s => s.WindMph);
         var temp = WeightedMean(tempInputs, s => s.TempF);
 
-        var baseline = inputs.OrderByDescending(i => i.Weight).First().Source.Snapshot;
-        var blendedHours = BlendHourly(inputs, baseline.Next48Hours);
+        // Axis = the longest hourly series among sources, NOT the highest-weight one:
+        // the blend extends to the deepest horizon available and hours past a source's
+        // range simply have fewer voters. Weight governs voting, never reach.
+        var axis = inputs.OrderByDescending(i => i.Source.Snapshot.Hourly.Count).First().Source.Snapshot.Hourly;
+        var blendedHours = BlendHourly(inputs, axis);
 
-        // Headline new-fields are derived from the blended hourly series for consistency with
-        // WindowGradeCalculator.Aggregate: max gust, max CAPE, summed precip amount.
-        var blendedGusts = blendedHours.Where(h => h.GustMph.HasValue).Select(h => h.GustMph!.Value).ToList();
-        var blendedCapes = blendedHours.Where(h => h.CapeJkg.HasValue).Select(h => h.CapeJkg!.Value).ToList();
-        var blendedAmounts = blendedHours.Where(h => h.PrecipitationIn.HasValue).Select(h => h.PrecipitationIn!.Value).ToList();
+        // Blended scalars keep the WeatherSnapshot invariant: they describe the first
+        // HeadlineHours of the blended series even when sources extend to 7 days.
+        var head = WeatherSnapshot.HeadlineWindow(blendedHours);
+
+        var blendedGusts = head.Where(h => h.GustMph.HasValue).Select(h => h.GustMph!.Value).ToList();
+        var blendedCapes = head.Where(h => h.CapeJkg.HasValue).Select(h => h.CapeJkg!.Value).ToList();
+        var blendedAmounts = head.Where(h => h.PrecipitationIn.HasValue).Select(h => h.PrecipitationIn!.Value).ToList();
 
         return new WeatherSnapshot(
             WindMph: Math.Round(wind),
             TempF: Math.Round(temp),
-            // Headline PoP = worst hour of the blended consensus series. The weighted-mean
-            // branch is a fallback only for the degenerate empty-hours case (test fixtures);
-            // production snapshots always carry an hourly series.
-            PrecipitationProbabilityPct: blendedHours.Count == 0
+            PrecipitationProbabilityPct: head.Count == 0
                 ? (int)Math.Round(WeightedMean(precipInputs, s => s.PrecipitationProbabilityPct))
-                : blendedHours.Max(h => h.PrecipitationProbabilityPct),
-            Next48Hours: blendedHours,
+                : head.Max(h => h.PrecipitationProbabilityPct),
+            Hourly: blendedHours,
             MaxGustMph: blendedGusts.Count == 0 ? null : blendedGusts.Max(),
             MaxCapeJkg: blendedCapes.Count == 0 ? null : blendedCapes.Max(),
             PrecipAmountIn: blendedAmounts.Count == 0 ? null : blendedAmounts.Sum());
@@ -88,18 +90,18 @@ public class ConsensusCalculator
 
     private static IReadOnlyList<HourlyForecast> BlendHourly(
         IReadOnlyList<ConsensusInput> inputs,
-        IReadOnlyList<HourlyForecast> baseline)
+        IReadOnlyList<HourlyForecast> axis)
     {
         var windInputs = Active(inputs, ForecastFactors.Wind);
         var tempInputs = Active(inputs, ForecastFactors.Temperature);
 
-        var result = new List<HourlyForecast>(baseline.Count);
-        for (var i = 0; i < baseline.Count; i++)
+        var result = new List<HourlyForecast>(axis.Count);
+        for (var i = 0; i < axis.Count; i++)
         {
-            var hour = baseline[i].Time;
-            var temp = HourlyMean(tempInputs, hour, h => h.TempF, baseline[i].TempF);
-            var wind = HourlyMean(windInputs, hour, h => h.WindMph, baseline[i].WindMph);
-            var precip = HourlyPrecipConsensus(inputs, hour, baseline[i].PrecipitationProbabilityPct);
+            var hour = axis[i].Time;
+            var temp = HourlyMean(tempInputs, hour, h => h.TempF, axis[i].TempF);
+            var wind = HourlyMean(windInputs, hour, h => h.WindMph, axis[i].WindMph);
+            var precip = HourlyPrecipConsensus(inputs, hour, axis[i].PrecipitationProbabilityPct);
 
             // New fields blend by value presence across ALL inputs (not ActiveFactors-gated):
             // a source that doesn't report a field contributes nothing to that field's mean.
@@ -115,7 +117,7 @@ public class ConsensusCalculator
                 TempF: Math.Round(temp),
                 WindMph: Math.Round(wind),
                 PrecipitationProbabilityPct: (int)Math.Round(precip),
-                ShortForecast: baseline[i].ShortForecast,
+                ShortForecast: axis[i].ShortForecast,
                 GustMph: gustH is null ? null : Math.Round(gustH.Value),
                 CapeJkg: capeH is null ? null : Math.Round(capeH.Value),
                 PrecipitationIn: amountH,
@@ -136,7 +138,7 @@ public class ConsensusCalculator
         var weight = 0.0;
         foreach (var input in inputs)
         {
-            var match = FindNearestHour(input.Source.Snapshot.Next48Hours, target);
+            var match = FindNearestHour(input.Source.Snapshot.Hourly, target);
             if (match is null) continue;
             sum += select(match) * input.Weight;
             weight += input.Weight;
@@ -158,7 +160,7 @@ public class ConsensusCalculator
         var weight = 0.0;
         foreach (var input in inputs)
         {
-            var match = FindNearestHour(input.Source.Snapshot.Next48Hours, target);
+            var match = FindNearestHour(input.Source.Snapshot.Hourly, target);
             if (match is null) continue;
             var vote = PrecipVote.For(input.Source, match);
             if (vote is null) continue;
@@ -178,7 +180,7 @@ public class ConsensusCalculator
         var weight = 0.0;
         foreach (var input in inputs)
         {
-            var match = FindNearestHour(input.Source.Snapshot.Next48Hours, target);
+            var match = FindNearestHour(input.Source.Snapshot.Hourly, target);
             var v = match is null ? null : select(match);
             if (v is null) continue;
             sum += v.Value * input.Weight;

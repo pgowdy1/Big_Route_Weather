@@ -1,0 +1,15 @@
+@if (days().length > 0) {
+  <div class="strip" role="img" aria-label="Hour-by-hour climbable conditions for the next 7 days">
+    @for (day of days(); track $index) {
+      <div class="day" [style.flex-grow]="day.cells.length">
+        <span class="day-label">{{ day.label }}</span>
+        <div class="cells">
+          @for (c of day.cells; track $index) {
+            <span [class]="'cell ' + c.cls"></span>
+          }
+        </div>
+      </div>
+    }
+  </div>
+  <p class="strip-legend">Solid = climbable hour · dimmed = night · hatched = 5+ days out (lower confidence)</p>
+}

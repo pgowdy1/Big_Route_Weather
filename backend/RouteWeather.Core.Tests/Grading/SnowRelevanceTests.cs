@@ -7,7 +7,7 @@ namespace RouteWeather.Core.Tests.Grading;
 public class SnowRelevanceTests
 {
     private static WeatherSnapshot WeatherWith(params HourlyForecast[] hours) =>
-        new(WindMph: 5, TempF: 50, PrecipitationProbabilityPct: 0, Next48Hours: hours);
+        new(WindMph: 5, TempF: 50, PrecipitationProbabilityPct: 0, Hourly: hours);
 
     private static HourlyForecast Hour(string shortForecast, double tempF = 60, int precip = 0) =>
         new(Time: DateTimeOffset.UtcNow, TempF: tempF, WindMph: 5, PrecipitationProbabilityPct: precip, ShortForecast: shortForecast);

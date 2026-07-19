@@ -17,6 +17,7 @@ public static class TestData
         SummitLon = -110.8,
         ClassDifficulty = "2",
         SnotelStationTriplet = "999:WY:SNTL",
+        TypicalClimbHours = 8,
         RangeId = 1,
     };
 
@@ -33,13 +34,17 @@ public static class TestData
     /// Benign weather that grades well, with enough hourly data for window grades.
     /// Captures wall-clock UtcNow at call time — tests asserting exact time
     /// boundaries should build their own snapshots with explicit timestamps.
-    public static WeatherSnapshot Snapshot() => new(
-        WindMph: 5,
-        TempF: 30,
-        PrecipitationProbabilityPct: 10,
-        Next48Hours: Enumerable.Range(0, 48)
-            .Select(i => new HourlyForecast(DateTimeOffset.UtcNow.AddHours(i), 30, 5, 10, "Clear"))
-            .ToList());
+    public static WeatherSnapshot Snapshot()
+    {
+        var t0 = DateTimeOffset.UtcNow;
+        return new(
+            WindMph: 5,
+            TempF: 30,
+            PrecipitationProbabilityPct: 10,
+            Hourly: Enumerable.Range(0, 48)
+                .Select(i => new HourlyForecast(t0.AddHours(i), 30, 5, 10, "Clear"))
+                .ToList());
+    }
 
     /// Minimal RouteConditions for controller tests (grade present, no weather detail).
     public static RouteConditions Conditions(
@@ -47,7 +52,8 @@ public static class TestData
         bool isStale,
         AirQualitySnapshot? airQuality = null,
         DateTimeOffset? airQualityFetchedAt = null,
-        IReadOnlyList<PerSourceForecast>? perSourceForecast = null) => new(
+        IReadOnlyList<PerSourceForecast>? perSourceForecast = null,
+        IReadOnlyList<ClimbWindow>? windows = null) => new(
         new RouteWeather.Core.Models.Route(
             r.Slug, r.Mountain, r.RouteName, r.SummitElevationFt,
             r.SummitLat, r.SummitLon, r.ClassDifficulty, r.SnotelStationTriplet),
@@ -64,7 +70,8 @@ public static class TestData
         new SourceFreshness(null, null, airQualityFetchedAt),
         null,
         perSourceForecast,
-        airQuality);
+        airQuality,
+        windows);
 
     public static async Task SeedRoutesAsync(TestDbContextFactory factory, params RouteEntity[] routes)
     {

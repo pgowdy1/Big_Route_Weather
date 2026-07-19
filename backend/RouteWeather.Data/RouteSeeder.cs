@@ -17,6 +17,52 @@ public static class RouteSeeder
         "mount-conness", "gannett-peak", "mount-helen", "mount-sacagawea",
     };
 
+    // Typical summit-day push (car-to-car or camp-to-camp), hours, slow end of
+    // guidebook ranges. Single source of truth; reconciled onto existing rows.
+    private static readonly Dictionary<string, double> TypicalClimbHoursBySlug = new()
+    {
+        // Cascades
+        ["mount-rainier"] = 12, ["mount-hood"] = 9, ["mount-adams"] = 11, ["mount-baker"] = 10,
+        ["mount-shasta"] = 11, ["glacier-peak"] = 14, ["mount-st-helens"] = 9, ["mount-shuksan"] = 14,
+        ["mount-stuart"] = 14, ["forbidden-peak"] = 14, ["dragontail-peak"] = 14, ["eldorado-peak"] = 12,
+        ["sahale-peak"] = 10, ["liberty-bell"] = 7, ["bonanza-peak"] = 14, ["goode-mountain"] = 16,
+        ["black-peak"] = 10, ["sloan-peak"] = 12, ["silver-star-mountain"] = 10, ["south-sister"] = 9,
+        ["north-sister"] = 12, ["mount-jefferson"] = 14, ["mount-thielsen"] = 8, ["mount-mcloughlin"] = 8,
+        ["lassen-peak"] = 6,
+        // Sierra
+        ["mount-whitney"] = 14, ["mount-williamson"] = 16, ["north-palisade"] = 14, ["mount-sill"] = 14,
+        ["mount-russell"] = 12, ["mount-langley"] = 11, ["mount-conness"] = 12, ["cathedral-peak"] = 8,
+        ["matterhorn-peak"] = 12, ["mount-dana"] = 7, ["mount-lyell"] = 12, ["mount-ritter"] = 12,
+        ["banner-peak"] = 12, ["mount-humphreys"] = 12, ["mount-darwin"] = 14, ["temple-crag"] = 14,
+        ["bear-creek-spire"] = 12, ["mount-brewer"] = 14, ["middle-palisade"] = 14, ["mount-tyndall"] = 14,
+        // Wind River
+        ["gannett-peak"] = 12, ["fremont-peak"] = 10, ["mount-helen"] = 12, ["mount-sacagawea"] = 12,
+        ["wind-river-peak"] = 14,
+        // Sawtooth
+        ["thompson-peak"] = 8, ["mount-heyburn"] = 8, ["mount-cramer"] = 10, ["williams-peak"] = 8,
+        ["snowyside-peak"] = 9,
+        // Wasatch
+        ["mount-timpanogos"] = 8, ["mount-nebo"] = 7, ["lone-peak"] = 10, ["pfeifferhorn"] = 8,
+        ["mount-olympus"] = 6, ["box-elder-peak"] = 7, ["broads-fork-twin-peaks"] = 9, ["dromedary-peak"] = 8,
+        ["sunrise-peak"] = 8, ["mount-superior"] = 7, ["mount-raymond"] = 7,
+        // Colorado 14ers
+        ["mount-elbert"] = 8, ["mount-massive"] = 9, ["mount-harvard"] = 10, ["blanca-peak"] = 10,
+        ["la-plata-peak"] = 8, ["uncompahgre-peak"] = 7, ["crestone-peak"] = 12, ["mount-lincoln"] = 6,
+        ["grays-peak"] = 6, ["mount-antero"] = 9, ["torreys-peak"] = 7, ["castle-peak"] = 9,
+        ["quandary-peak"] = 6, ["mount-evans"] = 7, ["longs-peak"] = 13, ["mount-wilson"] = 12,
+        ["mount-cameron"] = 6, ["mount-shavano"] = 8, ["mount-belford"] = 8, ["crestone-needle"] = 12,
+        ["mount-princeton"] = 8, ["mount-yale"] = 8, ["mount-bross"] = 6, ["kit-carson-peak"] = 12,
+        ["el-diente-peak"] = 12, ["maroon-peak"] = 12, ["tabeguache-peak"] = 10, ["mount-oxford"] = 9,
+        ["mount-sneffels"] = 8, ["mount-democrat"] = 6, ["capitol-peak"] = 14, ["pikes-peak"] = 12,
+        ["snowmass-mountain"] = 13, ["mount-eolus"] = 12, ["windom-peak"] = 11, ["challenger-point"] = 11,
+        ["mount-columbia"] = 9, ["missouri-mountain"] = 9, ["humboldt-peak"] = 8, ["mount-bierstadt"] = 6,
+        ["conundrum-peak"] = 10, ["sunlight-peak"] = 12, ["handies-peak"] = 6, ["culebra-peak"] = 7,
+        ["ellingwood-point"] = 10, ["mount-lindsey"] = 9, ["north-eolus"] = 11, ["little-bear-peak"] = 12,
+        ["mount-sherman"] = 5, ["redcloud-peak"] = 8, ["pyramid-peak"] = 12, ["wilson-peak"] = 10,
+        ["wetterhorn-peak"] = 9, ["north-maroon-peak"] = 12, ["san-luis-peak"] = 8,
+        ["mount-of-the-holy-cross"] = 11, ["huron-peak"] = 7, ["sunshine-peak"] = 9,
+    };
+
     public static async Task SeedAsync(RouteWeatherContext db, CancellationToken ct = default)
     {
         var ranges = await EnsureRangesAsync(db, ct);
@@ -42,6 +88,7 @@ public static class RouteSeeder
         }
 
         await ReconcileGlaciatedAsync(db, ct);
+        await ReconcileTypicalClimbHoursAsync(db, ct);
     }
 
     // The add-only path above never updates rows that already exist, so an
@@ -57,6 +104,24 @@ public static class RouteSeeder
             if (row.IsGlaciated != shouldBe)
             {
                 row.IsGlaciated = shouldBe;
+                changed = true;
+            }
+        }
+        if (changed) await db.SaveChangesAsync(ct);
+    }
+
+    // Same add-only gap as IsGlaciated: bring every existing row's TypicalClimbHours
+    // in line with the catalog. Slugs missing from the catalog are left untouched.
+    private static async Task ReconcileTypicalClimbHoursAsync(RouteWeatherContext db, CancellationToken ct)
+    {
+        var rows = await db.Routes.ToListAsync(ct);
+        var changed = false;
+        foreach (var row in rows)
+        {
+            if (!TypicalClimbHoursBySlug.TryGetValue(row.Slug, out var hours)) continue;
+            if (Math.Abs(row.TypicalClimbHours - hours) > 0.001)
+            {
+                row.TypicalClimbHours = hours;
                 changed = true;
             }
         }
@@ -144,6 +209,9 @@ public static class RouteSeeder
 
         foreach (var r in routes)
             r.IsGlaciated = GlaciatedSlugs.Contains(r.Slug);
+
+        foreach (var r in routes)
+            r.TypicalClimbHours = TypicalClimbHoursBySlug[r.Slug];
 
         return routes;
     }

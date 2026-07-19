@@ -21,10 +21,12 @@ public static class SnowRelevance
 
     public static bool IsSnowExpected(WeatherSnapshot? weather)
     {
-        var hourly = weather?.Next48Hours;
+        var hourly = weather?.Hourly;
         if (hourly is null || hourly.Count == 0) return false;
 
-        foreach (var h in hourly)
+        // Only the headline window gates today's active-state (see WeatherSnapshot invariant):
+        // snow forecast on days 5–7 of the 7-day series must not flip RecentSnow relevance now.
+        foreach (var h in WeatherSnapshot.HeadlineWindow(hourly))
         {
             if (h.PrecipitationProbabilityPct >= LikelyPrecipPct &&
                 !string.IsNullOrEmpty(h.ShortForecast) &&
