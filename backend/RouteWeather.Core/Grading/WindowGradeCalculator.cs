@@ -39,7 +39,7 @@ public static class WindowGradeCalculator
             Rationale: result.Rationale);
     }
 
-    private static WeatherSnapshot Aggregate(IReadOnlyList<HourlyForecast> slice)
+    internal static WeatherSnapshot Aggregate(IReadOnlyList<HourlyForecast> slice)
     {
         var gusts = slice.Where(h => h.GustMph.HasValue).Select(h => h.GustMph!.Value).ToList();
         var capes = slice.Where(h => h.CapeJkg.HasValue).Select(h => h.CapeJkg!.Value).ToList();
