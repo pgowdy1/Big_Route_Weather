@@ -413,8 +413,16 @@ export function markerIconSpec(route: Pick<RouteSummary, 'grade'>): MarkerIconSp
   return { className: 'peak-marker', dotClass: `grade-${route.grade.toLowerCase()}`, interactive: true };
 }
 
-export function tileUrlFor(theme: 'dark' | 'light'): string {
-  return `https://{s}.basemaps.cartocdn.com/${theme === 'light' ? 'light_all' : 'dark_all'}/{z}/{x}/{y}{r}.png`;
+// CARTO stopped serving keyless raster tiles (Sept 2026) — without a key the
+// basemap renders "API KEY REQUIRED" watermarks. Free keys (5M tiles/month
+// non-commercial): https://carto.com/basemaps/apikey. The key ships in the
+// bundle by design; it only authorizes basemap reads.
+export const CARTO_API_KEY = 'cb1_58k5_1_baadf0f5162c5cb735f01b8a';
+
+export function tileUrlFor(theme: 'dark' | 'light', key: string = CARTO_API_KEY): string {
+  const style = theme === 'light' ? 'light_all' : 'dark_all';
+  const keyParam = key ? `?key=${key}` : '';
+  return `https://{s}.basemaps.cartocdn.com/${style}/{z}/{x}/{y}{r}.png${keyParam}`;
 }
 
 // elevationText is built by formatElevationText from trusted numeric + enum
