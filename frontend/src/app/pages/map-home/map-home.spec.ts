@@ -3,7 +3,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
 import { vi } from 'vitest';
-import { MapHome, markerIconSpec, popupHtml, tileUrlFor } from './map-home';
+import { CARTO_API_KEY, MapHome, markerIconSpec, popupHtml, tileUrlFor } from './map-home';
 import { RouteSummary } from '../../models/route-conditions';
 
 describe('MapHome', () => {
@@ -332,7 +332,16 @@ describe('popupHtml', () => {
 
 describe('tileUrlFor', () => {
   it('selects the CARTO basemap matching the resolved theme', () => {
-    expect(tileUrlFor('dark')).toBe('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png');
-    expect(tileUrlFor('light')).toBe('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png');
+    expect(tileUrlFor('dark', '')).toBe('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png');
+    expect(tileUrlFor('light', '')).toBe('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png');
+  });
+
+  it('appends the CARTO api key when one is configured', () => {
+    expect(tileUrlFor('dark', 'abc123')).toBe('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=abc123');
+    expect(tileUrlFor('light', 'abc123')).toBe('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?key=abc123');
+  });
+
+  it('defaults to the shared CARTO_API_KEY constant', () => {
+    expect(tileUrlFor('dark')).toBe(tileUrlFor('dark', CARTO_API_KEY));
   });
 });
